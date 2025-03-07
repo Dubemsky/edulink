@@ -3,6 +3,8 @@ from datetime import datetime
 import pytz
 from .faiss import *
 import numpy as np
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 
 def add_message(role, room_id, sender, content, message_type="text", file_url=None, video_url=None, image_url=None,poll_options=None):
@@ -144,6 +146,26 @@ def get_notifications_by_username(username):
 
     return notifications_list  # Return the list of notifications
 
+@csrf_exempt
+def mark_notification_read(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            notification_id = data.get('notification_id')
+            print("I am here now")
+            
+            # Delete the notification from Firebase
+            if notification_id:
+                db.collection('notifications').document(notification_id).delete()
+                return JsonResponse({'success': True, 'message': 'Notification marked as read'})
+            else:
+                return JsonResponse({'success': False, 'error': 'Notification ID is required'}, status=400)
+                
+        except Exception as e:
+            print(f"Error marking notification as read: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
 
 
 

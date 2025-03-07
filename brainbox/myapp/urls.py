@@ -48,8 +48,12 @@ urlpatterns = [
     path('vote-reply/', vote_reply, name='vote_reply'),
     path('poll-voting/', poll_voting, name='poll_voting'),
     path('log-tab-click/', log_tab_click, name='log_tab_click'),
+    path('get-user-votes/', get_user_votes, name='get_user_votes'),
     path('get_suggestions/', get_suggestions, name='get_suggestions'),
+    path('check-poll-votes/', check_poll_votes, name='check_poll_votes'),
     path('bookmark-questions/',bookmark_questions,name="bookmark_questions"),
+    path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
+    path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
     path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
 
 ]

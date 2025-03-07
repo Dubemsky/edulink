@@ -375,61 +375,237 @@
 
 
 <script>
+
+const currentRoomId = "{{ room_id|escapejs }}";
+const currentUserName = "{{ current_teachers_name|escapejs }}";
+
+// Add CSS for toast notifications
+document.head.insertAdjacentHTML('beforeend', `
+<style>
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+</style>
+`);
+
+
+
+
+
+
+// User's poll votes storage
+const userPollVotes = {}; // Format: { pollId: selectedOption }
+
+// Function to submit a poll vote
 function submitPollVote(messageId, roomId) {
     const form = document.getElementById(`poll-form-${messageId}`);
     const selectedOption = form.querySelector(`input[name="poll-option-${messageId}"]:checked`);
-
-    if (selectedOption) {
-        const selectedValue = selectedOption.value;
-
-        fetch("{% url 'poll_voting' %}", { 
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                "X-CSRFToken": getCookie("csrftoken"),
-            },
-            body: JSON.stringify({
-                message_id: messageId,
-                room_id: roomId,
-                selected_option: selectedValue,
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Update the vote counts on the page
-            if (data.success) {
-                data.poll_options.forEach((option, index) => {
-                    const voteCountElement = document.getElementById(`vote-count-${messageId}-${index + 1}`);
-                    if (voteCountElement) {
-                        voteCountElement.textContent = option.votes;
-                    }
-                });
-            } else {
-                alert('Error submitting vote.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred.');
-        });
-    } else {
-        alert('Please select an option.');
+    const voteButton = document.getElementById(`poll-vote-${messageId}`);
+    
+    // If user has already voted for this poll
+    if (userPollVotes[messageId]) {
+        showToast("You've already voted in this poll", "info");
+        return;
     }
+    
+    if (!selectedOption) {
+        showToast("Please select an option", "error");
+        return;
+    }
+    
+    const selectedValue = selectedOption.value;
+    
+    // Disable the vote button during submission
+    voteButton.disabled = true;
+    voteButton.textContent = "Voting...";
+    
+    fetch("/poll-voting/", { 
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: JSON.stringify({
+            message_id: messageId,
+            room_id: roomId,
+            selected_option: selectedValue,
+            username: currentUserName
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        voteButton.disabled = false;
+        voteButton.textContent = "Vote";
+        
+        if (data.success) {
+            // Update the vote counts in the UI
+            data.poll_options.forEach((option, index) => {
+                const voteCountElement = document.getElementById(`vote-count-${messageId}-${index + 1}`);
+                if (voteCountElement) {
+                    voteCountElement.textContent = option.votes;
+                }
+            });
+            
+            // Store the user's vote
+            userPollVotes[messageId] = selectedValue;
+            
+            // Change the UI to show the user has voted
+            markPollAsVoted(messageId, selectedValue);
+            
+            showToast("Vote submitted successfully", "success");
+        } else {
+            if (data.error === "already_voted") {
+                showToast("You've already voted in this poll", "info");
+                
+                // Update the UI to reflect the user's previous vote
+                if (data.user_vote) {
+                    userPollVotes[messageId] = data.user_vote;
+                    markPollAsVoted(messageId, data.user_vote);
+                }
+            } else {
+                showToast("Failed to submit vote", "error");
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        voteButton.disabled = false;
+        voteButton.textContent = "Vote";
+        showToast("An error occurred", "error");
+    });
 }
 
-function getCookie(name) {
-        const cookies = document.cookie.split("; ");
-        for (let cookie of cookies) {
-            let [key, value] = cookie.split("=");
-            if (key === name) return decodeURIComponent(value);
+// Function to mark a poll as voted for this user
+function markPollAsVoted(messageId, selectedValue) {
+    const form = document.getElementById(`poll-form-${messageId}`);
+    const voteButton = document.getElementById(`poll-vote-${messageId}`);
+    const radioButtons = form.querySelectorAll(`input[type="radio"]`);
+    
+    // Disable all radio buttons
+    radioButtons.forEach(radio => {
+        radio.disabled = true;
+        
+        // Highlight the user's choice
+        if (radio.value === selectedValue) {
+            radio.checked = true;
+            radio.parentElement.classList.add('user-voted');
         }
-    }
+    });
+    
+    // Change the vote button to show "Voted"
+    voteButton.textContent = "Voted";
+    voteButton.disabled = true;
+    voteButton.classList.add('voted');
+    
+    // Add a class to the form to show it's been voted on
+    form.classList.add('voted');
+}
+
+// Function to check user's poll votes when loading the page
+function checkUserPollVotes() {
+    // Get all poll IDs on the page
+    const pollForms = document.querySelectorAll('form[id^="poll-form-"]');
+    const pollIds = Array.from(pollForms).map(form => form.dataset.messageId);
+    
+    if (pollIds.length === 0) return;
+    
+    fetch("/check-poll-votes/", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            username: currentUserName,
+            poll_ids: pollIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.votes) {
+            // Update userPollVotes and UI for each poll
+            Object.entries(data.votes).forEach(([pollId, voteInfo]) => {
+                userPollVotes[pollId] = voteInfo.option;
+                markPollAsVoted(pollId, voteInfo.option);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error checking poll votes:', error);
+    });
+}
+
+// Add CSS for voted polls
+const pollStyles = `
+.poll-vote-button.voted {
+    background-color: #4CAF50;
+    cursor: default;
+}
+
+form.voted .pollOptionInput {
+    opacity: 0.7;
+}
+
+li.user-voted {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.poll-results-bar {
+    height: 10px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    margin-top: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.poll-results-fill {
+    height: 100%;
+    background-color: #2196F3;
+    border-radius: 5px;
+    transition: width 0.5s ease-in-out;
+}
+
+.poll-option-votes {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.poll-option-text {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.poll-option-count {
+    font-weight: bold;
+    min-width: 30px;
+    text-align: right;
+}
+`;
+
+// Add the styles to the head
+document.head.insertAdjacentHTML('beforeend', `<style>${pollStyles}</style>`);
+
+// Call this function when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Check user's poll votes
+    checkUserPollVotes();
+});
 
 
 
 
 
-document.addEventListener('DOMContentLoaded', function () {
+
+
+    document.addEventListener('DOMContentLoaded', function () {
     // Access the roomId passed from Django context
     const roomId = "{{ room_id|escapejs }}";  // Ensure the roomId is properly passed from Django context
 
@@ -621,70 +797,226 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     
-let csrftoken; // Declare it globally
+const userVotes = {}; // To track user votes: {replyId: "up"|"down"|null}
 
-document.addEventListener("DOMContentLoaded", function () {
-    // Get the CSRF token once the page is loaded
-    csrftoken = document.cookie.split('; ')
-        .find(row => row.startsWith('csrftoken='))?.split('=')[1];
-
-    // Add event listeners to vote buttons
+function attachVoteHandlers() {
+    // Add event listeners to all vote buttons
     document.querySelectorAll(".vote-button").forEach(button => {
-        button.addEventListener("click", function () {
+        button.addEventListener("click", function() {
             const replyId = this.dataset.replyId;
             const voteType = this.classList.contains("upvote") ? "up" : "down";
-
-            // Change the button color to blue and disable it after voting
-            this.classList.add('voted'); // Add 'voted' class to indicate the button was clicked
-            this.disabled = true; // Disable the button to prevent re-voting
-
-            // Call the vote function
-            vote(replyId, voteType);
+            handleVote(replyId, voteType, this);
         });
     });
-});
+}
 
-// The vote function
-function vote(replyId, voteType) {
-    const username = "{{ current_teachers_name|escapejs }}";
-    console.log(`Vote action triggered: ${voteType} for reply ID ${replyId} by ${username}`);
+function handleVote(replyId, voteType, buttonElement) {
+    // Get the opposing button (if upvote was clicked, get the downvote button and vice versa)
+    const container = buttonElement.closest('.reply-footer');
+    const upvoteButton = container.querySelector('.upvote');
+    const downvoteButton = container.querySelector('.downvote');
+    const voteCountElement = container.querySelector('.vote-count');
+    const currentVoteCount = parseInt(voteCountElement.textContent.trim(), 10) || 0;
+    
+    // Get current vote state for this reply
+    const currentVote = userVotes[replyId];
+    
+    // User is clicking the same button they already voted on - remove vote
+    if (currentVote === voteType) {
+        // Remove vote styling
+        buttonElement.classList.remove('voted');
+        
+        // Send request to remove vote
+        sendVoteRequest(replyId, 'remove', currentVoteCount, voteCountElement);
+        
+        // Update tracking
+        userVotes[replyId] = null;
+        
+        showToast(`Vote removed`, "info");
+        return;
+    }
+    
+    // User is changing vote from one type to another
+    if (currentVote && currentVote !== voteType) {
+        // Remove styling from previous vote
+        if (currentVote === 'up') {
+            upvoteButton.classList.remove('voted');
+        } else {
+            downvoteButton.classList.remove('voted');
+        }
+        
+        // Add styling to new vote
+        buttonElement.classList.add('voted');
+        
+        // Send request to change vote
+        sendVoteRequest(replyId, 'change', currentVoteCount, voteCountElement, voteType, currentVote);
+        
+        // Update tracking
+        userVotes[replyId] = voteType;
+        
+        showToast(`Vote changed to ${voteType}vote`, "info");
+        return;
+    }
+    
+    // User is voting for the first time
+    buttonElement.classList.add('voted');
+    
+    // Send request to add vote
+    sendVoteRequest(replyId, 'add', currentVoteCount, voteCountElement, voteType);
+    
+    // Update tracking
+    userVotes[replyId] = voteType;
+    
+    showToast(`${voteType === 'up' ? 'Upvoted' : 'Downvoted'} reply`, "success");
+}
 
-    fetch("{% url 'vote_reply' %}", {  // Ensure this URL is properly rendered by Django
-        method: "POST",
+function sendVoteRequest(replyId, action, currentCount, countElement, newVote = null, oldVote = null) {
+    // Immediately update the UI optimistically
+    let newCount = currentCount;
+    
+    if (action === 'add') {
+        newCount += newVote === 'up' ? 1 : -1;
+    } else if (action === 'remove') {
+        newCount += userVotes[replyId] === 'up' ? -1 : 1;
+    } else if (action === 'change') {
+        // If changing from up to down, that's -2 (remove up, add down)
+        // If changing from down to up, that's +2 (remove down, add up)
+        newCount += newVote === 'up' ? 2 : -2;
+    }
+    
+    // Update the UI immediately
+    countElement.textContent = newCount;
+    
+    // Make the API request
+    fetch('/vote-reply/', {
+        method: 'POST',
         headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrftoken  // Use the CSRF token here
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
         },
-        body: JSON.stringify({ reply_id: replyId, vote_type: voteType, username: username })
+        body: JSON.stringify({
+            reply_id: replyId,
+            vote_type: newVote,
+            username: currentUserName,
+            action: action,
+            old_vote: oldVote
+        })
     })
     .then(response => response.json())
     .then(data => {
-        if (data.message) {
-            // Success, update the vote count
-            updateVoteCount(replyId, voteType);
+        if (!data.success) {
+            // If there was an error, revert the UI
+            countElement.textContent = currentCount;
+            showToast(data.error || "Error updating vote", "error");
+            
+            // Revert the vote tracking
+            if (action === 'add') {
+                userVotes[replyId] = null;
+            } else if (action === 'remove') {
+                userVotes[replyId] = oldVote;
+            } else if (action === 'change') {
+                userVotes[replyId] = oldVote;
+            }
+            
+            // Revert the UI classes
+            const container = countElement.closest('.reply-footer');
+            const upvoteButton = container.querySelector('.upvote');
+            const downvoteButton = container.querySelector('.downvote');
+            
+            upvoteButton.classList.remove('voted');
+            downvoteButton.classList.remove('voted');
+            
+            if (userVotes[replyId] === 'up') {
+                upvoteButton.classList.add('voted');
+            } else if (userVotes[replyId] === 'down') {
+                downvoteButton.classList.add('voted');
+            }
         } else {
-            alert(data.error); // Show error message if any
+            // Update the count with the actual value from the server
+            if (data.newCount !== undefined) {
+                countElement.textContent = data.newCount;
+            }
         }
     })
-    .catch(error => console.error("Error:", error));
+    .catch(error => {
+        console.error('Error updating vote:', error);
+        showToast("Network error while voting", "error");
+        
+        // Revert the UI
+        countElement.textContent = currentCount;
+    });
 }
 
-// Function to update the vote count dynamically
-function updateVoteCount(replyId, voteType) {
-    const voteCountElement = document.getElementById(`vote-count-${replyId}`);
-    let currentVotes = parseInt(voteCountElement.innerText);
-
-    // Update the vote count based on the vote type (up or down)
-    if (voteType === "up") {
-        currentVotes++;
-    } else if (voteType === "down") {
-        currentVotes--;
-    }
-
-    // Update the vote count in the UI
-    voteCountElement.innerText = currentVotes;
+// Function to get the current vote for a reply
+function fetchUserVotes() {
+    // Get all reply IDs currently visible in the side panel
+    const replyIds = [];
+    document.querySelectorAll('.reply-footer .vote-button').forEach(button => {
+        const replyId = button.dataset.replyId;
+        if (replyId && !replyIds.includes(replyId)) {
+            replyIds.push(replyId);
+        }
+    });
+    
+    if (replyIds.length === 0) return;
+    
+    // Fetch vote status for these replies
+    fetch('/get-user-votes/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            username: currentUserName,
+            reply_ids: replyIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.votes) {
+            // Update userVotes and UI
+            Object.entries(data.votes).forEach(([replyId, voteType]) => {
+                userVotes[replyId] = voteType;
+                
+                // Update UI to show voted state
+                const container = document.querySelector(`.vote-button[data-reply-id="${replyId}"]`).closest('.reply-footer');
+                const upvoteButton = container.querySelector('.upvote');
+                const downvoteButton = container.querySelector('.downvote');
+                
+                upvoteButton.classList.remove('voted');
+                downvoteButton.classList.remove('voted');
+                
+                if (voteType === 'up') {
+                    upvoteButton.classList.add('voted');
+                } else if (voteType === 'down') {
+                    downvoteButton.classList.add('voted');
+                }
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching vote status:', error);
+    });
 }
 
+// CSS for voted buttons
+const voteStyles = `
+.vote-button.voted {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+.vote-button.upvote.voted i {
+    color: white;
+}
+.vote-button.downvote.voted i {
+    color: white;
+}
+`;
+
+// Add the styles to the head
+document.head.insertAdjacentHTML('beforeend', `<style>${voteStyles}</style>`);
 
 
 
@@ -933,12 +1265,238 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
     
-        const socket = window.socket;
-    
-    
+function createMessageElement(sender, message, createdAt, role, messageId, imageUrl, fileUrl, videoUrl, pollOptions, roomUrl) {
+    const newMessage = document.createElement("div");
+    newMessage.className = "message-box";
+    newMessage.dataset.message = message;
+    newMessage.dataset.messageId = messageId;
+
+    // Set appropriate class based on sender
+    if (sender === currentUserName) {
+        newMessage.classList.add(role === "teacher" ? "current-teacher-message" : "current-user-message");
+    } else if (role === "teacher") {
+        newMessage.classList.add("teacher-message");
+    } else {
+        newMessage.classList.add("other-user-message");
+    }
+
+    // Create sender span
+    const senderSpan = document.createElement("span");
+    senderSpan.className = "message-sender";
+    senderSpan.textContent = sender === currentUserName ? "Me" : sender;
+    newMessage.appendChild(senderSpan);
+
+    // Handle image if present
+    if (imageUrl) {
+        const imgLink = document.createElement("a");
+        imgLink.href = imageUrl;
+        imgLink.target = "_blank";
+        imgLink.className = "message-image";
+
+        const imgElement = document.createElement("img");
+        imgElement.src = imageUrl;
+        imgElement.style.maxWidth = "400px";
+        imgElement.style.height = "200px";
+
+        imgLink.appendChild(imgElement);
+        newMessage.appendChild(imgLink);
+    }
+
+    // Handle file if present
+    if (fileUrl) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "message-file";
+
+        const fileLink = document.createElement("a");
+        fileLink.href = fileUrl;
+        fileLink.target = "_blank";
+
+        const fileIcon = document.createElement("img");
+        fileIcon.src = "https://cdn-icons-png.flaticon.com/512/337/337946.png";
+        fileIcon.alt = "File";
+        fileIcon.style.width = "100px";
+        fileIcon.style.height = "100px";
+
+        fileLink.appendChild(fileIcon);
+        fileDiv.appendChild(fileLink);
         
-        // Handle incoming messages from the WebSocket
-        socket.onmessage = function (event) {
+        if (message && message !== "my file") {
+            const messageText = document.createElement("span");
+            messageText.textContent = message;
+            fileDiv.appendChild(messageText);
+        }
+        
+        newMessage.appendChild(fileDiv);
+    }
+
+    // Handle video if present
+    else if (videoUrl) {
+        const videoDiv = document.createElement("div");
+        videoDiv.className = "message-video";
+
+        const videoElement = document.createElement("video");
+        videoElement.src = videoUrl;
+        videoElement.controls = true;
+        videoElement.style.maxWidth = "200px";
+        videoElement.style.maxHeight = "200px";
+
+        videoDiv.appendChild(videoElement);
+        newMessage.appendChild(videoDiv);
+    }
+
+    // Handle poll if present
+    else if (pollOptions) {
+    // Use our enhanced poll display function
+    const pollContainer = createPollElement(message, messageId, pollOptions, roomUrl);
+    newMessage.appendChild(pollContainer);
+}
+    else {
+        // Plain text message
+        const contentSpan = document.createElement("div");
+        contentSpan.className = "message-text";
+        contentSpan.textContent = message;
+        newMessage.appendChild(contentSpan);
+        
+        // Add the top reply section for non-poll messages
+        const topReplyDiv = document.createElement("div");
+        topReplyDiv.className = "top-reply no-reply";
+        
+        const emText = document.createElement("em");
+        emText.textContent = "No replies yet.";
+        
+        topReplyDiv.appendChild(emText);
+        newMessage.appendChild(topReplyDiv);
+    }
+
+    // Add timestamp
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "message-time";
+    timeSpan.textContent = typeof createdAt === 'string' ? createdAt : 
+                          (createdAt instanceof Date ? createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 
+                          new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    newMessage.appendChild(timeSpan);
+
+    // Add click event to open side panel for non-poll messages
+    if (!pollOptions) {
+        newMessage.addEventListener("click", function() {
+            openSidePanel(message, messageId);
+        });
+    }
+
+    return newMessage;
+}
+// Enhanced function to create poll UI with percentages and progress bars
+function createPollElement(message, messageId, pollOptions, roomUrl) {
+    const pollContainer = document.createElement("div");
+    pollContainer.classList.add("message-poll");
+
+    const question = document.createElement("strong");
+    question.textContent = message;
+    pollContainer.appendChild(question);
+
+    const form = document.createElement("form");
+    form.id = `poll-form-${messageId}`;
+    form.dataset.messageId = messageId;
+    form.dataset.roomId = roomUrl;
+
+    const optionsList = document.createElement("ul");
+    optionsList.style.listStyle = "none";
+    optionsList.style.padding = "0";
+    optionsList.style.margin = "10px 0";
+
+    // Calculate total votes for percentages
+    let totalVotes = 0;
+    pollOptions.forEach(option => {
+        totalVotes += option.votes || 0;
+    });
+
+    pollOptions.forEach((option, index) => {
+        const optionText = option.option;
+        const votes = option.votes || 0;
+        const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+
+        const optionItem = document.createElement("li");
+        optionItem.style.margin = "8px 0";
+        optionItem.style.padding = "5px";
+
+        // Radio button for voting
+        const radioContainer = document.createElement("div");
+        radioContainer.style.display = "flex";
+        radioContainer.style.alignItems = "center";
+        radioContainer.style.marginBottom = "5px";
+
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.id = `option-${messageId}-${index + 1}`;
+        radio.name = `poll-option-${messageId}`;
+        radio.value = optionText;
+        radio.style.marginRight = "8px";
+
+        const label = document.createElement("label");
+        label.htmlFor = `option-${messageId}-${index + 1}`;
+        label.textContent = optionText;
+        label.style.margin = "0";
+        label.style.fontSize = "14px";
+        label.style.cursor = "pointer";
+
+        radioContainer.appendChild(radio);
+        radioContainer.appendChild(label);
+        optionItem.appendChild(radioContainer);
+
+        // Results display
+        const resultsContainer = document.createElement("div");
+        
+        // Option text and vote count
+        const optionInfoDiv = document.createElement("div");
+        optionInfoDiv.className = "poll-option-votes";
+        
+        const optionTextSpan = document.createElement("span");
+        optionTextSpan.className = "poll-option-text";
+        optionTextSpan.textContent = `${percentage}%`;
+        
+        const voteCountSpan = document.createElement("span");
+        voteCountSpan.className = "poll-option-count";
+        voteCountSpan.id = `vote-count-${messageId}-${index + 1}`;
+        voteCountSpan.textContent = votes;
+        
+        optionInfoDiv.appendChild(optionTextSpan);
+        optionInfoDiv.appendChild(voteCountSpan);
+        resultsContainer.appendChild(optionInfoDiv);
+        
+        // Progress bar
+        const progressBar = document.createElement("div");
+        progressBar.className = "poll-results-bar";
+        
+        const progressFill = document.createElement("div");
+        progressFill.className = "poll-results-fill";
+        progressFill.style.width = `${percentage}%`;
+        
+        progressBar.appendChild(progressFill);
+        resultsContainer.appendChild(progressBar);
+        
+        optionItem.appendChild(resultsContainer);
+        optionsList.appendChild(optionItem);
+    });
+
+    form.appendChild(optionsList);
+
+    const voteButton = document.createElement("button");
+    voteButton.type = "button";
+    voteButton.classList.add("poll-vote-button");
+    voteButton.id = `poll-vote-${messageId}`;
+    voteButton.textContent = "Vote";
+    voteButton.style.marginTop = "10px";
+    voteButton.onclick = function() {
+        submitPollVote(messageId, roomUrl);
+    };
+
+    form.appendChild(voteButton);
+    pollContainer.appendChild(form);
+    
+    return pollContainer;
+}
+
+socket.onmessage = function (event) {
     try {
         const data = JSON.parse(event.data);
         const messageData = data.message;
@@ -950,169 +1508,37 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             } else {
                 const chatMessages = document.getElementById("chatMessages");
-                const newMessage = document.createElement("div");
-                newMessage.classList.add("message-box");
-
-                if (messageData.sender === currentUserName) {
-                    newMessage.classList.add("current-teacher-message");
-                } else {
-                    newMessage.classList.add("other-user-message");
-                }
-
-                const formattedTime = new Date(messageData.created_at).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
+                
+                // Format the timestamp
+                const formattedTime = new Date(messageData.created_at).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    hour12: false 
                 });
-
-                // **Display File Message**
-                if (messageData.file_url) {
-                    const fileLink = document.createElement("a");
-                    fileLink.href = messageData.file_url;
-                    fileLink.target = "_blank";
-
-                    const fileIcon = document.createElement("img");
-                    fileIcon.src = "https://cdn-icons-png.flaticon.com/512/337/337946.png";
-                    fileIcon.alt = "File";
-                    fileIcon.style.width = "100px";
-                    fileIcon.style.height = "100px";
-                    fileIcon.style.marginRight = "8px";
-
-                    fileLink.appendChild(fileIcon);
-                    newMessage.appendChild(fileLink);
-                } 
-
-                // **Display Video Message**
-                else if (messageData.video_url) {
-                    console.log("Adding video message");
-
-                    const videoElement = document.createElement("video");
-                    videoElement.src = messageData.video_url;
-                    videoElement.controls = true;
-                    videoElement.style.maxWidth = "200px";
-                    videoElement.style.maxHeight = "200px";
-
-                    newMessage.appendChild(videoElement);
-                }
-
-                // **Display Image Message**
-                else if (messageData.image_url) {
-                    const imgElement = document.createElement("img");
-                    imgElement.src = messageData.image_url;
-                    imgElement.style.maxWidth = "400px";
-                    imgElement.style.height = "200px";
-
-                    newMessage.appendChild(imgElement);
-                }
-
-                // **Display Poll Message**
-                else if (messageData.is_poll) {
-    console.log("This is where the poll will be.. I have successfully done it");
-
-    const pollContainer = document.createElement("div");
-    pollContainer.classList.add("message-poll");
-
-    const question = document.createElement("strong");
-    question.textContent = messageData.message;
-    pollContainer.appendChild(question);
-
-    const form = document.createElement("form"); // Create form
-    form.id = `poll-form-${messageData.message_id}`; // Add form id
-    form.dataset.messageId = messageData.message_id;
-    form.dataset.roomId = messageData.room_url;
-
-    const optionsList = document.createElement("ul");
-
-    if (messageData.poll_options) {
-        messageData.poll_options.forEach((optionText, index) => { // optionText is now just the string
-            const option = {
-                option: optionText,
-                votes: 0 // Initialize votes to 0
-            };
-
-            const optionItem = document.createElement("li");
-
-            // Create radio button
-            const radio = document.createElement("input");
-            radio.type = "radio";
-            radio.id = `option-${messageData.message_id}-${index + 1}`;
-            radio.name = `poll-option-${messageData.message_id}`;
-            radio.value = option.option;
-
-            // Create label
-            const label = document.createElement("label");
-            label.htmlFor = `option-${messageData.message_id}-${index + 1}`;
-            label.textContent = option.option;
-
-            // Create vote count span
-            const voteCount = document.createElement("span");
-            voteCount.classList.add("vote-count");
-            voteCount.id = `vote-count-${messageData.message_id}-${index + 1}`;
-            voteCount.textContent = option.votes;
-
-            optionItem.appendChild(radio);
-            optionItem.appendChild(label);
-            optionItem.appendChild(voteCount);
-            optionsList.appendChild(optionItem);
-        });
-    }
-
-    form.appendChild(optionsList);
-
-    // Create vote button
-    const voteButton = document.createElement("button");
-    voteButton.type = "button";
-    voteButton.classList.add("poll-vote-button");
-    voteButton.id = `poll-vote-${messageData.message_id}`;
-    voteButton.textContent = "Vote";
-    voteButton.onclick = function() {
-        submitPollVote(messageData.message_id, messageData.room_url);
-    };
-
-    form.appendChild(voteButton);
-    pollContainer.appendChild(form); // Add form to poll container
-    newMessage.appendChild(pollContainer);
-
-    // Do NOT add onclick to open side panel for polls.
-}
-                else {
-                    // **Display Text Message**
-                    if (messageData.message) { 
-                        const messageContentSpan = document.createElement("span");
-                        messageContentSpan.className = "message-content";
-                        messageContentSpan.textContent = messageData.message;
-                        newMessage.appendChild(messageContentSpan);
-                    }
-                }
-
-                // **Display Sender Name**
-                const senderSpan = document.createElement("span");
-                senderSpan.className = "message-sender";
-                senderSpan.textContent = messageData.sender;
-                newMessage.appendChild(senderSpan);
-
-                // **Display Timestamp**
-                const timeSpan = document.createElement("span");
-                timeSpan.className = "message-time";
-                timeSpan.textContent = formattedTime;
-                newMessage.appendChild(timeSpan);
-
-                // **Click Event to Open Side Panel**
-                if (!messageData.is_poll) { //Only add onclick to open sidepanel if it is not a poll.
-                    newMessage.onclick = function () {
-                        const messageId = messageData.message_id;
-                        openSidePanel(messageData.message, messageId);
-                    };
-                }
-
+                
+                // Create the message element using our improved function
+                const newMessage = createMessageElement(
+                    messageData.sender,
+                    messageData.message,
+                    formattedTime,
+                    messageData.role || "teacher",
+                    messageData.message_id,
+                    messageData.image_url,
+                    messageData.file_url,
+                    messageData.video_url,
+                    messageData.is_poll ? messageData.poll_options : null,
+                    messageData.room_url || currentRoomId
+                );
+                
                 chatMessages.appendChild(newMessage);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         }
     } catch (error) {
-        console.error("❌ Error handling message:", error);
+        console.error("❌ Error handling message for teacher:", error);
     }
 };
+   
     
     
     
@@ -1167,48 +1593,45 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Toggle the side panel
     function openSidePanel(messageContent, messageId) {
-        const sidePanel = document.getElementById('side-panel');
-        const panelTitle = document.getElementById('panel-title');
-        const chatSection = document.querySelector('.chat-section');
-        const rightSidebar = document.querySelector('.right-sidebar');
-        
-        // Get the room ID from the Django template
-        const roomId = "{{ room_id|escapejs }}";
-    
-        if (sidePanel.classList.contains('open')) {
-            // Close the side panel
-            sidePanel.classList.remove('open');
-            chatSection.style.marginLeft = '0';
-            rightSidebar.style.marginLeft = '0';
-    
-            // Reset the URL to remove messageId
-            const newUrl = `/teachers-dashboard/hub-room/${roomId}/`;
-            window.history.pushState({ path: newUrl }, "", newUrl);
-    
-            // Reset the global messageId
-            currentMessageId = null;
-        } else {
-            // Open the side panel
-            panelTitle.textContent = messageContent;
-            sidePanel.classList.add('open');
-            chatSection.style.marginLeft = '250px';
-            rightSidebar.style.marginLeft = 'none';
-    
-            // Store the messageId in the global variable
-            currentMessageId = messageId;
-    
-            // Construct the correct URL format
-            const newUrl = `/teachers-dashboard/hub-room/${roomId}/${currentMessageId}/`;
-            window.history.pushState({ path: newUrl }, "", newUrl);
-    
-            // Fetch existing messages/replies for the messageId from the server
-            fetch(newUrl, {
-                method: "GET",
-                headers: {
-                    "X-Requested-With": "XMLHttpRequest" // Identify it as an AJAX request
-                }
-            })
-            .then(response => response.json()) // Expecting JSON response
+    const sidePanel = document.getElementById('side-panel');
+    const panelTitle = document.getElementById('panel-title');
+    const chatSection = document.querySelector('.chat-section');
+    const rightSidebar = document.querySelector('.right-sidebar');
+
+    if (sidePanel.classList.contains('open')) {
+        // Close the side panel
+        sidePanel.classList.remove('open');
+        chatSection.style.marginLeft = '0';
+        rightSidebar.style.marginLeft = '0';
+
+        // Reset the URL to remove messageId
+        const newUrl = `/teachers-dashboard/hub-room/${currentRoomId}/`;
+        window.history.pushState({ path: newUrl }, "", newUrl);
+
+        // Reset the global messageId
+        currentMessageId = null;
+    } else {
+        // Open the side panel
+        panelTitle.textContent = messageContent;
+        sidePanel.classList.add('open');
+        chatSection.style.marginLeft = '250px';
+        rightSidebar.style.marginLeft = 'none';
+
+        // Store the messageId in the global variable
+        currentMessageId = messageId;
+
+        // Construct the correct URL format
+        const newUrl = `/teachers-dashboard/hub-room/${currentRoomId}/${currentMessageId}/`;
+        window.history.pushState({ path: newUrl }, "", newUrl);
+
+        // Fetch existing messages/replies for the messageId from the server
+        fetch(newUrl, {
+            method: "GET",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest" // Identify it as an AJAX request
+            }
+        })
+        .then(response => response.json()) // Expecting JSON response
         .then(data => {
             console.log("Received messages:", data);
             const messagesArea = document.getElementById('sidePanelMessages');
@@ -1229,72 +1652,114 @@ document.addEventListener("DOMContentLoaded", function () {
                     <p class="reply-content">${message.reply_content}</p>
                     
                     <div class="reply-footer">
-    <button class="vote-button upvote" data-reply-id="${message.reply_id}">
-        <i class="fa fa-arrow-up"></i>
-    </button>
-    <span class="vote-count" id="vote-count-${message.reply_id}">
-        ${message.upvotes - message.downvotes}
-    </span>
-    <button class="vote-button downvote" data-reply-id="${message.reply_id}">
-        <i class="fa fa-arrow-down"></i>
-    </button>
-</div>
-
-
+                        <button class="vote-button upvote" data-reply-id="${message.reply_id}">
+                            <i class="fa fa-arrow-up"></i>
+                        </button>
+                        <span class="vote-count" id="vote-count-${message.reply_id}">
+                            ${message.upvotes - message.downvotes}
+                        </span>
+                        <button class="vote-button downvote" data-reply-id="${message.reply_id}">
+                            <i class="fa fa-arrow-down"></i>
+                        </button>
+                    </div>
+                    </div>
                 `;
                 messagesArea.appendChild(messageElement);
-                messageElement.querySelectorAll('.vote-button').forEach(button => {
-            button.addEventListener("click", function () {
-                const replyId = this.dataset.replyId;
-                const voteType = this.classList.contains("upvote") ? "up" : "down";
-                vote(replyId, voteType);
             });
-        });
 
-            }
-        );
-        addBookmarkButtonListener();
+            // After appending all messages, attach vote handlers and fetch vote status
+            attachVoteHandlers();
+            fetchUserVotes();
+
+            // Check bookmark status and add listeners
+            addBookmarkButtonListener();
         })
-
-
-            .catch(error => {
-                console.error("Error fetching message:", error);
-            });
-        }
+        .catch(error => {
+            console.error("Error fetching message:", error);
+        });
     }
+}
 
+function showToast(message, type) {
+    // Remove any existing toast
+    const existingToast = document.getElementById('toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.position = 'fixed';
+        toastContainer.style.bottom = '20px';
+        toastContainer.style.right = '20px';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast
+    const toast = document.createElement('div');
+    toast.id = 'toast-notification';
+    toast.style.backgroundColor = type === 'error' ? '#f44336' : 
+                                  type === 'success' ? '#4CAF50' : 
+                                  type === 'info' ? '#2196F3' : '#333';
+    toast.style.color = 'white';
+    toast.style.padding = '16px';
+    toast.style.borderRadius = '4px';
+    toast.style.marginTop = '10px';
+    toast.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    toast.style.minWidth = '250px';
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    toast.textContent = message;
+    
+    // Add toast to container
+    toastContainer.appendChild(toast);
+    
+    // Fade in
+    setTimeout(() => {
+        toast.style.opacity = '1';
+    }, 10);
+    
+    // Fade out after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
+}
 
 
     function addBookmarkButtonListener() {
     const bookmarkButton = document.getElementById('bookmark-button');
 
     if (bookmarkButton) {
-        bookmarkButton.addEventListener('click', function() {
-            const username = "{{ current_teachers_name|escapejs }}";  
-            const questionId = currentMessageId;
-            const roomId = "{{ room_id|escapejs }}";
-
-            if (questionId) {
-                if (bookmarkButton.classList.contains('bookmarked')) {
-                    removeBookmark(username, questionId, roomId, bookmarkButton);
-                } else {
-                    addBookmark(username, questionId, roomId, bookmarkButton);
-                }
-            } else {
-                displayMessage("Oops! Question ID is missing.", "error");
-            }
-        });
+        // First, check if the bookmark status and update button UI accordingly
+        checkBookmarkStatus();
+        
+        // Remove any existing event listener to prevent duplicates
+        bookmarkButton.removeEventListener('click', handleBookmarkClick);
+        
+        // Add the event listener
+        bookmarkButton.addEventListener('click', handleBookmarkClick);
     } else {
-        displayMessage("Oops! Bookmark button not found.", "error");
+        console.error("Bookmark button not found");
     }
 }
 
-function removeBookmark(username, questionId, roomId, button) {
-    const removeBookmarkUrl = "{% url 'remove_bookmark_questions' %}";
-    button.disabled = true; // Disable the button to prevent multiple clicks
-    displayMessage("Removing bookmark...", "info"); // Show loading message
-
-    fetch(removeBookmarkUrl, {
+// Function to check if a question is already bookmarked
+function checkBookmarkStatus() {
+    const bookmarkButton = document.getElementById('bookmark-button');
+    const username = currentUserName; // Make sure this variable is defined in your context
+    const questionId = currentMessageId;
+    const roomId = currentRoomId; // Make sure this variable is defined in your context
+    
+    if (!questionId) return;
+    
+    fetch("/check-bookmark-status/", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1304,28 +1769,71 @@ function removeBookmark(username, questionId, roomId, button) {
     })
     .then(response => response.json())
     .then(data => {
-        button.disabled = false; // Re-enable the button
+        if (data.is_bookmarked) {
+            bookmarkButton.classList.add('bookmarked');
+        } else {
+            bookmarkButton.classList.remove('bookmarked');
+        }
+    })
+    .catch(error => {
+        console.error('Error checking bookmark status:', error);
+    });
+}
+
+// Event handler for bookmark button clicks
+function handleBookmarkClick() {
+    const username = currentUserName; // Make sure this variable is defined
+    const questionId = currentMessageId;
+    const roomId = currentRoomId; // Make sure this variable is defined
+    const button = this;
+    
+    if (!questionId) {
+        showToast("Error: Cannot identify the question to bookmark", "error");
+        return;
+    }
+    
+    button.disabled = true; // Prevent multiple clicks
+    
+    if (button.classList.contains('bookmarked')) {
+        removeBookmark(username, questionId, roomId, button);
+    } else {
+        addBookmark(username, questionId, roomId, button);
+    }
+}
+
+function removeBookmark(username, questionId, roomId, button) {
+    showToast("Removing bookmark...", "info");
+    
+    fetch("/remove-bookmark-queston/", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ username, questionId, roomId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        button.disabled = false;
         if (data.message === 'Bookmark removed successfully!') {
             button.classList.remove('bookmarked');
-            displayMessage("Bookmark removed!", "success");
+            showToast("Removed from bookmarks", "success");
         } else {
-            displayMessage("Oops! Could not remove bookmark. Please try again.", "error");
+            showToast("Failed to remove bookmark", "error");
             console.error('Failed to remove bookmark:', data.error);
         }
     })
     .catch(error => {
-        button.disabled = false; // Re-enable the button
-        displayMessage("Oops! Network error. Please try again.", "error");
+        button.disabled = false;
+        showToast("Network error", "error");
         console.error('Error removing bookmark:', error);
     });
 }
 
 function addBookmark(username, questionId, roomId, button) {
-    const bookmarkUrl = "{% url 'bookmark_questions' %}";
-    button.disabled = true; // Disable the button
-    displayMessage("Saving bookmark...", "info"); // Show loading message
-
-    fetch(bookmarkUrl, {
+    showToast("Adding bookmark...", "info");
+    
+    fetch("/bookmark-questions/", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1335,39 +1843,78 @@ function addBookmark(username, questionId, roomId, button) {
     })
     .then(response => response.json())
     .then(data => {
-        button.disabled = false; // Re-enable the button
+        button.disabled = false;
         if (data.message === 'Already bookmarked!') {
             button.classList.add('bookmarked');
-            displayMessage("Already bookmarked!", "info");
+            showToast("Already in your bookmarks", "info");
         } else if (data.message === 'Bookmark saved successfully!') {
             button.classList.add('bookmarked');
-            displayMessage("Bookmark saved!", "success");
+            showToast("Added to bookmarks", "success");
         } else {
-            displayMessage("Oops! Could not save bookmark. Please try again.", "error");
-            console.error('Failed to save bookmark:', data.error);
+            showToast("Failed to add bookmark", "error");
+            console.error('Failed to add bookmark:', data.error);
         }
     })
     .catch(error => {
-        button.disabled = false; // Re-enable the button
-        displayMessage("Oops! Network error. Please try again.", "error");
-        console.error('Error saving bookmark:', error);
+        button.disabled = false;
+        showToast("Network error", "error");
+        console.error('Error adding bookmark:', error);
     });
 }
 
-function displayMessage(message, type) {
-    const messageBox = document.getElementById('message-box');
-    if (!messageBox) {
-        console.error("Message box element not found.");
-        return;
+
+
+
+// A better toast notification system
+function showToast(message, type) {
+    // Remove any existing toast
+    const existingToast = document.getElementById('toast-notification');
+    if (existingToast) {
+        existingToast.remove();
     }
-
-    messageBox.textContent = message;
-    messageBox.className = `message-box ${type}`; // Add type class for styling
-
-    // Clear message after a few seconds
+    
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.position = 'fixed';
+        toastContainer.style.bottom = '20px';
+        toastContainer.style.right = '20px';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast
+    const toast = document.createElement('div');
+    toast.id = 'toast-notification';
+    toast.style.backgroundColor = type === 'error' ? '#f44336' : 
+                                  type === 'success' ? '#4CAF50' : 
+                                  type === 'info' ? '#2196F3' : '#333';
+    toast.style.color = 'white';
+    toast.style.padding = '16px';
+    toast.style.borderRadius = '4px';
+    toast.style.marginTop = '10px';
+    toast.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    toast.style.minWidth = '250px';
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    toast.textContent = message;
+    
+    // Add toast to container
+    toastContainer.appendChild(toast);
+    
+    // Fade in
     setTimeout(() => {
-        messageBox.textContent = '';
-        messageBox.className = 'message-box';
+        toast.style.opacity = '1';
+    }, 10);
+    
+    // Fade out after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
     }, 3000);
 }
 
@@ -1517,6 +2064,41 @@ function getCookie(name) {
             }, 500); 
         }
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+    // Check if there's a questionId in sessionStorage
+    const questionId = sessionStorage.getItem('openQuestionId');
+    
+    if (questionId) {
+        // Clear it from session storage so it doesn't trigger again on refresh
+        sessionStorage.removeItem('openQuestionId');
+        
+        // Find the message box with this question ID
+        const messageBox = document.querySelector(`.message-box[data-message-id="${questionId}"]`);
+        
+        if (messageBox) {
+            // Get the message content
+            const messageContent = messageBox.getAttribute('data-message') || messageBox.textContent.trim();
+            
+            // Wait a moment for everything to load, then open the side panel
+            setTimeout(() => {
+                // Open the side panel with this message
+                openSidePanel(messageContent, questionId);
+                
+                // Scroll to the message
+                messageBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Highlight the message temporarily
+                messageBox.style.boxShadow = '0 0 15px rgba(0, 123, 255, 0.7)';
+                setTimeout(() => {
+                    messageBox.style.boxShadow = '';
+                }, 3000);
+            }, 1000);
+        } else {
+            console.error(`Message with ID ${questionId} not found`);
+        }
+    }
+});
     
       </script>
 

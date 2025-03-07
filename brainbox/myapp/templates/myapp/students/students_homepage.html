@@ -126,7 +126,7 @@ More info:
   
 
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function () {
     // Add click event listeners to all hub buttons
     const hubButtons = document.querySelectorAll('.hub-btn');
     hubButtons.forEach(button => {
@@ -141,12 +141,49 @@ More info:
         button.addEventListener('click', function () {
             const roomId = this.getAttribute('data-room-id');
             const questionId = this.getAttribute('data-question-id');
-            const url = `http://${window.location.host}/students-dashboard/hub-room/${roomId}`; 
-            window.location.href = url;
+            const notificationId = this.getAttribute('data-notification-id');
+            
+            // Mark notification as read
+            if (notificationId) {
+                fetch('/mark-notification-read/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ notification_id: notificationId })
+                }).then(response => {
+                    console.log('Notification marked as read');
+                }).catch(error => {
+                    console.error('Error marking notification as read:', error);
+                });
+            }
+            
+            // Store the questionId in sessionStorage to retrieve it on the hub page
+            sessionStorage.setItem('openQuestionId', questionId);
+            
+            // Navigate to the hub room
+            window.location.href = `http://${window.location.host}/students-dashboard/hub-room/${roomId}/`;
         });
+    });
+    
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
-  );
 });
+
 
 
 </script>
