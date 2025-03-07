@@ -1,0 +1,106 @@
+/* Inspiration from various platforms:
+   - ChatGPT for design implementation
+*/
+
+#search-room {
+    background-color: #f4f4f9;
+    border-radius: 20px; 
+    padding: 50px 0;
+  }
+  
+  #search-room input[type="text"] {
+    font-size: 1.5em;
+    font-weight: bold;
+  }
+  
+  #search-room button {
+    font-size: 1.2em;
+  }
+
+
+section {
+  padding: 50px 20px;
+  background-color: #f9f9f9;
+}
+
+section h2 {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.hub-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+  gap: 20px; 
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.hub-item {
+  background-color: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.hub-btn {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: transparent;
+  padding: 20px;
+  text-align: left;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hub-btn h4 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0 0 10px;
+  color: #333;
+}
+
+.hub-btn p {
+  font-size: 1rem;
+  color: #777;
+  margin: 5px 0;
+}
+
+.hub-btn:hover {
+  background-color: #f0f0f0;
+  color: #000;
+}
+
+.hub-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+@media screen and (max-width: 768px) {
+  .hub-actions {
+    grid-template-columns: 1fr; 
+    gap: 15px;
+  }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .hub-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+#imageDisplay {
+  max-width: 100%; 
+  max-height: 300px; 
+  object-fit: contain; 
+}

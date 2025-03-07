@@ -1,0 +1,216 @@
+<!-- /**
+
+Note: This work is all my idea but with inspiration from
+
+---- Bootstrap templates-----
+More info:
+* Template Name: OnePage
+* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
+* Updated: Aug 07 2024 with Bootstrap v5.3.3
+* Author: BootstrapMade.com
+* License: https://bootstrapmade.com/license/
+
+----- ChatGPT for design ideas implimentation -----
+------ Reddit for community feedback and ideas -----
+------ StackOverflow for coding best practices -----
+
+
+*/ -->
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Students Profile</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+  <!-- CSS Files -->
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+
+  <style>
+    /* Styling for the big box */
+    .big-box {
+      display: flex;
+      height: 400px; /* Adjust height as needed */
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Left Section (Full Height Box) */
+.left-section {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: 15px; /* More rounded box */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Softer shadow */
+  overflow: hidden;
+  height: 100%; /* Ensure it takes full height */
+}
+
+/* Ensuring buttons take full width & equal height */
+.left-section a {
+  flex: 1; /* Make each link fill its parent */
+  text-decoration: none; /* Remove underline */
+  height: 25%; /* Each button takes 25% of left-section */
+}
+
+/* Buttons */
+.left-section button {
+  width: 100%;
+  height: 100%; /* Each button fully occupies its section */
+  background-color: white;
+  font-size: 1.2rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Hover Effect */
+.left-section button:hover {
+  background-color: #f5f5f5;
+  transform: scale(1.03);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Click (Active) Effect */
+.left-section button:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+    
+
+
+
+
+    /* Right Section */
+    .right-section {
+      width: 70%; /* 70% width for the right section */
+      background-color: #ffffff; /* White background */
+      padding: 20px;
+      overflow-y: auto; /* Scroll vertically when content overflows */
+    }
+
+    .section-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+  text-align: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.13); /* Very faint underline */
+  padding-bottom: 5px; /* Space between the text and the underline */
+}
+
+    /* Styling for scrollbars */
+    .left-section::-webkit-scrollbar,
+    .right-section::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .left-section::-webkit-scrollbar-thumb,
+    .right-section::-webkit-scrollbar-thumb {
+      background-color: #bbb;
+      border-radius: 4px;
+    }
+
+    .left-section::-webkit-scrollbar-thumb:hover,
+    .right-section::-webkit-scrollbar-thumb:hover {
+      background-color: #888;
+    }
+
+    /* Hero section styles */
+    #hero {
+      background-color: #f8f9fa;
+      padding: 50px 0;
+    }
+
+    #hero h2 {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+  </style>
+
+
+
+</head>
+
+
+<body class="index-page">
+  <header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center">
+      <a href="{% url 'teachers_homepage' %}" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">EduLink</h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
+        <ul>
+          <li><a href="{% url 'teachers_homepage' %}">Home<br></a></li>
+          <li><a href="{% url 'teachers_profile_page' %}">My Profile</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+    </div>
+  </header>
+
+  <section id="profile-section" class="container my-5">
+    <div class="big-box d-flex">
+      <div class="left-section">
+        
+        <a href="{% url 'teacher_profile_page_my_profile' %}"><button type="button">My Profile</button></a>
+        <a href="{% url 'teacher_profile_page_securty_settings' %}"><button type="button">Security & Settings</button></a>
+        <a href="{% url 'teacher_profile_page_activity_contribution' %}"><button type="button">Activity & Contributions</button></a>
+        <a href="{% url 'login_page_teachers' %}?role=teacher"><button type="button">Logout</button></a>
+
+      </div>
+
+      <div class="right-section">
+        <h3 class="section-title">Security & Settings</h3>
+        Plenty of things are gonna be here
+      </div>
+    </div>
+  </section>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
+  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
+  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

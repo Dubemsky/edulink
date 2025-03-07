@@ -1,0 +1,31 @@
+{% load static %}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon"> 
+    <title>Success Message</title>
+    <style>
+        .message-box {
+            border: 1px solid #4CAF50;
+            background-color: #f9f9f9; 
+            padding: 20px;
+            margin: 20px; 
+            border-radius: 5px; 
+            text-align: center; 
+            font-family: Arial, sans-serif; 
+            color: #333; 
+        }
+    </style>
+</head>
+<body>
+    <div class="message-box">
+        You successfully signed up. Log in now
+        <br><br>
+        <a href="{% url 'login_page' %}?role=student" style="text-decoration: none; color: #4CAF50; font-weight: bold;">Login now</a>
+    </div>
+</body>
+</html>

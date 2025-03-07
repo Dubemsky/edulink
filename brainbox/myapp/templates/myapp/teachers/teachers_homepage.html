@@ -1,0 +1,270 @@
+<!-- /**
+
+Note: This work is all my idea but with inspiration fro
+
+---- Bootstrap templates-----
+More info:
+* Template Name: OnePage
+* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
+* Updated: Aug 07 2024 with Bootstrap v5.3.3
+* Author: BootstrapMade.com
+* License: https://bootstrapmade.com/license/
+
+----- ChatGPT for design ideas implimentation -----
+------ Reddit for community feedback and ideas -----
+------ StackOverflow for coding best practices -----
+
+
+*/ -->
+
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Teachers Homepage</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;400;500;700&family=Poppins:wght@100;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+  <!-- Custom CSS Files -->
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body class="index-page">
+
+  <!-- Header -->
+  <header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl d-flex align-items-center justify-content-between">
+      <a href="{% url 'teachers_homepage' %}" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">EduLink</h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="{% url 'teachers_homepage' %}" class="active">Home</a></li>
+          <li><a href="{% url 'teachers_community_page' %}">Community</a></li>
+          <li><a href="{% url 'teachers_profile_page' %}">My Profile</a></li>
+          <!-- <li><a href="{% url 'community_page' %}">Community</a></li> -->
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+
+      <button class="btn-getstarted" id="createHubButton" data-bs-toggle="modal" data-bs-target="#createHubModal">Create Hub</button>
+    </div>
+  </header>
+
+  <section id="hero" class="hero d-flex align-items-center justify-content-center">
+    <div class="container text-center" id="hero-content">
+      <h2 class="display-4">Welcome to EduLink Teachers</h2>
+    </div>
+  </section>
+
+ 
+  <section class="hubs-section">
+    <div class="my-hub-box">
+      <div class="hub-header">
+        <h3>My Hubs</h3>
+      </div>
+
+      <div class="hub-actions">
+        {% if teachers_hubs %}
+            {% for hub in teachers_hubs %}
+                <div class="hub-item">
+                  <button class="btn hub-btn" data-room-url="{% url 'current_teacher_hub_room' hub.room_url %}">
+                    <h4>{{ hub.hub_name }}</h4>
+                    <p>Privacy: {{ hub.hub_privacy_setting }}</p>
+                  </button>
+                  
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>Hubs created will appear here</p>
+        {% endif %}
+    </div>
+
+
+  
+    </div>
+
+    <div class="additional-content-box">
+      <div class="hub-header">
+        <h3>Notifications</h3>
+      </div>
+      <div class="hub-ction">
+        <!-- Notification items will be dynamically injected here -->
+        {% if notifications %}
+          <ul>
+            {% for notification in notifications %}
+              <li>
+                <button class="notification-btn" data-room-id="{{ notification.room_id }}" data-question-id="{{ notification.question_id }}">
+                  <span>{{ notification.message }}</span>
+                  <small>{{ notification.timestamp }}</small>
+                </button>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Notifications will appear here</p>
+        {% endif %}
+      </div>
+    </div>
+
+    
+    
+  </section>
+
+  <div class="modal fade" id="createHubModal" tabindex="-1" aria-labelledby="createHubModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        
+        <div id="messageContainer" class="alert alert-success" style="display:none;">
+          <span id="messageContent"></span>
+        </div>
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="createHubModalLabel">Create a New Hub</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="createHubForm" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="hubName" class="form-label">Hub Name</label>
+              <input type="text" class="form-control" id="hubName" name="hubName" required>
+            </div>
+            <div class="mb-3">
+              <label for="description" class="form-label">Description (Optional)</label>
+              <textarea class="form-control" id="description" name="description" rows="3" placeholder="Enter a brief description of the hub (optional)"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="hubImage" class="form-label">Upload Hub Image (Optional)</label>
+              <input type="file" class="form-control" id="hubImage" name="hubImage" accept="image/*">
+            </div>
+
+            <div class="mb-3">
+              <label for="privacySetting" class="form-label">Privacy Setting</label>
+              <select class="form-select" id="privacySetting" name="privacySetting">
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </div>
+            
+            <div class="modal-footer">
+    
+              <button type="button" class="btn btn-secondary" id="doneButton">Done</button>
+              <button type="button" class="btn btn-primary" onclick="createHub()">Create Hub</button>
+            </div>
+          </form>
+
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>function createHub() {
+    const csrftoken = '{{ csrf_token }}'; 
+  
+    const formData = new FormData();
+  
+    // Add form fields to the FormData object
+    formData.append("hubName", document.getElementById("hubName").value);
+    formData.append("description", document.getElementById("description").value);
+    formData.append("hubImage", document.getElementById("hubImage").files[0]); 
+    formData.append("privacySetting", document.getElementById("privacySetting").value);
+  
+    // Send the FormData object via fetch
+    fetch("{% url 'teachers_create_hub' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrftoken, 
+      },
+      body: formData, 
+    })
+    .then(response => response.json())
+    .then(data => {
+      const messageContainer = document.getElementById("messageContainer");
+      const messageContent = document.getElementById("messageContent");
+  
+      // Display success message or error message
+      if (data.success) {
+        messageContent.textContent = "Hub created successfully!";
+        messageContainer.classList.add('alert-success');
+        messageContainer.classList.remove('alert-danger');
+      } else {
+        messageContent.textContent = data.error || "Failed to create the hub. Please try again.";
+        messageContainer.classList.add('alert-danger');
+        messageContainer.classList.remove('alert-success');
+      }
+  
+      messageContainer.style.display = "block";
+  
+      const modalContent = document.querySelector('.modal-content');
+      modalContent.scrollTop = 0;
+
+      if (data.success) {
+        setTimeout(() => {
+          var modal = new bootstrap.Modal(document.getElementById('createHubModal'));
+          modal.hide();
+          window.location.href = "{% url 'teachers_homepage' %}";  
+        }, 1000);  
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred. Please try again later.');
+    });
+  }
+  
+  // Done button listener
+  document.getElementById('doneButton').addEventListener('click', function() {
+    var modal = new bootstrap.Modal(document.getElementById('createHubModal'));
+    modal.hide(); // Close the modal when "Done" is clicked
+    window.location.href = "{% url 'teachers_homepage' %}";  
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+  // Select all hub buttons
+  const hubButtons = document.querySelectorAll('.hub-btn');
+
+  // Add click event listener to each button
+  hubButtons.forEach(button => {
+    button.addEventListener('click', function () {
+      const roomUrl = this.getAttribute('data-room-url');
+      window.location.href = roomUrl; // Redirect to the URL
+    });
+  });
+});
+  
+  </script>
+  
+  <!-- Vendor JS Files -->
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
+  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'js/main.js' %}"></script>
+  <script src="{% static 'js/teachers_homepage.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!-- /**
+
+Note: This work is all my idea but with inspiration fro
+
+---- Bootstrap templates-----
+More info:
+* Template Name: OnePage
+* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
+* Updated: Aug 07 2024 with Bootstrap v5.3.3
+* Author: BootstrapMade.com
+* License: https://bootstrapmade.com/license/
+
+----- ChatGPT for design ideas implimentation -----
+------ Reddit for community feedback and ideas -----
+------ StackOverflow for coding best practices -----
+
+
+*/ -->
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Students Hub section</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+  <!-- CSS Files -->
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'css/join_hub_page.css' %}" rel="stylesheet">
+
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+
+</head>
+
+<body class="index-page">
+  <header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center">
+      <a href="{% url 'students_homepage' %}" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">EduLink</h1>
+      </a>
+      
+
+      <nav id="navmenu" class="navmenu">
+        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
+        <ul>
+          <li><a href="{% url 'students_homepage' %}" class="active">Home<br></a></li>
+          <li><a href="{% url 'students_join_hub_page' %}">Join Hubs</a></li>
+          <li><a href="{% url 'community_page' %}">Community</a></li>
+          <li><a href="{% url 'student_profile_page' %}">My Profile</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+
+    </div>
+  </header>
+
+  <section id="search-room" class="search-room d-flex justify-content-center align-items-center py-5">
+    <div class="container text-center">
+      <h2 class="display-4 mb-4">Search for a Room</h2>
+      
+      <form action="{% url 'students_join_hub_page' %}" method="POST" class="d-flex justify-content-center align-items-center">
+        {% csrf_token %}
+        <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+        <input type="text" name="room_name" class="form-control form-control-lg rounded-pill w-50" placeholder="Enter Room Name or Teachers name" required style="font-size: 1.5em; font-weight: bold;">
+        <button type="submit" class="btn btn-primary btn-lg rounded-pill ms-3" style="font-size: 1.2em;">Search</button>
+    </form>
+    
+    </div>
+  </section>
+
+  <section>
+    <h2>Available Hubs: {{ number_of_hubs }}</h2>
+    <div class="hub-actions">
+      {% if teachers_hubs %}
+          {% for hub in teachers_hubs %}
+              <div class="hub-item">
+                  <button class="btn hub-btn" data-bs-toggle="modal" data-bs-target="#createHubModal"
+                          data-hub-name="{{ hub.hub_name }}"
+                          data-hub-url="{{ hub.room_url }}"
+                          data-hub-image="{{ hub.hub_image }}"
+                          data-hub-description="{{ hub.hub_description }}"
+                          data-owner-name="{{ hub.hub_owner }}"
+                          data-privacy-setting="{{ hub.hub_privacy_setting }}">
+                      <h4>{{ hub.hub_name }}</h4>
+                      <p>{{ hub.hub_description }} | <strong>{{ hub.hub_owner }}</strong></p>
+                  </button>
+              </div>
+          {% endfor %}
+      {% else %}
+          <p>No hubs are available at the moment. Check back later!</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="modal fade" id="createHubModal" tabindex="-1" aria-labelledby="createHubModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div id="messageContainer" class="alert" style="display: none; position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1050;">
+          <p id="messageContent"></p>
+        </div>
+        
+  
+        <div class="modal-header">
+          <h5 class="modal-title" id="createHubModalLabel">Join a New Hub</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+  
+        <div class="modal-body">
+          <img src="{{ hub.hub_image.url }}" alt="Hub Image" id="imageDisplay" class="img-fluid mb-3"> 
+
+          <p><strong>Name:</strong> <span id="hubNameDisplay"></span></p>
+          <p><strong>Owner:</strong> <span id="ownerNameDisplay"></span></p>
+          <p><strong>Description:</strong> <span id="descriptionDisplay"></span></p>
+          <p><strong>Privacy Setting:</strong> <span id="privacySettingDisplay"></span></p>
+        </div>
+  
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="doneButton">Done</button>
+          <button type="button" class="btn btn-primary" onclick="joinHub()">Join Hub</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Event listener to set the hub details dynamically in the modal
+    const hubModal = document.getElementById('createHubModal');
+    hubModal.addEventListener('show.bs.modal', function (event) {
+      // Get the button that triggered the modal
+      const button = event.relatedTarget;
+      const hubName = button.getAttribute('data-hub-name');
+      const hubImage = button.getAttribute('data-hub-image');
+      const hubUrl = button.getAttribute('data-hub-url');
+      const ownerName = button.getAttribute('data-owner-name');
+      const hubDescription = button.getAttribute('data-hub-description');
+      const privacySetting = button.getAttribute('data-privacy-setting');
+  
+      // Update the modal with these details
+      document.getElementById('hubNameDisplay').textContent = hubName;
+      document.getElementById('descriptionDisplay').textContent = hubDescription;
+      document.getElementById('ownerNameDisplay').textContent = ownerName;
+      document.getElementById('privacySettingDisplay').textContent = privacySetting;
+      document.getElementById('imageDisplay').src = hubImage || '{% static "images/default_image.jpg" %}';
+    });
+  
+    // Join hub functionality via AJAX
+    function joinHub() {
+
+      // Get the hub name from the modal
+      const hubName = document.getElementById('hubNameDisplay').textContent;
+      const hubOwner = document.getElementById('ownerNameDisplay').textContent;
+      const hubUrl = document.querySelector('[data-hub-url]').getAttribute('data-hub-url');
+      const modalContent = document.querySelector('#createHubModal .modal-content');
+    
+      // Prepare the container for messages
+      const messageContainer = document.getElementById('messageContainer');
+      const messageContent = document.getElementById('messageContent');
+
+      // Send an AJAX POST request to join the hub
+      fetch("{% url 'join_hub' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
+        },
+        body: JSON.stringify({ hub_name: hubName, hub_owner:hubOwner,hub_url:hubUrl})
+      })
+      .then(response => response.json())
+      .then(data => {
+    
+
+        // Display success or error message based on response
+        if (data.success) {
+          messageContent.textContent = "Successfully joined the hub!";
+          messageContainer.classList.add('alert-success');
+          messageContainer.classList.remove('alert-danger');
+        } else {
+          messageContent.textContent = data.error || "Failed to join the hub.";
+          messageContainer.classList.add('alert-danger');
+          messageContainer.classList.remove('alert-success');
+        }
+        messageContainer.style.display = "block";
+        modalContent.scrollTop = 0;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again later.');
+      });
+}
+
+    document.getElementById('doneButton').addEventListener('click', function() {
+        var modal = new bootstrap.Modal(document.getElementById('createHubModal'));
+        modal.hide(); 
+        window.location.href = "{% url 'students_join_hub_page' %}";  // Redirect to homepage'
+    });
+
+
+  </script>
+  
+  
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

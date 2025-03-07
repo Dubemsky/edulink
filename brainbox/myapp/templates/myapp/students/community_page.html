@@ -1,0 +1,310 @@
+<!-- /**
+
+Note: This work is all my idea but with inspiration from
+
+---- Bootstrap templates-----
+More info:
+* Template Name: OnePage
+* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
+* Updated: Aug 07 2024 with Bootstrap v5.3.3
+* Author: BootstrapMade.com
+* License: https://bootstrapmade.com/license/
+
+----- ChatGPT for design ideas implimentation -----
+------ Reddit for community feedback and ideas -----
+------ StackOverflow for coding best practices -----
+
+
+*/ -->
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Students Analitics</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+  <!-- CSS Files -->
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+
+  <style>
+    .button-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    width: 80%;
+    margin: 20px auto;
+}
+
+.community-button {
+    background-color: white;
+    color: #007BFF;
+    padding: 8px 16px;
+    font-size: 13px;
+    border: 1px solid #e0e0e0;    /* Light gray border for distinction */
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);  /* All-around shadow */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+}
+
+.community-button:hover {
+    transform: scale(1.1);                            /* Swell effect */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);      /* Stronger shadow on hover */
+}
+
+
+.user-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.user-card {
+    border: 1px solid #ddd;
+    padding: 15px;
+    text-align: center;
+}
+
+.profile-picture {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+}
+
+.details-button {
+    background-color: #007bff;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.hidden-details {
+    margin-top: 10px;
+}
+
+  </style>
+
+
+</head>
+
+<body class="index-page">
+  <header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center">
+      <a href="{% url 'students_homepage' %}" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">EduLink</h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
+        <ul>
+          <li><a href="{% url 'students_homepage' %}">Home<br></a></li>
+          <li><a href="{% url 'students_join_hub_page' %}">Join Hubs</a></li>
+          <li><a href="{% url 'community_page' %}">Community</a></li>
+          <li><a href="{% url 'student_profile_page' %}">My Profile</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+
+    </div>
+  </header>
+
+  <section id="hero" class="hero d-flex align-items-center justify-content-center">
+    <div class="container text-center" id="hero-content">
+        <h2 class="display-4">Community</h2>
+
+        <div class="button-container">
+          <button class="community-button left" data-filter="all">ALL</button>
+          <button class="community-button center" data-filter="teachers">TEACHERS</button>
+          <button class="community-button right" data-filter="students">STUDENTS</button>
+      </div>
+
+      <div id="user-cards-container" class="user-cards-container">
+      </div>
+
+      <div class="modal fade" id="userProfileModal" tabindex="-1" aria-labelledby="userProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userProfileModalLabel">User Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <img src="" alt="Profile Picture" id="userProfilePicture" class="img-fluid mb-3">
+                    <p><strong>Name:</strong> <span id="userProfileName"></span></p>
+                    <p><strong>Role:</strong> <span id="userProfileRole"></span></p>
+                    <p><strong>Bio:</strong> <span id="userProfileBio"></span></p>
+                    <p><strong>ID:</strong> <span id="userProfileId"></span></p>
+                    <p><strong>Followers:</strong> <span id="userProfileFollowers"></span></p>
+                    <p><strong>Following:</strong> <span id="userProfileFollowing"></span></p>
+                    <p><strong>Created:</strong> <span id="userProfileCreated"></span></p>
+                    <div id="userProfileWebsites"><strong>Websites:</strong> </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+      
+    </div>
+</section>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+    const buttons = document.querySelectorAll('.community-button');
+    const userCardsContainer = document.getElementById('user-cards-container');
+
+    // Simulate click on "ALL" button on page load
+    const allButton = document.querySelector('[data-filter="all"]');
+    if (allButton) {
+        allButton.click();
+    }
+
+    // Event listeners for filter buttons
+    buttons.forEach(button => {
+        button.addEventListener('click', () => {
+            const filterType = button.dataset.filter;
+            console.log(`Button clicked: ${filterType}`);
+
+            fetch("{% url 'community_page' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ type: filterType })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Server Response:', data);
+                updateUserCards(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    });
+
+    // Function to get CSRF token
+    function getCSRFToken() {
+        const name = 'csrftoken';
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                return cookie.substring(name.length + 1);
+            }
+        }
+        return '';
+    }
+
+    // Function to update user cards
+    function updateUserCards(data) {
+    userCardsContainer.innerHTML = '';
+
+    if (data && data.users) {
+        data.users.forEach(user => {
+            const card = document.createElement('div');
+            card.classList.add('user-card');
+
+            let profilePicture = user.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+
+            card.innerHTML = `
+                <img src="${profilePicture}" alt="${user.name}" class="profile-picture">
+                <h3>${user.name}</h3>
+                <p>Role: ${user.role}</p>
+                <p>Bio: ${user.bio}</p>
+            `;
+            userCardsContainer.appendChild(card);
+
+            // Event listener for the whole card
+            card.addEventListener('click', () => {
+                showUserProfileModal(user);
+            });
+        });
+    } else {
+        userCardsContainer.innerHTML = '<p>No users found.</p>';
+    }
+}
+
+    // Function to show user profile modal
+    function showUserProfileModal(user) {
+        document.getElementById('userProfilePicture').src = user.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+        document.getElementById('userProfileName').textContent = user.name;
+        document.getElementById('userProfileRole').textContent = user.role;
+        document.getElementById('userProfileBio').textContent = user.bio;
+        document.getElementById('userProfileId').textContent = user.id;
+        document.getElementById('userProfileFollowers').textContent = user.followers;
+        document.getElementById('userProfileFollowing').textContent = user.followings;
+        document.getElementById('userProfileCreated').textContent = user.created_at;
+
+        const websitesContainer = document.getElementById('userProfileWebsites');
+        websitesContainer.innerHTML = '<strong>Websites:</strong> ';
+
+        if (user.websites && user.websites.length > 0) {
+            const ul = document.createElement('ul');
+            user.websites.forEach(website => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = website;
+                a.textContent = website;
+                a.target = '_blank';
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+            websitesContainer.appendChild(ul);
+        } else {
+            websitesContainer.innerHTML += 'No websites provided.';
+        }
+
+        const userProfileModal = new bootstrap.Modal(document.getElementById('userProfileModal'));
+        userProfileModal.show();
+    }
+});
+  </script>  
+
+  
+  
+  
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
+  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
+  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

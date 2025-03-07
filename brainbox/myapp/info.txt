@@ -1,0 +1,64 @@
+# More ideas to Add
+
+
+- IFRAMES for videos and images for multi media uploads
+
+
+- message are encrypted and stored in database
+- Private messaging   (student and teachers)
+- Bookmark : allows people to follow up with conversations
+- Notifications : will show replies, tags
+- schedule  session livestream and screen record. this will save it to the chats or a section called live streams
+- Building and customising it. Jisti Meet for live stream  Mediastream API for screen recording and upload videos to Firebase
+
+
+
+
+
+
+###### AI IMPLEMNTATION / TEXT ANALYTICS
+- Smart question suggestion:
+        Use a search algorithm (like fuzzy matching or full-text search) to find similar questions.
+        Display top 3-5 similar questions below the input field.
+
+- Auto-Tagging & Categorization
+        Automatically assign tags based on keywords.
+        Implementation:
+        Use Natural Language Processing (NLP) (like Python’s spaCy or an AI API) to extract key topics.
+
+- Summarized Discussions
+        Generate a summary of long discussions under each question.
+        Implementation:
+        Use AI models like GPT to summarize discussions into key takeaways.
+
+- AI: Check if a text is a question, for monitoring convo making sure its appropriate
+        hugging face text analisis and llama for text classification
+
+
+
+
+
+
+
+https://www.youtube.com/watch?v=1h6lfzJ0wZw   for explanation
+
+
+- AI generated study notes
+- send videos (teachers)
+- room Analytics 
+- polls
+
+
+OLLAMA
+
+
+
+do when i press a button, either increments or decrements the numbers in the reply database
+it then keeps track of vote reply.
+
+
+
+
+
+
+

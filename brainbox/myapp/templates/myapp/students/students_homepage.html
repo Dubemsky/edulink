@@ -1,0 +1,171 @@
+<!-- /**
+
+Note: This work is all my idea but with inspiration from
+
+---- Bootstrap templates-----
+More info:
+* Template Name: OnePage
+* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
+* Updated: Aug 07 2024 with Bootstrap v5.3.3
+* Author: BootstrapMade.com
+* License: https://bootstrapmade.com/license/
+
+----- ChatGPT for design ideas implimentation -----
+------ Reddit for community feedback and ideas -----
+------ StackOverflow for coding best practices -----
+
+*/ -->
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Students Homepage</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+  <!-- CSS Files -->
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+
+</head>
+
+<body class="index-page">
+  <header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center">
+      <a href="{% url 'students_homepage' %}" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">EduLink</h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
+        <ul>
+          <li><a href="{% url 'students_homepage' %}">Home<br></a></li>
+          <li><a href="{% url 'students_join_hub_page' %}">Join Hubs</a></li>
+          <li><a href="{% url 'community_page' %}">Community</a></li>
+          <li><a href="{% url 'student_profile_page' %}">My Profile</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+
+    </div>
+  </header>
+
+  <section id="hero" class="hero d-flex align-items-center justify-content-center">
+    <div class="container text-center" id="hero-content">
+      <h2 class="display-4">Welcome to EduLink Students</h2>
+
+    </div>
+  </section>
+
+  <section class="hubs-section">
+    <div class="my-hub-box">
+      <div class="hub-header">
+        <h3>My Hubs</h3>
+      </div>
+
+      
+      <div class="hub-actions">
+        {% if students_hubs %}
+            {% for hub in students_hubs %}
+                <div class="hub-item">
+                    <button class="btn hub-btn" data-url="{% url 'current_student_hub_room' hub.hub_url %}">
+                        <h4>{{ hub.hub }}</h4>
+                        <p>Owner: <strong> {{ hub.hub_owner }} </strong></p>
+                    </button>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>Hubs joined will appear here</p>
+        {% endif %}
+    </div>
+    
+
+
+    </div>
+    
+    <div class="additional-content-box">
+      <div class="hub-header">
+        <h3>Notifications</h3>
+      </div>
+      <div class="hub-ction">
+        <!-- Notification items will be dynamically injected here -->
+        {% if notifications %}
+          <ul>
+            {% for notification in notifications %}
+              <li>
+                <button class="notification-btn" data-notification-id = "{{notification.notification_id}}" data-room-id="{{ notification.room_id }}" data-question-id="{{ notification.question_id }}">
+                  <span>{{ notification.message }}</span>
+                  <small>{{ notification.timestamp }}</small>
+                </button>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Notifications will appear here</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+    // Add click event listeners to all hub buttons
+    const hubButtons = document.querySelectorAll('.hub-btn');
+    hubButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const url = this.getAttribute('data-url');
+            window.location.href = url;
+        });
+    });
+
+    const notificationButtons = document.querySelectorAll('.notification-btn');
+    notificationButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const roomId = this.getAttribute('data-room-id');
+            const questionId = this.getAttribute('data-question-id');
+            const url = `http://${window.location.host}/students-dashboard/hub-room/${roomId}`; 
+            window.location.href = url;
+        });
+    }
+  );
+});
+
+
+</script>
+
+  
+  
+  
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
+  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
+  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

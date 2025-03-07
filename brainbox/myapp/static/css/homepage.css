@@ -1,0 +1,233 @@
+/* Inspiration from various platforms:
+   - ChatGPT for design implementation
+*/
+
+.hubs-section {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 30px;
+  gap: 20px;
+  justify-content: space-between;
+  background-color: #f9f9f9;
+}
+
+
+.my-hub-box, .additional-content-box {
+  background-color: #ffffff; 
+  border-radius: 15px;
+  padding: 20px;
+  color: #333; 
+  font-size: 1.2em;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+  border: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow: hidden;
+  flex: 1; 
+  min-width: 300px; 
+}
+
+
+.my-hub-box {
+  flex: 2; 
+}
+
+.additional-content-box {
+  flex: 1; 
+}
+
+
+.hub-header h3 {
+  margin: 0;
+  font-weight: bold;
+  font-size: 1.6rem;
+  color: #444;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+.hub-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+  gap: 20px; 
+  margin-top: 15px;
+}
+
+
+.hub-item {
+  background-color: #fefefe;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+.hub-btn {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: transparent;
+  padding: 20px;
+  text-align: left;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.hub-btn h4 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+  color: #2a2a2a;
+}
+
+.hub-btn p {
+  font-size: 1rem;
+  color: #777;
+  margin: 0;
+}
+
+.hub-item:hover {
+  transform: translateY(-8px); 
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+.hub-btn:hover {
+  background-color: #f4f4f4;
+  color: #000; 
+}
+
+
+.additional-content-box {
+  align-items: flex-start;
+}
+
+.additional-content-box .hub-actions {
+  display: block;
+  font-size: 1rem;
+  color: #666;
+}
+
+
+@media screen and (max-width: 992px) {
+  .hubs-section {
+    flex-direction: column;
+  }
+
+  .my-hub-box, .additional-content-box {
+    flex: 1;
+    min-width: auto;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .hub-actions {
+    grid-template-columns: 1fr; 
+  }
+
+  .hub-btn h4 {
+    font-size: 1.2rem;
+  }
+
+  .hub-btn p {
+    font-size: 0.9rem;
+  }
+}
+
+.hub-actions .hub-item:focus-within {
+  outline: 2px solid #007bff; 
+}
+
+.hub-actions .hub-item:active {
+  transform: scale(0.98); 
+}
+
+/* Style for the notifications buttons */
+.notification-btn {
+  background: linear-gradient(145deg, #ff9800, #ff5722);  /* Gradient background */
+  border: none;  /* No border */
+  border-radius: 12px;  /* Rounded corners */
+  padding: 15px 20px;  /* Padding inside button */
+  color: white;  /* White text color */
+  font-size: 1rem;  /* Font size for message */
+  font-weight: bold;  /* Bold font */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);  /* Stronger shadow for more depth */
+  margin-bottom: 15px;  /* Space between buttons */
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;  /* Transition effects */
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification-btn:hover {
+  transform: translateY(-8px) scale(1.05);  /* Stronger swelling effect with scaling */
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);  /* Darker shadow on hover */
+  background: linear-gradient(145deg, #ff5722, #ff9800);  /* Reversed gradient for hover effect */
+}
+
+.notification-btn span {
+  font-size: 1.1rem;  /* Larger font size for the message */
+  color: white;  /* White color for text */
+}
+
+.notification-btn small {
+  display: block;
+  font-size: 0.9rem;  /* Font size for the timestamp */
+  color: rgba(255, 255, 255, 0.8);  /* Lighter color for timestamp */
+  margin-top: 5px;
+}
+
+/* Styling for the notifications container */
+.hub-header h3 {
+  margin: 0;
+  font-weight: bold;
+  font-size: 1.8rem;
+  color: #444;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+.hub-ction {
+  padding: 15px;
+  max-height: 400px;  /* Set a max height for the scrollable area */
+  overflow-y: auto;  /* Enable vertical scrolling */
+  border: 1px solid #ddd;  /* Optional border for the section */
+  border-radius: 8px;  /* Rounded corners */
+}
+
+ul {
+  padding: 0;
+  list-style-type: none;  /* Remove bullets */
+  margin: 0;
+}
+
+/* Make the notifications section scrollable */
+.hub-ction::-webkit-scrollbar {
+  width: 8px;  /* Width of the scrollbar */
+}
+
+.hub-ction::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);  /* Color of the scrollbar thumb */
+  border-radius: 4px;  /* Rounded edges on the thumb */
+}
+
+.hub-ction::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.5);  /* Darker thumb on hover */
+}
+
+/* Add a shadow to the scrollable area to give it depth */
+.hub-ction {
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsiveness: Make the notifications section scrollable on mobile as well */
+@media screen and (max-width: 768px) {
+  .hub-ction {
+    max-height: 300px;  /* Adjust max-height for smaller screens */
+  }
+}

@@ -1,0 +1,25 @@
+.my-hubs-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px; /* Adds spacing between sections */
+}
+
+.my-hubs-box {
+    width: 200px;
+    height: 100px;
+    background-color: #021525; /* Light blue background */
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.my-hubs-heading {
+    color: #007bff; /* Blue text color */
+    font-size: 1.2em;
+    margin: 0;
+    text-align: center;
+}

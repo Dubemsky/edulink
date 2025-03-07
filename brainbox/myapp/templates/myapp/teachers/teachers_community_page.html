@@ -1,0 +1,174 @@
+<!-- /**
+
+Note: This work is all my idea but with inspiration from
+
+---- Bootstrap templates-----
+More info:
+* Template Name: OnePage
+* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
+* Updated: Aug 07 2024 with Bootstrap v5.3.3
+* Author: BootstrapMade.com
+* License: https://bootstrapmade.com/license/
+
+----- ChatGPT for design ideas implimentation -----
+------ Reddit for community feedback and ideas -----
+------ StackOverflow for coding best practices -----
+
+
+*/ -->
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Teachers Analitics</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+  <!-- CSS Files -->
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+
+  <style>
+    .button-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    width: 80%;
+    margin: 20px auto;
+}
+
+.community-button {
+    background-color: white;
+    color: #007BFF;
+    padding: 8px 16px;
+    font-size: 13px;
+    border: 1px solid #e0e0e0;    /* Light gray border for distinction */
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);  /* All-around shadow */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+}
+
+.community-button:hover {
+    transform: scale(1.1);                            /* Swell effect */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);      /* Stronger shadow on hover */
+}
+
+  </style>
+
+</head>
+
+<body class="index-page">
+  <header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center">
+      <a href="{% url 'teachers_homepage' %}" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">EduLink</h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
+        <ul>
+            <li><a href="{% url 'teachers_homepage' %}" class="active">Home</a></li>
+            <li><a href="{% url 'teachers_community_page' %}">Community</a></li>
+            <li><a href="{% url 'teachers_profile_page' %}">My Profile</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+
+    </div>
+  </header>
+  <section id="hero" class="hero d-flex align-items-center justify-content-center">
+    <div class="container text-center" id="hero-content">
+        <h2 class="display-4">Community</h2>
+
+        <div class="button-container">
+          <button class="community-button left" data-filter="all">ALL</button>
+          <button class="community-button center" data-filter="teachers">TEACHERS</button>
+          <button class="community-button right" data-filter="students">STUDENTS</button>
+      </div>
+      
+    </div>
+</section>
+
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+      const buttons = document.querySelectorAll('.community-button');
+  
+      buttons.forEach(button => {
+          button.addEventListener('click', () => {
+              const filterType = button.dataset.filter;
+  
+              // Debug: Log the filter type
+              console.log(`Button clicked: ${filterType}`);
+  
+              fetch("{% url 'teachers_community_page' %}", {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': getCSRFToken()  // CSRF token for Django protection
+                  },
+                  body: JSON.stringify({ type: filterType })
+              })
+              .then(response => response.json())
+              .then(data => {
+                  console.log('Server Response:', data);
+                  // Handle response here (e.g., update the page)
+              })
+              .catch(error => {
+                  console.error('Error:', error);
+              });
+          });
+      });
+  
+      // Helper function to get the CSRF token from cookies
+      function getCSRFToken() {
+          const name = 'csrftoken';
+          const cookies = document.cookie.split(';');
+          for (let cookie of cookies) {
+              cookie = cookie.trim();
+              if (cookie.startsWith(name + '=')) {
+                  return cookie.substring(name.length + 1);
+              }
+          }
+          return '';
+      }
+  });
+  </script>  
+  
+  
+  
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
+  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
+  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>
