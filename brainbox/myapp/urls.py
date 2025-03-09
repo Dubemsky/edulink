@@ -45,8 +45,12 @@ urlpatterns = [
     
 
     # Other sections paths
+    
     path('vote-reply/', vote_reply, name='vote_reply'),
+    
     path('poll-voting/', poll_voting, name='poll_voting'),
+    path('follow-user/', follow_user, name='follow_user'),
+    path('get-following/', get_following, name='get_following'),
     path('log-tab-click/', log_tab_click, name='log_tab_click'),
     path('get-user-votes/', get_user_votes, name='get_user_votes'),
     path('get_suggestions/', get_suggestions, name='get_suggestions'),

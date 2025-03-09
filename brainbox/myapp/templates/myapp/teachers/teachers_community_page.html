@@ -42,37 +42,9 @@ More info:
   <!-- CSS Files -->
   <link href="{% static 'css/main.css' %}" rel="stylesheet">
   <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+  <link href="{% static 'css/community_page.css' %}" rel="stylesheet">
 
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-
-  <style>
-    .button-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-    width: 80%;
-    margin: 20px auto;
-}
-
-.community-button {
-    background-color: white;
-    color: #007BFF;
-    padding: 8px 16px;
-    font-size: 13px;
-    border: 1px solid #e0e0e0;    /* Light gray border for distinction */
-    border-radius: 999px;
-    cursor: pointer;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);  /* All-around shadow */
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    width: 100%;
-}
-
-.community-button:hover {
-    transform: scale(1.1);                            /* Swell effect */
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);      /* Stronger shadow on hover */
-}
-
-  </style>
 
 </head>
 
@@ -95,19 +67,72 @@ More info:
 
     </div>
   </header>
-  <section id="hero" class="hero d-flex align-items-center justify-content-center">
-    <div class="container text-center" id="hero-content">
-        <h2 class="display-4">Community</h2>
 
-        <div class="button-container">
-          <button class="community-button left" data-filter="all">ALL</button>
-          <button class="community-button center" data-filter="teachers">TEACHERS</button>
-          <button class="community-button right" data-filter="students">STUDENTS</button>
+  <section id="community-section" class="py-5">
+    <div class="container">
+      <div class="community-header">
+        <h2>Community</h2>
+        <p>Connect with teachers and fellow students</p>
       </div>
-      
-    </div>
-</section>
 
+      <div class="button-container">
+        <button class="community-button active" data-filter="all">ALL</button>
+        <button class="community-button" data-filter="teachers">TEACHERS</button>
+        <button class="community-button" data-filter="students">STUDENTS</button>
+      </div>
+
+      <div id="loading-spinner" class="loading-spinner">
+        <div class="spinner"></div>
+      </div>
+
+      <div id="user-grid" class="user-grid"></div>
+    </div>
+  </section>
+
+  <!-- User Detail Modal -->
+  <div class="modal fade" id="userProfileModal" tabindex="-1" aria-labelledby="userProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-profile-header">
+            <img src="" alt="Profile Picture" id="modalProfileImg" class="modal-profile-img">
+            <h3 id="modalProfileName" class="modal-profile-name"></h3>
+            <span id="modalRoleBadge" class="role-badge modal-role-badge"></span>
+            
+            <div class="modal-stats">
+              <div class="modal-stat-item">
+                <div id="modalFollowers" class="modal-stat-value">0</div>
+                <div class="modal-stat-label">Followers</div>
+              </div>
+              <div class="modal-stat-item">
+                <div id="modalFollowing" class="modal-stat-value">0</div>
+                <div class="modal-stat-label">Following</div>
+              </div>
+            </div>
+            
+            <button id="followButton" class="follow-btn">Follow</button>
+          </div>
+          
+          <div id="modalBio" class="modal-bio"></div>
+          
+          <div id="websitesSection" class="modal-detail-section">
+            <h4 class="modal-detail-title">Websites</h4>
+            <ul id="websitesList" class="website-list"></ul>
+          </div>
+          
+          <div class="created-at">
+            Member since <span id="modalCreatedAt"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container for Notifications -->
+  <div id="toastContainer" class="toast-container"></div>
 
 
 <script>
@@ -170,5 +195,376 @@ More info:
 
   <!-- Main JS File -->
   <script src="{% static 'js/main.js' %}"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const userGrid = document.getElementById('user-grid');
+      const loadingSpinner = document.getElementById('loading-spinner');
+      const filterButtons = document.querySelectorAll('.community-button');
+      const currentUsername = "{{ current_student_name }}";
+      
+      // Track which users we're following
+      const followingUsers = new Set();
+      
+      // Initially load all users
+      loadUsers('all');
+      
+      // Set up the filter buttons
+      filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const filterType = this.dataset.filter;
+          
+          // Update active button
+          filterButtons.forEach(btn => btn.classList.remove('active'));
+          this.classList.add('active');
+          
+          // Load users based on filter
+          loadUsers(filterType);
+        });
+      });
+      
+      // Function to load users based on filter
+      function loadUsers(filterType) {
+        // Show loading spinner
+        userGrid.innerHTML = '';
+        loadingSpinner.style.display = 'flex';
+        
+        // Fetch users from the server
+        fetch("{% url 'community_page' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+          },
+          body: JSON.stringify({ type: filterType })
+        })
+        .then(response => response.json())
+        .then(data => {
+          // Hide loading spinner
+          loadingSpinner.style.display = 'none';
+          
+          if (data.success && Array.isArray(data.users)) {
+            renderUsers(data.users);
+            
+            // Fetch following status for the current user
+            fetchFollowingStatus();
+          } else {
+            showToast('Failed to load users', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          loadingSpinner.style.display = 'none';
+          showToast('Error connecting to server', 'error');
+        });
+      }
+      
+      // Function to render user cards
+      function renderUsers(users) {
+        userGrid.innerHTML = '';
+        
+        if (users.length === 0) {
+          const noUsersMessage = document.createElement('div');
+          noUsersMessage.className = 'col-12 text-center';
+          noUsersMessage.textContent = 'No users found';
+          userGrid.appendChild(noUsersMessage);
+          return;
+        }
+        
+        users.forEach(user => {
+          // Skip rendering the current user
+          if (user.name === currentUsername) return;
+          
+          const card = document.createElement('div');
+          card.className = 'user-card';
+          card.dataset.userId = user.id;
+          
+          const roleBadgeClass = user.role.toLowerCase() === 'teacher' || 
+                                user.role.toLowerCase() === 'lecturer' ? 
+                                'teacher' : 'student';
+          
+          card.innerHTML = `
+            <div class="user-card-header">
+              <img src="${user.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'}" 
+                   alt="${user.name}" class="user-card-img">
+              <h3>${user.name}</h3>
+              <span class="role-badge ${roleBadgeClass}">${user.role}</span>
+            </div>
+            <div class="user-card-body">
+              <div class="user-bio">${user.bio || 'No bio available'}</div>
+              <div class="user-stats">
+                <div class="stat-item">
+                  <div class="stat-value">${user.followers || 0}</div>
+                  <div class="stat-label">Followers</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">${user.followings || 0}</div>
+                  <div class="stat-label">Following</div>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          // Add click event to show modal
+          card.addEventListener('click', () => {
+            showUserProfileModal(user);
+          });
+          
+          userGrid.appendChild(card);
+        });
+      }
+      
+      // Function to show user profile modal
+      function showUserProfileModal(user) {
+        // Set modal content
+        document.getElementById('modalProfileImg').src = user.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+        document.getElementById('modalProfileName').textContent = user.name;
+        
+        const roleBadge = document.getElementById('modalRoleBadge');
+        roleBadge.textContent = user.role;
+        roleBadge.className = 'role-badge modal-role-badge ' + 
+                           (user.role.toLowerCase() === 'teacher' || 
+                            user.role.toLowerCase() === 'lecturer' ? 
+                            'teacher' : 'student');
+        
+        document.getElementById('modalFollowers').textContent = user.followers || 0;
+        document.getElementById('modalFollowing').textContent = user.followings || 0;
+        document.getElementById('modalBio').textContent = user.bio || 'No bio available';
+        document.getElementById('modalCreatedAt').textContent = user.created_at || 'Unknown';
+        
+        // Handle websites
+        const websitesList = document.getElementById('websitesList');
+        websitesList.innerHTML = '';
+        const websitesSection = document.getElementById('websitesSection');
+        
+        if (user.websites && user.websites.length > 0) {
+          websitesSection.style.display = 'block';
+          user.websites.forEach(website => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = website.startsWith('http') ? website : 'https://' + website;
+            a.textContent = website;
+            a.target = '_blank';
+            li.appendChild(a);
+            websitesList.appendChild(li);
+          });
+        } else {
+          websitesSection.style.display = 'none';
+        }
+        
+        // Set up follow button
+        const followButton = document.getElementById('followButton');
+        followButton.dataset.userId = user.id;
+        
+        if (followingUsers.has(user.id)) {
+          followButton.textContent = 'Unfollow';
+          followButton.classList.add('following');
+        } else {
+          followButton.textContent = 'Follow';
+          followButton.classList.remove('following');
+        }
+        
+        // Show modal
+        const userProfileModal = new bootstrap.Modal(document.getElementById('userProfileModal'));
+        userProfileModal.show();
+      }
+      
+      // Follow button click handler
+      document.getElementById('followButton').addEventListener('click', function() {
+    const userId = this.dataset.userId;
+    const isFollowing = this.classList.contains('following');
+    
+    // Check if follow endpoint is available
+    const followEndpointAvailable = true; // Set to false if endpoints aren't ready
+    
+    if (!followEndpointAvailable) {
+        showToast('Follow functionality coming soon!', 'info');
+        return;
+    }
+    
+    // Toggle follow state
+    if (isFollowing) {
+        unfollowUser(userId);
+    } else {
+        followUser(userId);
+    }
+});
+    
+      
+      // Function to follow a user
+      function followUser(userId) {
+        // Show loading state
+        const followButton = document.getElementById('followButton');
+        followButton.disabled = true;
+        followButton.textContent = 'Following...';
+        
+        // Send follow request to server
+        fetch("{% url 'follow_user' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+          },
+          body: JSON.stringify({ 
+            userId: userId,
+            action: 'follow'
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          followButton.disabled = false;
+          
+          if (data.success) {
+            // Update button state
+            followButton.textContent = 'Unfollow';
+            followButton.classList.add('following');
+            
+            // Add to our following set
+            followingUsers.add(userId);
+            
+            // Update follower count in modal
+            const followersElement = document.getElementById('modalFollowers');
+            followersElement.textContent = (parseInt(followersElement.textContent) + 1).toString();
+            
+            // Update card if visible
+            const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+            if (userCard) {
+              const followersStat = userCard.querySelector('.stat-value');
+              if (followersStat) {
+                followersStat.textContent = (parseInt(followersStat.textContent) + 1).toString();
+              }
+            }
+            
+            // Show success message
+            showToast('You are now following this user', 'success');
+          } else {
+            showToast(data.error || 'Failed to follow user', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          followButton.disabled = false;
+          followButton.textContent = 'Follow';
+          showToast('Error connecting to server', 'error');
+        });
+      }
+      
+      // Function to unfollow a user
+      function unfollowUser(userId) {
+        // Show loading state
+        const followButton = document.getElementById('followButton');
+        followButton.disabled = true;
+        followButton.textContent = 'Unfollowing...';
+        
+        // Send unfollow request to server
+        fetch("{% url 'follow_user' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+          },
+          body: JSON.stringify({ 
+            userId: userId,
+            action: 'unfollow'
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          followButton.disabled = false;
+          
+          if (data.success) {
+            // Update button state
+            followButton.textContent = 'Follow';
+            followButton.classList.remove('following');
+            
+            // Remove from our following set
+            followingUsers.delete(userId);
+            
+            // Update follower count in modal
+            const followersElement = document.getElementById('modalFollowers');
+            const currentFollowers = parseInt(followersElement.textContent);
+            followersElement.textContent = Math.max(0, currentFollowers - 1).toString();
+            
+            // Update card if visible
+            const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+            if (userCard) {
+              const followersStat = userCard.querySelector('.stat-value');
+              if (followersStat) {
+                const currentCardFollowers = parseInt(followersStat.textContent);
+                followersStat.textContent = Math.max(0, currentCardFollowers - 1).toString();
+              }
+            }
+            
+            // Show success message
+            showToast('You unfollowed this user', 'success');
+          } else {
+            showToast(data.error || 'Failed to unfollow user', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          followButton.disabled = false;
+          followButton.textContent = 'Unfollow';
+          showToast('Error connecting to server', 'error');
+        });
+      }
+      
+      // Function to fetch which users we're following
+      function fetchFollowingStatus() {
+    fetch("{% url 'get_following' %}")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success && Array.isArray(data.following)) {
+            // Clear the set and add all following users
+            followingUsers.clear();
+            data.following.forEach(userId => followingUsers.add(userId));
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching following status:', error);
+        // Continue without following data
+    });
+}
+
+      
+      // Function to show toast notification
+      function showToast(message, type = 'default') {
+        const toastContainer = document.getElementById('toastContainer');
+        
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let icon = '';
+        if (type === 'success') {
+          icon = '<i class="bi bi-check-circle-fill"></i>';
+        } else if (type === 'error') {
+          icon = '<i class="bi bi-exclamation-circle-fill"></i>';
+        }
+        
+        toast.innerHTML = `${icon} ${message}`;
+        toastContainer.appendChild(toast);
+        
+        // Remove toast after animation completes
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }
+      
+      // Helper function to get CSRF token
+      function getCsrfToken() {
+        const cookieValue = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('csrftoken='))
+          ?.split('=')[1];
+        return cookieValue;
+      }
+    });
+  </script>
+
 </body>
 </html>
