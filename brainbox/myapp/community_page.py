@@ -77,7 +77,6 @@ def community_page(request):
 
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
-
 def teachers_community_page(request):
     current_teacher_name = request.session.get("teachers_name")
     
@@ -149,7 +148,6 @@ def teachers_community_page(request):
             return JsonResponse({"success": False, "error": "Failed to retrieve users"}, status=500)
 
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
-
 
 @csrf_exempt
 def follow_user(request):
@@ -281,3 +279,27 @@ def get_following(request):
             return JsonResponse({"success": False, "error": str(e)}, status=500)
     
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+
+
+
+
+@csrf_exempt
+def mark_notification_read(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            notification_id = data.get('notification_id')
+            print("I am here now")
+            
+            # Delete the notification from Firebase
+            if notification_id:
+                db.collection('notifications').document(notification_id).delete()
+                return JsonResponse({'success': True, 'message': 'Notification marked as read'})
+            else:
+                return JsonResponse({'success': False, 'error': 'Notification ID is required'}, status=400)
+                
+        except Exception as e:
+            print(f"Error marking notification as read: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)

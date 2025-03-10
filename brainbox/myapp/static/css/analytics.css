@@ -1,0 +1,205 @@
+.analytics-modal {
+    max-width: 80%;
+    width: 900px;
+}
+
+.analytics-modal .modal-body {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.analytics-card {
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.analytics-card-header {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.analytics-card-body {
+    padding: 20px;
+    background-color: white;
+}
+
+.analytics-stat {
+    text-align: center;
+    padding: 15px 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.analytics-stat .stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.analytics-stat .stat-label {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.chart-container {
+    height: 300px;
+    margin-bottom: 20px;
+}
+
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+}
+
+.analytics-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.message-type-pill {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    margin: 3px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.message-type-text {
+    background-color: #6c757d;
+}
+
+.message-type-image {
+    background-color: #28a745;
+}
+
+.message-type-file {
+    background-color: #dc3545;
+}
+
+.message-type-video {
+    background-color: #fd7e14;
+}
+
+.message-type-poll {
+    background-color: #17a2b8;
+}
+
+.analytics-tab-content {
+    display: none;
+    padding: 20px 0;
+}
+
+.analytics-tab-content.active {
+    display: block;
+}
+
+.analytics-tabs {
+    display: flex;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 20px;
+}
+
+.analytics-tab {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.analytics-tab:hover {
+    background-color: #f8f9fa;
+}
+
+.analytics-tab.active {
+    border-bottom: 2px solid #007bff;
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* Participant Table */
+.participant-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.participant-table th,
+.participant-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+
+.participant-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.participant-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.progress-bar-container {
+    width: 100%;
+    background-color: #e9ecef;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #007bff;
+}
+
+/* Poll Results */
+.poll-result {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.poll-question {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.poll-option {
+    margin-bottom: 8px;
+}
+
+.poll-option-text {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.poll-option-bar {
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.poll-option-progress {
+    height: 100%;
+    background-color: #28a745;
+}

@@ -146,6 +146,7 @@ def get_notifications_by_username(username):
 
     return notifications_list  # Return the list of notifications
 
+
 @csrf_exempt
 def mark_notification_read(request):
     if request.method == 'POST':

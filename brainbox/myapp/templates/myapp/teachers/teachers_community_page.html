@@ -392,29 +392,30 @@ More info:
     
       
       // Function to follow a user
-      function followUser(userId) {
-        // Show loading state
-        const followButton = document.getElementById('followButton');
-        followButton.disabled = true;
-        followButton.textContent = 'Following...';
-        
-        // Send follow request to server
-        fetch("{% url 'follow_user' %}", {
-          method: 'POST',
-          headers: {
+      // Function to follow a user
+function followUser(userId) {
+    // Show loading state
+    const followButton = document.getElementById('followButton');
+    followButton.disabled = true;
+    followButton.textContent = 'Following...';
+    
+    // Send follow request to server
+    fetch("{% url 'follow_user' %}", {
+        method: 'POST',
+        headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCsrfToken()
-          },
-          body: JSON.stringify({ 
+        },
+        body: JSON.stringify({ 
             userId: userId,
             action: 'follow'
-          })
         })
-        .then(response => response.json())
-        .then(data => {
-          followButton.disabled = false;
-          
-          if (data.success) {
+    })
+    .then(response => response.json())
+    .then(data => {
+        followButton.disabled = false;
+        
+        if (data.success) {
             // Update button state
             followButton.textContent = 'Unfollow';
             followButton.classList.add('following');
@@ -429,50 +430,50 @@ More info:
             // Update card if visible
             const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
             if (userCard) {
-              const followersStat = userCard.querySelector('.stat-value');
-              if (followersStat) {
-                followersStat.textContent = (parseInt(followersStat.textContent) + 1).toString();
-              }
+                const followersStat = userCard.querySelector('.stat-value');
+                if (followersStat) {
+                    followersStat.textContent = (parseInt(followersStat.textContent) + 1).toString();
+                }
             }
             
             // Show success message
             showToast('You are now following this user', 'success');
-          } else {
+        } else {
             showToast(data.error || 'Failed to follow user', 'error');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          followButton.disabled = false;
-          followButton.textContent = 'Follow';
-          showToast('Error connecting to server', 'error');
-        });
-      }
-      
-      // Function to unfollow a user
-      function unfollowUser(userId) {
-        // Show loading state
-        const followButton = document.getElementById('followButton');
-        followButton.disabled = true;
-        followButton.textContent = 'Unfollowing...';
-        
-        // Send unfollow request to server
-        fetch("{% url 'follow_user' %}", {
-          method: 'POST',
-          headers: {
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        followButton.disabled = false;
+        followButton.textContent = 'Follow';
+        showToast('Error connecting to server', 'error');
+    });
+}
+
+// Function to unfollow a user
+function unfollowUser(userId) {
+    // Show loading state
+    const followButton = document.getElementById('followButton');
+    followButton.disabled = true;
+    followButton.textContent = 'Unfollowing...';
+    
+    // Send unfollow request to server
+    fetch("{% url 'follow_user' %}", {
+        method: 'POST',
+        headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCsrfToken()
-          },
-          body: JSON.stringify({ 
+        },
+        body: JSON.stringify({ 
             userId: userId,
             action: 'unfollow'
-          })
         })
-        .then(response => response.json())
-        .then(data => {
-          followButton.disabled = false;
-          
-          if (data.success) {
+    })
+    .then(response => response.json())
+    .then(data => {
+        followButton.disabled = false;
+        
+        if (data.success) {
             // Update button state
             followButton.textContent = 'Follow';
             followButton.classList.remove('following');
@@ -488,26 +489,26 @@ More info:
             // Update card if visible
             const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
             if (userCard) {
-              const followersStat = userCard.querySelector('.stat-value');
-              if (followersStat) {
-                const currentCardFollowers = parseInt(followersStat.textContent);
-                followersStat.textContent = Math.max(0, currentCardFollowers - 1).toString();
-              }
+                const followersStat = userCard.querySelector('.stat-value');
+                if (followersStat) {
+                    const currentCardFollowers = parseInt(followersStat.textContent);
+                    followersStat.textContent = Math.max(0, currentCardFollowers - 1).toString();
+                }
             }
             
             // Show success message
             showToast('You unfollowed this user', 'success');
-          } else {
+        } else {
             showToast(data.error || 'Failed to unfollow user', 'error');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          followButton.disabled = false;
-          followButton.textContent = 'Unfollow';
-          showToast('Error connecting to server', 'error');
-        });
-      }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        followButton.disabled = false;
+        followButton.textContent = 'Unfollow';
+        showToast('Error connecting to server', 'error');
+    });
+}
       
       // Function to fetch which users we're following
       function fetchFollowingStatus() {
