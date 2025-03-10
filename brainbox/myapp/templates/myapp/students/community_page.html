@@ -1,22 +1,3 @@
-<!-- /**
-
-Note: This work is all my idea but with inspiration from
-
----- Bootstrap templates-----
-More info:
-* Template Name: OnePage
-* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
-* Updated: Aug 07 2024 with Bootstrap v5.3.3
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
-
------ ChatGPT for design ideas implimentation -----
------- Reddit for community feedback and ideas -----
------- StackOverflow for coding best practices -----
-
-
-*/ -->
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -24,13 +5,13 @@ More info:
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <title>Community - EduLink</title>
-  <meta name="description" content="">
-  <meta name="keywords" content="">
+  <meta name="description" content="Connect with teachers and students in the EduLink community">
+  <meta name="keywords" content="education, community, teachers, students, networking">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
@@ -46,6 +27,66 @@ More info:
 
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 
+  <style>
+    /* Filter Buttons Container */
+.filter-container {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* Base Button Styles */
+.filter-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #3498db;
+    background-color: transparent;
+    color: #3498db;
+    border-radius: 50px;
+    font-weight: 600;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    outline: none;
+    font-size: 0.9rem;
+}
+
+/* Button Hover Effect */
+.filter-button:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+/* Active Button State */
+.filter-button.active {
+    background-color: #3498db;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Icons Styling */
+.filter-button i {
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 576px) {
+    .filter-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .filter-button {
+        width: 80%;
+        padding: 0.6rem 1rem;
+    }
+}
+  </style>
 </head>
 
 <body class="index-page">
@@ -67,20 +108,27 @@ More info:
     </div>
   </header>
 
-  <section id="community-section" class="py-5">
-    <div class="container">
-      <div class="community-header">
-        <h2>Community</h2>
-        <p>Connect with teachers and fellow students</p>
+  <section id="community-section" class="community-section">
+    <section id="hero" class="hero d-flex align-items-center justify-content-center">
+      <div class="container text-center" id="hero-content" data-aos="fade-up">
+        <h2 class="display-4">Community</h2>
+        <p style="color: white;">{{current_student_name}}, connect with fellow educators and students to grow your professional network.</p>
+      </div>
+    </section>
+
+      <div class="filter-container" data-aos="fade-up" data-aos-delay="100">
+        <button class="filter-button active" data-filter="all">
+          <i class="bi bi-people-fill me-2"></i>All
+        </button>
+        <button class="filter-button" data-filter="teachers">
+          <i class="bi bi-person-workspace me-2"></i>Teachers
+        </button>
+        <button class="filter-button" data-filter="students">
+          <i class="bi bi-mortarboard-fill me-2"></i>Students
+        </button>
       </div>
 
-      <div class="button-container">
-        <button class="community-button active" data-filter="all">ALL</button>
-        <button class="community-button" data-filter="teachers">TEACHERS</button>
-        <button class="community-button" data-filter="students">STUDENTS</button>
-      </div>
-
-      <div id="loading-spinner" class="loading-spinner">
+      <div id="loading-spinner" class="loading-spinner" data-aos="fade-up" data-aos-delay="150">
         <div class="spinner"></div>
       </div>
 
@@ -89,8 +137,8 @@ More info:
   </section>
 
   <!-- User Detail Modal -->
-  <div class="modal fade" id="userProfileModal" tabindex="-1" aria-labelledby="userProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+  <div class="modal fade user-profile-modal" id="userProfileModal" tabindex="-1" aria-labelledby="userProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -112,13 +160,17 @@ More info:
               </div>
             </div>
             
-            <button id="followButton" class="follow-btn">Follow</button>
+            <button id="followButton" class="follow-btn">
+              <i class="bi bi-person-plus me-2"></i>Follow
+            </button>
           </div>
           
           <div id="modalBio" class="modal-bio"></div>
           
           <div id="websitesSection" class="modal-detail-section">
-            <h4 class="modal-detail-title">Websites</h4>
+            <h4 class="modal-detail-title">
+              <i class="bi bi-link-45deg"></i>Websites
+            </h4>
             <ul id="websitesList" class="website-list"></ul>
           </div>
           
@@ -147,9 +199,17 @@ More info:
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Initialize AOS animations
+      AOS.init({
+        duration: 800,
+        easing: 'ease-in-out',
+        once: true,
+        mirror: false
+      });
+      
       const userGrid = document.getElementById('user-grid');
       const loadingSpinner = document.getElementById('loading-spinner');
-      const filterButtons = document.querySelectorAll('.community-button');
+      const filterButtons = document.querySelectorAll('.filter-button');
       const currentUsername = "{{ current_student_name }}";
       
       // Track which users we're following
@@ -161,7 +221,7 @@ More info:
       // Set up the filter buttons
       filterButtons.forEach(button => {
         button.addEventListener('click', function() {
-          const filterType = this.dataset.filter;
+          const filterType = this.getAttribute('data-filter');
           
           // Update active button
           filterButtons.forEach(btn => btn.classList.remove('active'));
@@ -214,19 +274,24 @@ More info:
         
         if (users.length === 0) {
           const noUsersMessage = document.createElement('div');
-          noUsersMessage.className = 'col-12 text-center';
-          noUsersMessage.textContent = 'No users found';
+          noUsersMessage.className = 'no-users-message';
+          noUsersMessage.innerHTML = `
+            <i class="bi bi-search"></i>
+            <p>No users found for this filter</p>
+          `;
           userGrid.appendChild(noUsersMessage);
           return;
         }
         
-        users.forEach(user => {
+        users.forEach((user, index) => {
           // Skip rendering the current user
           if (user.name === currentUsername) return;
           
           const card = document.createElement('div');
           card.className = 'user-card';
           card.dataset.userId = user.id;
+          card.setAttribute('data-aos', 'fade-up');
+          card.setAttribute('data-aos-delay', (index * 50 + 200).toString());
           
           const roleBadgeClass = user.role.toLowerCase() === 'teacher' || 
                                 user.role.toLowerCase() === 'lecturer' ? 
@@ -234,7 +299,7 @@ More info:
           
           card.innerHTML = `
             <div class="user-card-header">
-              <img src="${user.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'}" 
+              <img src="${user.profile_picture || '{% static "images/default_profile.jpg" %}'}" 
                    alt="${user.name}" class="user-card-img">
               <h3>${user.name}</h3>
               <span class="role-badge ${roleBadgeClass}">${user.role}</span>
@@ -266,7 +331,7 @@ More info:
       // Function to show user profile modal
       function showUserProfileModal(user) {
         // Set modal content
-        document.getElementById('modalProfileImg').src = user.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+        document.getElementById('modalProfileImg').src = user.profile_picture || '{% static "images/default_profile.jpg" %}';
         document.getElementById('modalProfileName').textContent = user.name;
         
         const roleBadge = document.getElementById('modalRoleBadge');
@@ -306,10 +371,10 @@ More info:
         followButton.dataset.userId = user.id;
         
         if (followingUsers.has(user.id)) {
-          followButton.textContent = 'Unfollow';
+          followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
           followButton.classList.add('following');
         } else {
-          followButton.textContent = 'Follow';
+          followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
           followButton.classList.remove('following');
         }
         
@@ -332,32 +397,31 @@ More info:
       });
       
       // Function to follow a user
-      // Function to follow a user
-function followUser(userId) {
-    // Show loading state
-    const followButton = document.getElementById('followButton');
-    followButton.disabled = true;
-    followButton.textContent = 'Following...';
-    
-    // Send follow request to server
-    fetch("{% url 'follow_user' %}", {
-        method: 'POST',
-        headers: {
+      function followUser(userId) {
+        // Show loading state
+        const followButton = document.getElementById('followButton');
+        followButton.disabled = true;
+        followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Following...';
+        
+        // Send follow request to server
+        fetch("{% url 'follow_user' %}", {
+          method: 'POST',
+          headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify({ 
+          },
+          body: JSON.stringify({ 
             userId: userId,
             action: 'follow'
+          })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        followButton.disabled = false;
-        
-        if (data.success) {
+        .then(response => response.json())
+        .then(data => {
+          followButton.disabled = false;
+          
+          if (data.success) {
             // Update button state
-            followButton.textContent = 'Unfollow';
+            followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
             followButton.classList.add('following');
             
             // Add to our following set
@@ -370,52 +434,52 @@ function followUser(userId) {
             // Update card if visible
             const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
             if (userCard) {
-                const followersStat = userCard.querySelector('.stat-value');
-                if (followersStat) {
-                    followersStat.textContent = (parseInt(followersStat.textContent) + 1).toString();
-                }
+              const followersStat = userCard.querySelector('.stat-value');
+              if (followersStat) {
+                followersStat.textContent = (parseInt(followersStat.textContent) + 1).toString();
+              }
             }
             
             // Show success message
             showToast('You are now following this user', 'success');
-        } else {
+          } else {
             showToast(data.error || 'Failed to follow user', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        followButton.disabled = false;
-        followButton.textContent = 'Follow';
-        showToast('Error connecting to server', 'error');
-    });
-}
-
-// Function to unfollow a user
-function unfollowUser(userId) {
-    // Show loading state
-    const followButton = document.getElementById('followButton');
-    followButton.disabled = true;
-    followButton.textContent = 'Unfollowing...';
-    
-    // Send unfollow request to server
-    fetch("{% url 'follow_user' %}", {
-        method: 'POST',
-        headers: {
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          followButton.disabled = false;
+          followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
+          showToast('Error connecting to server', 'error');
+        });
+      }
+      
+      // Function to unfollow a user
+      function unfollowUser(userId) {
+        // Show loading state
+        const followButton = document.getElementById('followButton');
+        followButton.disabled = true;
+        followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Unfollowing...';
+        
+        // Send unfollow request to server
+        fetch("{% url 'follow_user' %}", {
+          method: 'POST',
+          headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify({ 
+          },
+          body: JSON.stringify({ 
             userId: userId,
             action: 'unfollow'
+          })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        followButton.disabled = false;
-        
-        if (data.success) {
+        .then(response => response.json())
+        .then(data => {
+          followButton.disabled = false;
+          
+          if (data.success) {
             // Update button state
-            followButton.textContent = 'Follow';
+            followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
             followButton.classList.remove('following');
             
             // Remove from our following set
@@ -429,31 +493,36 @@ function unfollowUser(userId) {
             // Update card if visible
             const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
             if (userCard) {
-                const followersStat = userCard.querySelector('.stat-value');
-                if (followersStat) {
-                    const currentCardFollowers = parseInt(followersStat.textContent);
-                    followersStat.textContent = Math.max(0, currentCardFollowers - 1).toString();
-                }
+              const followersStat = userCard.querySelector('.stat-value');
+              if (followersStat) {
+                const currentCardFollowers = parseInt(followersStat.textContent);
+                followersStat.textContent = Math.max(0, currentCardFollowers - 1).toString();
+              }
             }
             
             // Show success message
             showToast('You unfollowed this user', 'success');
-        } else {
+          } else {
             showToast(data.error || 'Failed to unfollow user', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        followButton.disabled = false;
-        followButton.textContent = 'Unfollow';
-        showToast('Error connecting to server', 'error');
-    });
-}
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          followButton.disabled = false;
+          followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
+          showToast('Error connecting to server', 'error');
+        });
+      }
       
       // Function to fetch which users we're following
       function fetchFollowingStatus() {
         fetch("{% url 'get_following' %}")
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.success && Array.isArray(data.following)) {
             // Clear the set and add all following users
@@ -463,6 +532,7 @@ function unfollowUser(userId) {
         })
         .catch(error => {
           console.error('Error fetching following status:', error);
+          // Continue without following data
         });
       }
       
@@ -478,9 +548,11 @@ function unfollowUser(userId) {
           icon = '<i class="bi bi-check-circle-fill"></i>';
         } else if (type === 'error') {
           icon = '<i class="bi bi-exclamation-circle-fill"></i>';
+        } else if (type === 'info') {
+          icon = '<i class="bi bi-info-circle-fill"></i>';
         }
         
-        toast.innerHTML = `${icon} ${message}`;
+        toast.innerHTML = `${icon} <span class="ms-2">${message}</span>`;
         toastContainer.appendChild(toast);
         
         // Remove toast after animation completes
@@ -495,7 +567,7 @@ function unfollowUser(userId) {
           .split('; ')
           .find(row => row.startsWith('csrftoken='))
           ?.split('=')[1];
-        return cookieValue;
+        return cookieValue || '';
       }
     });
   </script>

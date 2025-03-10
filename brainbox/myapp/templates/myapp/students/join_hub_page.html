@@ -16,21 +16,20 @@ More info:
 
 
 */ -->
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Students Hub section</title>
-  <meta name="description" content="">
-  <meta name="keywords" content="">
+  <title>Join Hub - EduLink</title>
+  <meta name="description" content="Join learning hubs and connect with teachers and students">
+  <meta name="keywords" content="education, learning, student dashboard, hubs">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
@@ -41,11 +40,10 @@ More info:
 
   <!-- CSS Files -->
   <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
   <link href="{% static 'css/join_hub_page.css' %}" rel="stylesheet">
 
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-
-
 </head>
 
 <body class="index-page">
@@ -56,10 +54,9 @@ More info:
       </a>
       
       <nav id="navmenu" class="navmenu">
-        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
         <ul>
-          <li><a href="{% url 'students_homepage' %}" class="active">Home<br></a></li>
-          <li><a href="{% url 'students_join_hub_page' %}">Join Hubs</a></li>
+          <li><a href="{% url 'students_homepage' %}">Home</a></li>
+          <li><a href="{% url 'students_join_hub_page' %}" class="active">Join Hubs</a></li>
           <li><a href="{% url 'community_page' %}">Community</a></li>
           <li><a href="{% url 'student_profile_page' %}">My Profile</a></li>
         </ul>
@@ -68,74 +65,142 @@ More info:
     </div>
   </header>
 
-  <section id="search-room" class="search-room d-flex justify-content-center align-items-center">
-    <div class="container text-center">
-      <h2 class="display-4 mb-4">Search for a Room</h2>
+  <!-- Hero Section with Search -->
+  <section id="search-room" class="search-room">
+    <div class="container">
+      <h2 data-aos="fade-up">Discover Learning Hubs</h2>
       
-      <form action="{% url 'students_join_hub_page' %}" method="POST" class="d-flex justify-content-center align-items-center">
+      <form action="{% url 'students_join_hub_page' %}" method="POST" class="search-form d-flex justify-content-center align-items-center" data-aos="fade-up" data-aos-delay="200">
         {% csrf_token %}
         <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
-        <input type="text" name="room_name" class="form-control form-control-lg rounded-pill w-50" placeholder="Enter Room Name or Teachers name" required>
-        <button type="submit" class="btn btn-primary btn-lg rounded-pill ms-3">Search</button>
+        <input type="text" name="room_name" class="search-input" placeholder="Search by hub name or teacher name" required>
+        <button type="submit" class="search-button">
+          <i class="bi bi-search me-2"></i>Search
+        </button>
       </form>
     </div>
   </section>
 
-  <section>
+  <!-- Available Hubs Section -->
+  <section class="hubs-section">
     <div class="container">
-      <h2>Available Hubs: {{ number_of_hubs }}</h2>
-      <div class="hub-actions">
-        {% if teachers_hubs %}
+      <h3 class="section-title" data-aos="fade-up">
+        Available Hubs <span class="count">{{ number_of_hubs }}</span>
+      </h3>
+      
+      {% if teachers_hubs %}
+        <div class="hub-grid" data-aos="fade-up" data-aos-delay="100">
           {% for hub in teachers_hubs %}
-            <div class="hub-item">
-              <button class="btn hub-btn" data-bs-toggle="modal" data-bs-target="#createHubModal"
+            <div class="hub-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter|add:100 }}">
+              {% if hub.hub_image %}
+                <img src="{{ hub.hub_image.url }}" alt="{{ hub.hub_name }}" class="hub-image">
+              {% else %}
+                <img src="{% static 'images/default_hub.jpg' %}" alt="{{ hub.hub_name }}" class="hub-image">
+              {% endif %}
+              
+              <div class="hub-content">
+                <h4 class="hub-name">{{ hub.hub_name }}</h4>
+                <p class="hub-description">{{ hub.hub_description }}</p>
+                
+                <div class="hub-meta">
+                  <div class="hub-owner">
+                    <i class="bi bi-person-fill me-1"></i>
+                    <strong>{{ hub.hub_owner }}</strong>
+                  </div>
+                  
+                  <span class="hub-privacy {{ hub.hub_privacy_setting|lower }}">
+                    {% if hub.hub_privacy_setting == "public" %}
+                      <i class="bi bi-globe2 me-1"></i>Public
+                    {% else %}
+                      <i class="bi bi-lock-fill me-1"></i>Private
+                    {% endif %}
+                  </span>
+                </div>
+                
+                <button class="hub-join-btn" data-bs-toggle="modal" data-bs-target="#createHubModal"
                       data-hub-name="{{ hub.hub_name }}"
                       data-hub-url="{{ hub.room_url }}"
-                      data-hub-image="{{ hub.hub_image }}"
+                      data-hub-image="{{ hub.hub_image.url|default:'default_image.jpg' }}"
                       data-hub-description="{{ hub.hub_description }}"
                       data-owner-name="{{ hub.hub_owner }}"
-                      data-privacy-setting="{{ hub.hub_privacy_setting }}">
-                <h4>{{ hub.hub_name }}</h4>
-                <p>{{ hub.hub_description }} | <strong>{{ hub.hub_owner }}</strong></p>
-              </button>
+                      data-privacy-setting="{{ hub.hub_privacy_setting }}"
+                      data-member-count="{{ hub.member_count }}">
+                  <i class="bi bi-plus-circle"></i> Join
+                </button>
+              </div>
             </div>
           {% endfor %}
-        {% else %}
-          <p>No hubs are available at the moment. Check back later!</p>
-        {% endif %}
-      </div>
+        </div>
+      {% else %}
+        <!-- No hubs found -->
+        <div class="no-hubs-container" data-aos="fade-up">
+          <i class="bi bi-search no-hubs-icon"></i>
+          <p class="no-hubs-message">No hubs are available at the moment.</p>
+          <p>Try searching with different keywords or check back later!</p>
+        </div>
+      {% endif %}
     </div>
   </section>
 
-  <div class="modal fade" id="createHubModal" tabindex="-1" aria-labelledby="createHubModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+  <!-- Hub Detail Modal -->
+  <div class="modal fade hub-modal" id="createHubModal" tabindex="-1" aria-labelledby="createHubModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div id="messageContainer" class="alert" style="display: none; position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1050;">
+        <!-- Status message container -->
+        <div id="messageContainer" class="hub-modal-message">
           <p id="messageContent"></p>
         </div>
 
         <div class="modal-header">
-          <h5 class="modal-title" id="createHubModalLabel">Join a New Hub</h5>
+          <h5 class="modal-title" id="createHubModalLabel">
+            <i class="bi bi-people-fill"></i>
+            Join Hub
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-
+        
         <div class="modal-body">
-          <img src="{{ hub.hub_image.url }}" alt="Hub Image" id="imageDisplay" class="img-fluid mb-4">
-
-          <p><strong>Name:</strong> <span id="hubNameDisplay"></span></p>
-          <p><strong>Owner:</strong> <span id="ownerNameDisplay"></span></p>
-          <p><strong>Description:</strong> <span id="descriptionDisplay"></span></p>
-          <p><strong>Privacy Setting:</strong> <span id="privacySettingDisplay"></span></p>
+          <img src="" alt="Hub Image" id="imageDisplay" class="hub-modal-image">
+          
+          <div class="hub-detail-section">
+            <div class="hub-detail-label">Hub Name</div>
+            <div class="hub-detail-value" id="hubNameDisplay"></div>
+          </div>
+          
+          <div class="hub-detail-section">
+            <div class="hub-detail-label">Created By</div>
+            <div class="hub-detail-value" id="ownerNameDisplay"></div>
+          </div>
+          
+          <div class="hub-detail-section">
+            <div class="hub-detail-label">Description</div>
+            <div class="hub-detail-value" id="descriptionDisplay"></div>
+          </div>
+          
+          <div class="hub-detail-section">
+            <div class="hub-detail-label">Privacy Setting</div>
+            <div class="hub-detail-value" id="privacySettingDisplay"></div>
+          </div>
+          
+          <div class="hub-detail-section">
+            <div class="hub-detail-label">Members</div>
+            <div class="hub-detail-value">
+              <span id="memberCountDisplay">0</span> members
+            </div>
+          </div>
         </div>
-
+        
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="doneButton">Done</button>
-          <button type="button" class="btn btn-primary" onclick="joinHub()">Join Hub</button>
+          <button type="button" class="btn btn-secondary hub-modal-btn" id="doneButton">Cancel</button>
+          <button type="button" class="btn btn-primary hub-modal-btn join" onclick="joinHub()">
+            <i class="bi bi-plus-circle me-2"></i>Join Hub
+          </button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Script to setup Modal functionality -->
   <script>
     // Event listener to set the hub details dynamically in the modal
     const hubModal = document.getElementById('createHubModal');
@@ -148,24 +213,38 @@ More info:
       const ownerName = button.getAttribute('data-owner-name');
       const hubDescription = button.getAttribute('data-hub-description');
       const privacySetting = button.getAttribute('data-privacy-setting');
+      const memberCount = button.getAttribute('data-member-count') || '0';
   
       // Update the modal with these details
       document.getElementById('hubNameDisplay').textContent = hubName;
-      document.getElementById('descriptionDisplay').textContent = hubDescription;
+      document.getElementById('descriptionDisplay').textContent = hubDescription || 'No description available';
       document.getElementById('ownerNameDisplay').textContent = ownerName;
-      document.getElementById('privacySettingDisplay').textContent = privacySetting;
+      document.getElementById('privacySettingDisplay').textContent = privacySetting === 'public' ? 'Public' : 'Private (Invitation Only)';
+      document.getElementById('memberCountDisplay').textContent = memberCount;
       document.getElementById('imageDisplay').src = hubImage || '{% static "images/default_image.jpg" %}';
+      
+      // Reset message container
+      const messageContainer = document.getElementById('messageContainer');
+      messageContainer.classList.remove('show', 'success', 'error');
     });
   
     // Join hub functionality via AJAX
     function joinHub() {
-      // Get the hub name from the modal
+      // Get the hub name and owner from the modal
       const hubName = document.getElementById('hubNameDisplay').textContent;
       const hubOwner = document.getElementById('ownerNameDisplay').textContent;
       const hubUrl = document.querySelector('[data-hub-url]').getAttribute('data-hub-url');
-      const modalContent = document.querySelector('#createHubModal .modal-content');
-    
-      // Prepare the container for messages
+      
+      // Get buttons to disable during processing
+      const joinButton = document.querySelector('.hub-modal-btn.join');
+      const cancelButton = document.getElementById('doneButton');
+      
+      // Disable buttons to prevent multiple clicks
+      joinButton.disabled = true;
+      cancelButton.disabled = true;
+      joinButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Joining...';
+      
+      // Prepare the message container
       const messageContainer = document.getElementById('messageContainer');
       const messageContent = document.getElementById('messageContent');
 
@@ -176,33 +255,44 @@ More info:
           "Content-Type": "application/json",
           "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
         },
-        body: JSON.stringify({ hub_name: hubName, hub_owner:hubOwner,hub_url:hubUrl})
+        body: JSON.stringify({ hub_name: hubName, hub_owner: hubOwner, hub_url: hubUrl})
       })
       .then(response => response.json())
       .then(data => {
+        // Reset buttons
+        joinButton.disabled = false;
+        cancelButton.disabled = false;
+        joinButton.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Join Hub';
+        
         // Display success or error message based on response
         if (data.success) {
           messageContent.textContent = "Successfully joined the hub!";
-          messageContainer.classList.add('alert-success');
-          messageContainer.classList.remove('alert-danger');
+          messageContainer.classList.add('success', 'show');
+          
+          // Redirect after 2 seconds
+          setTimeout(() => {
+            window.location.href = "{% url 'students_homepage' %}";
+          }, 2000);
         } else {
           messageContent.textContent = data.error || "Failed to join the hub.";
-          messageContainer.classList.add('alert-danger');
-          messageContainer.classList.remove('alert-success');
+          messageContainer.classList.add('error', 'show');
         }
-        messageContainer.style.display = "block";
-        modalContent.scrollTop = 0;
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred. Please try again later.');
+        joinButton.disabled = false;
+        cancelButton.disabled = false;
+        joinButton.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Join Hub';
+        
+        messageContent.textContent = "An error occurred. Please try again later.";
+        messageContainer.classList.add('error', 'show');
       });
     }
 
+    // Cancel button click handler
     document.getElementById('doneButton').addEventListener('click', function() {
-      var modal = new bootstrap.Modal(document.getElementById('createHubModal'));
-      modal.hide(); 
-      window.location.href = "{% url 'students_join_hub_page' %}";  // Redirect to homepage
+      var modal = bootstrap.Modal.getInstance(document.getElementById('createHubModal'));
+      modal.hide();
     });
   </script>
 
@@ -214,5 +304,17 @@ More info:
 
   <!-- Main JS File -->
   <script src="{% static 'js/main.js' %}"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize AOS
+      AOS.init({
+        duration: 800,
+        easing: 'ease-in-out',
+        once: true,
+        mirror: false
+      });
+    });
+  </script>
 </body>
 </html>
