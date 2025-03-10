@@ -57,8 +57,6 @@ urlpatterns = [
     path('vote-reply/', vote_reply, name='vote_reply'),
     
     path('poll-voting/', poll_voting, name='poll_voting'),
-    path('follow-user/', follow_user, name='follow_user'),
-    path('get-following/', get_following, name='get_following'),
     path('log-tab-click/', log_tab_click, name='log_tab_click'),
     path('get-user-votes/', get_user_votes, name='get_user_votes'),
     path('get_suggestions/', get_suggestions, name='get_suggestions'),
@@ -67,6 +65,12 @@ urlpatterns = [
     path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
     path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
+
+    path('follow-user/', follow_user_view, name='follow_user'),
+    path('unfollow-user/', unfollow_user_view, name='unfollow_user'),
+    path('get-following/', get_following_list, name='get_following'),
+
+
 
 
 ]

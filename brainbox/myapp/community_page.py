@@ -5,6 +5,7 @@ from .firebase import *
 import json
 from django.views.decorators.csrf import csrf_exempt
 
+# Main community page views
 def community_page(request):
     current_student_name = request.session.get("students_name")
     
@@ -149,157 +150,387 @@ def teachers_community_page(request):
 
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
-@csrf_exempt
-def follow_user(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            user_id = data.get('userId')
-            action = data.get('action')  # 'follow' or 'unfollow'
-            
-            # Get the current user's name from the session
-            current_user_name = request.session.get("students_name") or request.session.get("teachers_name")
-            if not current_user_name:
-                return JsonResponse({"success": False, "error": "User not logged in"}, status=401)
-            
-            # Get current user's profile
-            current_user = None
-            users = db.collection('users_profile').stream()
-            for user in users:
-                if user.to_dict().get('name') == current_user_name:
-                    current_user = {"id": user.id, "data": user.to_dict()}
-                    break
-            
-            if not current_user:
-                return JsonResponse({"success": False, "error": "Current user profile not found"}, status=404)
-            
-            # Get target user's profile
-            target_user_ref = db.collection('users_profile').document(user_id)
-            target_user_doc = target_user_ref.get()
-            
-            if not target_user_doc.exists:
-                return JsonResponse({"success": False, "error": "Target user not found"}, status=404)
-            
-            target_user_data = target_user_doc.to_dict()
-            
-            # Handle follow/unfollow action
-            if action == 'follow':
-                # Update follower count for target user
-                current_followers = target_user_data.get('followers', 0)
-                target_user_ref.update({'followers': current_followers + 1})
-                
-                # Update following count for current user
-                current_following = current_user['data'].get('followings', 0)
-                db.collection('users_profile').document(current_user['id']).update({'followings': current_following + 1})
-                
-                # Add to following collection
-                follow_data = {
-                    'follower_id': current_user['id'],
-                    'follower_name': current_user_name,
-                    'following_id': user_id,
-                    'following_name': target_user_data.get('name'),
-                    'created_at': datetime.now()
-                }
-                db.collection('user_follows').add(follow_data)
-                
-                # Create notification for target user
-                notification_data = {
-                    'user_id': user_id,
-                    'username': target_user_data.get('name'),
-                    'message': f"{current_user_name} started following you",
-                    'type': 'follow',
-                    'sender_id': current_user['id'],
-                    'sender_name': current_user_name,
-                    'created_at': datetime.now(),
-                    'read': False
-                }
-                db.collection('notifications').add(notification_data)
-                
-                return JsonResponse({"success": True, "message": "Successfully followed user"})
-                
-            elif action == 'unfollow':
-                # Update follower count for target user
-                current_followers = target_user_data.get('followers', 0)
-                target_user_ref.update({'followers': max(0, current_followers - 1)})
-                
-                # Update following count for current user
-                current_following = current_user['data'].get('followings', 0)
-                db.collection('users_profile').document(current_user['id']).update({'followings': max(0, current_following - 1)})
-                
-                # Remove from following collection
-                follows_ref = db.collection('user_follows')
-                query = follows_ref.where('follower_id', '==', current_user['id']).where('following_id', '==', user_id)
-                for follow in query.stream():
-                    follow.reference.delete()
-                
-                return JsonResponse({"success": True, "message": "Successfully unfollowed user"})
-            
-            else:
-                return JsonResponse({"success": False, "error": "Invalid action"}, status=400)
-            
-        except Exception as e:
-            print(f"Error: {e}")
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
+# Firebase functions for follow/unfollow operations
+def follow_user(follower_id, user_to_follow_id):
+    """
+    Create a follow relationship between two users in Firestore.
     
-    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+    Args:
+        follower_id: The ID of the user who is following
+        user_to_follow_id: The ID of the user being followed
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Reference to users_profile collection
+        users_ref = db.collection('users_profile')
+        
+        # Reference to a new collection to track follow relationships
+        follows_ref = db.collection('user_follows')
+        
+        # Create the follow relationship document
+        follow_doc_id = f"{follower_id}_follows_{user_to_follow_id}"
+        
+        # Check if already following
+        follow_doc = follows_ref.document(follow_doc_id).get()
+        if follow_doc.exists:
+            print(f"User {follower_id} is already following {user_to_follow_id}")
+            return True
+            
+        # Create the follow relationship
+        follows_ref.document(follow_doc_id).set({
+            'follower_id': follower_id,
+            'following_id': user_to_follow_id,
+            'created_at': firestore.SERVER_TIMESTAMP
+        })
+        
+        # Get current follower and following counts
+        follower_doc = users_ref.document(follower_id).get()
+        following_doc = users_ref.document(user_to_follow_id).get()
+        
+        if not follower_doc.exists or not following_doc.exists:
+            print("One of the users does not exist")
+            return False
+            
+        follower_data = follower_doc.to_dict()
+        following_data = following_doc.to_dict()
+        
+        # Update the following count for the follower
+        current_followings = follower_data.get('followings', 0)
+        users_ref.document(follower_id).update({
+            'followings': current_followings + 1
+        })
+        
+        # Update the followers count for the user being followed
+        current_followers = following_data.get('followers', 0)
+        users_ref.document(user_to_follow_id).update({
+            'followers': current_followers + 1
+        })
+        
+        print(f"User {follower_id} is now following {user_to_follow_id}")
+        return True
+        
+    except Exception as e:
+        print(f"Error following user: {e}")
+        return False
+
+def unfollow_user(follower_id, user_to_unfollow_id):
+    """
+    Remove a follow relationship between two users in Firestore.
+    
+    Args:
+        follower_id: The ID of the user who is unfollowing
+        user_to_unfollow_id: The ID of the user being unfollowed
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Reference to users_profile collection
+        users_ref = db.collection('users_profile')
+        
+        # Reference to follows collection
+        follows_ref = db.collection('user_follows')
+        
+        # Follow relationship document ID
+        follow_doc_id = f"{follower_id}_follows_{user_to_unfollow_id}"
+        
+        # Check if the relationship exists
+        follow_doc = follows_ref.document(follow_doc_id).get()
+        if not follow_doc.exists:
+            print(f"User {follower_id} is not following {user_to_unfollow_id}")
+            return True  # Already not following, so consider it successful
+            
+        # Delete the follow relationship
+        follows_ref.document(follow_doc_id).delete()
+        
+        # Get current follower and following counts
+        follower_doc = users_ref.document(follower_id).get()
+        following_doc = users_ref.document(user_to_unfollow_id).get()
+        
+        if not follower_doc.exists or not following_doc.exists:
+            print("One of the users does not exist")
+            return False
+            
+        follower_data = follower_doc.to_dict()
+        following_data = following_doc.to_dict()
+        
+        # Update the following count for the follower (ensure it never goes below 0)
+        current_followings = follower_data.get('followings', 0)
+        users_ref.document(follower_id).update({
+            'followings': max(0, current_followings - 1)
+        })
+        
+        # Update the followers count for the user being unfollowed
+        current_followers = following_data.get('followers', 0)
+        users_ref.document(user_to_unfollow_id).update({
+            'followers': max(0, current_followers - 1)
+        })
+        
+        print(f"User {follower_id} has unfollowed {user_to_unfollow_id}")
+        return True
+        
+    except Exception as e:
+        print(f"Error unfollowing user: {e}")
+        return False
+    
+
+
+def get_user_following(user_id):
+    """
+    Get a list of user IDs that a user is following.
+    
+    Args:
+        user_id: The ID of the user
+        
+    Returns:
+        List of user IDs that the user is following
+    """
+    try:
+        # Reference to follows collection
+        follows_ref = db.collection('user_follows')
+        
+        # Query for all documents where this user is the follower
+        query = follows_ref.where('follower_id', '==', user_id)
+        results = query.stream()
+        
+        # Extract the IDs of users being followed
+        following_ids = []
+        for doc in results:
+            data = doc.to_dict()
+            following_ids.append(data.get('following_id'))
+            
+        return following_ids
+        
+    except Exception as e:
+        print(f"Error getting following list: {e}")
+        return []
+
+
+
+
+
+
+
+
+def get_user_id_by_name(name):
+    db = firestore.client()
+    user_collection = db.collection("users_profile")
+    query = user_collection.where("name", "==", name).stream()
+    
+    for user in query:
+        return user.id  # Firestore document ID
+    
+    return None
+
+
 
 @csrf_exempt
-def get_following(request):
-    if request.method == 'GET':
-        try:
-            # Get the current user's name from the session
-            current_user_name = request.session.get("students_name") or request.session.get("teachers_name")
-            if not current_user_name:
-                return JsonResponse({"success": False, "error": "User not logged in"}, status=401)
-            
-            # Get current user's profile
-            current_user_id = None
-            users = db.collection('users_profile').stream()
-            for user in users:
-                if user.to_dict().get('name') == current_user_name:
-                    current_user_id = user.id
-                    break
-            
-            if not current_user_id:
-                return JsonResponse({"success": False, "error": "Current user profile not found"}, status=404)
-            
-            # Get users that the current user is following
-            follows_ref = db.collection('user_follows')
-            query = follows_ref.where('follower_id', '==', current_user_id)
-            
-            following_ids = []
-            for follow in query.stream():
-                follow_data = follow.to_dict()
-                following_ids.append(follow_data.get('following_id'))
-            
-            return JsonResponse({"success": True, "following": following_ids})
-            
-        except Exception as e:
-            print(f"Error: {e}")
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
+def follow_user_view(request):
+    """
+    Handle follow requests from both students and teachers
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST method is allowed'}, status=405)
     
-    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+    try:
+        # Parse the request data
+        data = json.loads(request.body)
+        user_id_to_follow = data.get('userId')
+        
+        if not user_id_to_follow:
+            return JsonResponse({
+                'success': False,
+                'error': 'User ID is required'
+            }, status=400)
+        
+        print(f"Received follow request for user ID: {user_id_to_follow}")
+        
+        # Get the current user ID (could be student or teacher)
+        current_user_id = None
+        
+        # Check if user is a student
+        current_student_name = get_student_user_id(request)
+        if current_student_name:
+            # For students, we need to check if this is the display name or the ID
+            print(f"Current student name: {current_student_name}")
+            
+            
+            current_user_id=get_user_id_by_name(current_student_name.upper())
+            print(f"{current_student_name} : {current_user_id}")
+            
+            
+        else:
+            # Check if user is a teacher
+            current_teacher_name = get_teacher_user_id(request)
+            if current_teacher_name:
+                current_user_id=get_user_id_by_name(current_teacher_name)
+                print(f"{current_teacher_name} : {current_user_id}")
+        
+        if not current_user_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Unable to determine current user'
+            }, status=401)
+        
+        # Verify both users exist in Firestore
+        users_ref = db.collection('users_profile')
+        follower_exists = users_ref.document(current_user_id).get().exists
+        following_exists = users_ref.document(user_id_to_follow).get().exists
+        
+        if not follower_exists:
+            print(f'Your user profile (ID: {current_user_id}) was not found in the database')
+            return JsonResponse({
+                'success': False,
+                'error': f'Your user profile (ID: {current_user_id}) was not found in the database'
+            }, status=404)
+            
+        if not following_exists:
+            print(f'The user you are trying to follow (ID: {user_id_to_follow}) was not found in the database')
+            return JsonResponse({
+                'success': False,
+                'error': f'The user you are trying to follow (ID: {user_id_to_follow}) was not found in the database'
+            }, status=404)
+        
+        # Prevent following yourself
+        if current_user_id == user_id_to_follow:
+            return JsonResponse({
+                'success': False,
+                'error': 'You cannot follow yourself'
+            }, status=400)
+            
+        # Execute follow action
+        success = follow_user(current_user_id, user_id_to_follow)
+            
+        if success:
+            print("It worked properly")
+            return JsonResponse({
+                'success': True,
+                'message': 'Successfully followed user'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to follow user'
+            }, status=500)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON'
+        }, status=400)
+        
+    except Exception as e:
+        print(f"Unexpected error in follow_user_view: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
 
 
 
 
 @csrf_exempt
-def mark_notification_read(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            notification_id = data.get('notification_id')
-            print("I am here now")
-            
-            # Delete the notification from Firebase
-            if notification_id:
-                db.collection('notifications').document(notification_id).delete()
-                return JsonResponse({'success': True, 'message': 'Notification marked as read'})
-            else:
-                return JsonResponse({'success': False, 'error': 'Notification ID is required'}, status=400)
-                
-        except Exception as e:
-            print(f"Error marking notification as read: {e}")
-            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+def unfollow_user_view(request):
+    """
+    Handle unfollow requests from both students and teachers
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST method is allowed'}, status=405)
     
-    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+    try:
+        # Parse the request data
+        data = json.loads(request.body)
+        user_id_to_unfollow = data.get('userId')
+        
+        if not user_id_to_unfollow:
+            return JsonResponse({
+                'success': False,
+                'error': 'User ID is required'
+            }, status=400)
+        
+        # Get the current user ID (could be student or teacher)
+        current_user_id = None
+        
+        # Check if user is a student
+        current_student_name = get_student_user_id(request)
+        if current_student_name:
+            current_user_id = current_student_name
+        else:
+            # Check if user is a teacher
+            current_teacher_name = get_teacher_user_id(request)
+            if current_teacher_name:
+                current_user_id = current_teacher_name
+        
+        if not current_user_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Unable to determine current user'
+            }, status=401)
+            
+        # Execute unfollow action
+        success = unfollow_user(current_user_id, user_id_to_unfollow)
+            
+        if success:
+            return JsonResponse({
+                'success': True,
+                'message': 'Successfully unfollowed user'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to unfollow user'
+            }, status=500)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON'
+        }, status=400)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@csrf_exempt
+def get_following_list(request):
+    """
+    Return a list of user IDs that the current user is following
+    """
+    try:
+        # Get the current user ID (could be student or teacher)
+        current_user_id = None
+        
+        # Check if user is a student
+        current_student_name = get_student_user_id(request)
+        if current_student_name:
+            current_user_id = current_student_name
+        else:
+            # Check if user is a teacher
+            current_teacher_name = get_teacher_user_id(request)
+            if current_teacher_name:
+                current_user_id = current_teacher_name
+        
+        if not current_user_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Unable to determine current user'
+            }, status=401)
+            
+        # Get the list of users being followed
+        following_ids = get_user_following(current_user_id)
+        
+        return JsonResponse({
+            'success': True,
+            'following': following_ids
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

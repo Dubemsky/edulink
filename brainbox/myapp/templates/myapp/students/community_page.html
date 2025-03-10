@@ -412,7 +412,7 @@
           },
           body: JSON.stringify({ 
             userId: userId,
-            action: 'follow'
+            action: 'unfollow'
           })
         })
         .then(response => response.json())
@@ -462,7 +462,7 @@
         followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Unfollowing...';
         
         // Send unfollow request to server
-        fetch("{% url 'follow_user' %}", {
+        fetch("{% url 'unfollow_user' %}", {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -470,7 +470,6 @@
           },
           body: JSON.stringify({ 
             userId: userId,
-            action: 'unfollow'
           })
         })
         .then(response => response.json())

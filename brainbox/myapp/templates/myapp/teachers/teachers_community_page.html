@@ -411,7 +411,7 @@
           },
           body: JSON.stringify({ 
             userId: userId,
-            action: 'follow'
+            action: 'unfollow'
           })
         })
         .then(response => response.json())
@@ -469,7 +469,7 @@
           },
           body: JSON.stringify({ 
             userId: userId,
-            action: 'unfollow'
+            
           })
         })
         .then(response => response.json())
