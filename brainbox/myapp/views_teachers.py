@@ -27,7 +27,7 @@ def teachers_homepage(request):
 
         notifications =get_notifications_by_username(current_teacher)
         print(f"\n\n{current_teacher} {notifications}\n\n")
-    return render(request, "myapp/teachers/teachers_homepage.html",{"teachers_hubs":teachers_hubs,"notifications":notifications})
+    return render(request, "myapp/teachers/teachers_homepage.html",{"teachers_hubs":teachers_hubs,"notifications":notifications,"username":current_teacher})
 
 
 """

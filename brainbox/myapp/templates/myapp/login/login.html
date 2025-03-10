@@ -16,14 +16,13 @@ More info:
 
 
 */ -->
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Students Analitics</title>
+  <title>Students Analytics - Student Login</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -36,69 +35,283 @@ More info:
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
   <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
-
   
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 
   <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    .login-container {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+    }
+    
+    .login-image {
+      flex: 1;
+      background: linear-gradient(rgba(25, 135, 84, 0.8), rgba(25, 135, 84, 0.8)), url('{% static "img/students-background.jpg" %}');
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    .login-form-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background-color: #f8f9fa;
+    }
+    
+    .login-form {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    
+    .login-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #333;
+      text-align: center;
+    }
+    
+    .login-subtitle {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #6c757d;
+      font-weight: 300;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #495057;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+    
+    .form-control:focus {
+      border-color: #198754;
+      outline: none;
+      box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+    }
+    
+    .btn-login {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      background-color: #198754;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 1rem;
+    }
+    
+    .btn-login:hover {
+      background-color: #146c43;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
+    }
+    
+    .error-message {
+      background-color: #f8d7da;
+      color: #842029;
+      padding: 0.75rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      border: 1px solid #f5c2c7;
+    }
+    
     .back-button {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    padding: 8px 16px;
-    background-color: #007bff;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-    font-size: 14px;
-}
-.back-button:hover {
-    background-color: #0056b3;
-}
-</style>
-
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      text-decoration: none;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .back-button:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .signup-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+    
+    .signup-link a {
+      color: #198754;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.3s;
+    }
+    
+    .signup-link a:hover {
+      color: #146c43;
+      text-decoration: underline;
+    }
+    
+    .welcome-box {
+      max-width: 450px;
+    }
+    
+    .welcome-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .welcome-text {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      font-weight: 300;
+      line-height: 1.6;
+    }
+    
+    .form-icon {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-icon i {
+      font-size: 3rem;
+      color: #198754;
+    }
+    
+    @media (max-width: 768px) {
+      .login-container {
+        flex-direction: column;
+      }
+      
+      .login-image {
+        flex: none;
+        height: 30vh;
+      }
+      
+      .login-form-container {
+        flex: none;
+        height: 70vh;
+        overflow-y: auto;
+      }
+      
+      .welcome-title {
+        font-size: 1.8rem;
+      }
+      
+      .welcome-text {
+        font-size: 1rem;
+      }
+      
+      .back-button {
+        top: 10px;
+        left: 10px;
+      }
+    }
+  </style>
 </head>
 
-<body class="index-page">
-    <a href="/" class="back-button">Back</a>
-
-    <div class="container">
-        <h2>Login for Student</h2>
-        <form method="POST">
-            {% csrf_token %}
-
-            {% if error %}
-                <p style="color: red;">{{ error }}</p>
-            {% endif %}
-
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required placeholder="Enter your @mytudublin.ie email"><br>
-
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required placeholder="Password"><br>
-
-            <button type="submit">Login for Students</button>
-        </form>
-
-        <p>Don't have an account? <a href="{% url 'signup_page' %}?role={{ request.GET.role }}">Sign up here</a>.</p>
+<body>
+  <div class="login-container">
+    <!-- Left side - Welcome message with background -->
+    <div class="login-image">
+      <a href="/" class="back-button">
+        <i class="bi bi-arrow-left"></i> Back
+      </a>
+      <div class="welcome-box">
+        <h1 class="welcome-title">Welcome Back, Student!</h1>
+        <p class="welcome-text">Engage with your academic community, track your progress, and access personalized insights to enhance your learning experience. Log in with your TU Dublin credentials to continue.</p>
+        <i class="bi bi-mortarboard-fill" style="font-size: 3rem;"></i>
+    </div>    
     </div>
-  
+    
+    <!-- Right side - Login form -->
+    <div class="login-form-container">
+      <div class="login-form">
+        <div class="form-icon">
+          <i class="bi bi-person-circle"></i>
+        </div>
+        <h2 class="login-title">Student Login</h2>
+        <p class="login-subtitle">Enter your credentials to access your account</p>
+        
+        {% if error %}
+          <div class="error-message">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+          </div>
+        {% endif %}
+        
+        <form method="POST">
+          {% csrf_token %}
+          
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" class="form-control" required placeholder="your.name@mytudublin.ie">
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" class="form-control" required placeholder="Enter your password">
+          </div>
+          
+          <button type="submit" class="btn-login">
+            <i class="bi bi-box-arrow-in-right"></i> Login
+          </button>
+        </form>
+        
+        <div class="signup-link">
+          Don't have an account? <a href="{% url 'signup_page' %}?role={{ request.GET.role }}">Sign up here</a>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Vendor JS Files -->
   <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
   <script src="{% static 'vendor/aos/aos.js' %}"></script>
-  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
-  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
-  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
-  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
-
-  <!-- Main JS File -->
-  <script src="{% static 'js/main.js' %}"></script>
 </body>
 </html>

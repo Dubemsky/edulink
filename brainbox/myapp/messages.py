@@ -12,6 +12,7 @@ def add_message(role, room_id, sender, content, message_type="text", file_url=No
         now_utc = datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S')
 
         embedding = get_remote_embedding(content)
+        print(f"These are teh embeddings {embedding}" )
 
         message_data = {
             'role': role,

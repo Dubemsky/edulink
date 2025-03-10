@@ -16,14 +16,13 @@ More info:
 
 
 */ -->
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Students Analitics</title>
+  <title>Students Analytics</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -36,37 +35,170 @@ More info:
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
   <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
 
   <!-- CSS Files -->
   <link href="{% static 'css/main.css' %}" rel="stylesheet">
-  <link href="{% static 'css/first_page.css' %}" rel="stylesheet">
-
+  
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    .split-container {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+    }
+    
+    .split {
+      flex: 1;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.8s ease;
+    }
+    
+    .split:hover {
+      flex: 1.5;
+    }
+    
+    .split-left {
+      background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('{% static "img/students-background.jpg" %}');
+      background-size: cover;
+      background-position: center;
+    }
+    
+    .split-right {
+      background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('{% static "img/teachers-background.jpg" %}');
+      background-size: cover;
+      background-position: center;
+    }
+    
+    .centered {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      width: 80%;
+    }
+    
+    .split-title {
+      color: white;
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .split-button {
+      display: inline-block;
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      border: 2px solid white;
+    }
+    
+    .student-button {
+      background-color: rgba(25, 135, 84, 0.2);
+      color: white;
+    }
+    
+    .student-button:hover {
+      background-color: rgba(25, 135, 84, 0.9);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transform: translateY(-5px);
+      color: white;
+    }
+    
+    .teacher-button {
+      background-color: rgba(13, 110, 253, 0.2);
+      color: white;
+    }
+    
+    .teacher-button:hover {
+      background-color: rgba(13, 110, 253, 0.9);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transform: translateY(-5px);
+      color: white;
+    }
+    
+    .split-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      color: white;
+    }
+    
+    .split-description {
+      color: white;
+      margin-bottom: 2rem;
+      font-weight: 300;
+      line-height: 1.6;
+    }
+    
+    /* Media queries for responsiveness */
+    @media (max-width: 768px) {
+      .split-container {
+        flex-direction: column;
+      }
+      .split {
+        height: 50vh;
+      }
+      .split:hover {
+        flex: 1;
+      }
+      .split-title {
+        font-size: 2rem;
+      }
+      .split-icon {
+        font-size: 3rem;
+      }
+    }
+  </style>
 </head>
 
-<body class="index-page">
-    <div class="container">
-        <a href="{% url 'login_page' %}?role=student" class="button students">
-            <span>Students</span>
+<body>
+  <div class="split-container">
+    <!-- Left side - Students -->
+    <div class="split split-left">
+      <div class="centered">
+        <i class="bi bi-mortarboard-fill split-icon"></i>
+        <h2 class="split-title">Students</h2>
+        <p class="split-description">Collaborate with peers, ask questions, share knowledge, and gain valuable insights to boost your academic growth.</p>
+        <a href="{% url 'login_page' %}?role=student" class="split-button student-button">
+          <i class="bi bi-arrow-right-circle"></i> Student Portal
         </a>
-        <a href="{% url 'login_page_teachers' %}?role=teacher" class="button teachers">
-            <span>Teachers</span>
-        </a>
+      </div>
     </div>
-  
+    
+    <!-- Right side - Teachers -->
+    <div class="split split-right">
+      <div class="centered">
+        <i class="bi bi-person-workspace split-icon"></i>
+        <h2 class="split-title">Teachers</h2>
+        <p class="split-description">Manage classrooms, engage with students, and track progress to foster a dynamic and interactive learning environment.</p>
+        <a href="{% url 'login_page_teachers' %}?role=teacher" class="split-button teacher-button">
+          <i class="bi bi-arrow-right-circle"></i> Teacher Portal
+        </a>
+      </div>
+    </div>
+  </div>
 
   <!-- Vendor JS Files -->
   <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
   <script src="{% static 'vendor/aos/aos.js' %}"></script>
-  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
-  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
-  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
-  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
 
   <!-- Main JS File -->
   <script src="{% static 'js/main.js' %}"></script>

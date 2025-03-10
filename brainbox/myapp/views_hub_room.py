@@ -50,7 +50,6 @@ def get_suggestions(request):
         else:
             logger.info(f"Returning top 4 suggestions: {suggestions_to_return}")
 
-        print(f"\n\n\n\nI am here now {response_data}\n\n")
         return JsonResponse(response_data)
 
     except IndexError as e:
@@ -73,7 +72,6 @@ def log_tab_click(request):
             room_id = data.get('roomId')
             username = data.get('username')
 
-            print(f"Tab clicked: {tab_name} by {username} in room {room_id}")
 
             if tab_name == "bookmarked":
                 # Fetch bookmarked messages
@@ -105,7 +103,6 @@ def current_student_hub_room(request, id):
 
         # Get questions with their top replies
         questions_with_top_replies = get_questions_with_top_replies(id)
-        print(f"Questions with Top Replies: {questions_with_top_replies}")
 
         current_student_name = request.session.get("students_name")
 
@@ -196,7 +193,6 @@ def hub_room_message_student_replies(request, id, message_id):
             'timestamp': reply.get('timestamp'),
             'reply_id': reply.get('message_id')
         })
-    print(f"🔹 Structured Reply Data: {structured_replies}")
     return JsonResponse(structured_replies, safe=False)
 
 
@@ -226,7 +222,6 @@ def hub_room_message_teacher_replies(request,id, message_id):
             'reply_id': reply.get('message_id')
         })
 
-    print(f"🔹 Structured Reply Data: {structured_replies}")
     return JsonResponse(structured_replies, safe=False)
 
 
@@ -283,7 +278,6 @@ def current_teacher_hub_room(request, id):
     }
     for message in firebase_messages
 ]
-        print(messages_list)
 
         # Render the hub page
         hub = Teachers_created_hub.objects.get(room_url=id)

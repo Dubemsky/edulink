@@ -1,21 +1,3 @@
-<!-- /**
-
-Note: This work is all my idea but with inspiration from
-
----- Bootstrap templates-----
-More info:
-* Template Name: OnePage
-* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
-* Updated: Aug 07 2024 with Bootstrap v5.3.3
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
-
------ ChatGPT for design ideas implimentation -----
------- Reddit for community feedback and ideas -----
------- StackOverflow for coding best practices -----
-
-*/ -->
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -23,13 +5,13 @@ More info:
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <title>Students Homepage</title>
-  <meta name="description" content="">
-  <meta name="keywords" content="">
+  <meta name="description" content="EduLink student dashboard - connect with teachers and access your learning hubs">
+  <meta name="keywords" content="education, learning, student dashboard">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
@@ -41,9 +23,9 @@ More info:
   <!-- CSS Files -->
   <link href="{% static 'css/main.css' %}" rel="stylesheet">
   <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+  <link href="{% static 'css/enhanced-homepage.css' %}" rel="stylesheet">
 
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-
 </head>
 
 <body class="index-page">
@@ -54,155 +36,167 @@ More info:
       </a>
 
       <nav id="navmenu" class="navmenu">
-        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
         <ul>
-          <li><a href="{% url 'students_homepage' %}">Home<br></a></li>
+          <li><a href="{% url 'students_homepage' %}" class="active">Home</a></li>
           <li><a href="{% url 'students_join_hub_page' %}">Join Hubs</a></li>
           <li><a href="{% url 'community_page' %}">Community</a></li>
           <li><a href="{% url 'student_profile_page' %}">My Profile</a></li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
-
     </div>
   </header>
 
   <section id="hero" class="hero d-flex align-items-center justify-content-center">
-    <div class="container text-center" id="hero-content">
-      <h2 class="display-4">Welcome to EduLink Students</h2>
-
+    <div class="container text-center" id="hero-content" data-aos="fade-up">
+      <h2 class="display-4">Welcome to EduLink,{{username}}</h2>
+      <p class="lead text-white mt-3">Access your learning hubs and connect with teachers and peers</p>
     </div>
   </section>
 
   <section class="hubs-section">
-    <div class="my-hub-box">
+    <div class="my-hub-box" data-aos="fade-up" data-aos-delay="100">
       <div class="hub-header">
-        <h3>My Hubs</h3>
+        <h3>My Hubs (<span class="stat-number">{{ students_hubs|length }}</span>)</h3> 
       </div>
-
       
       <div class="hub-actions">
         {% if students_hubs %}
             {% for hub in students_hubs %}
-                <div class="hub-item">
+                <div class="hub-item" data-aos="zoom-in" data-aos-delay="{{ forloop.counter|add:100 }}">
                     <button class="btn hub-btn" data-url="{% url 'current_student_hub_room' hub.hub_url %}">
+                        <div class="hub-icon">
+                            <i class="bi bi-mortarboard-fill"></i>
+                        </div>
                         <h4>{{ hub.hub }}</h4>
-                        <p>Owner: <strong> {{ hub.hub_owner }} </strong></p>
+                        <p>Owner: <strong>{{ hub.hub_owner }}</strong></p>
+                        <div class="hub-meta">
+                            <span class="hub-status active">Active</span>
+                            <span class="hub-members"><i class="bi bi-people-fill"></i> 12</span>
+                        </div>
                     </button>
                 </div>
             {% endfor %}
         {% else %}
-            <p>Hubs joined will appear here</p>
+            <div class="empty-state" data-aos="fade-in">
+                <i class="bi bi-search"></i>
+                <p>Hubs joined will appear here</p>
+                <a href="{% url 'students_join_hub_page' %}" class="btn-find-hub">Find a Hub to Join</a>
+            </div>
         {% endif %}
+      </div>
     </div>
     
-
-
-    </div>
-    
-    <div class="additional-content-box">
+    <div class="additional-content-box" data-aos="fade-up" data-aos-delay="200">
       <div class="hub-header">
-        <h3>Notifications</h3>
+        <h3>Notifications (<span class="stat-number">{{ notifications|length }}</span>)</h3>
       </div>
       <div class="hub-ction">
-        <!-- Notification items will be dynamically injected here -->
         {% if notifications %}
-          <ul>
+          <ul class="notifications-list">
             {% for notification in notifications %}
-              <li>
-                <button class="notification-btn" data-notification-id = "{{notification.notification_id}}" data-room-id="{{ notification.room_id }}" data-question-id="{{ notification.question_id }}">
-                  <span>{{ notification.message }}</span>
-                  <small>{{ notification.timestamp }}</small>
+              <li data-aos="fade-left" data-aos-delay="{{ forloop.counter|add:200 }}">
+                <button class="notification-btn" data-notification-id="{{notification.notification_id}}" data-room-id="{{ notification.room_id }}" data-question-id="{{ notification.question_id }}">
+                    <span>{{ notification.message }}</span>
+                    <small><i class="bi bi-clock"></i> {{ notification.timestamp }}</small>
                 </button>
               </li>
             {% endfor %}
           </ul>
         {% else %}
-          <p>Notifications will appear here</p>
+          <div class="empty-state" data-aos="fade-in">
+              <i class="bi bi-bell"></i>
+              <p>Notifications will appear here</p>
+          </div>
         {% endif %}
       </div>
     </div>
   </section>
-  
-
-  <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Add click event listeners to all hub buttons
-    const hubButtons = document.querySelectorAll('.hub-btn');
-    hubButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const url = this.getAttribute('data-url');
-            window.location.href = url;
-        });
-    });
-
-    const notificationButtons = document.querySelectorAll('.notification-btn');
-    notificationButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const roomId = this.getAttribute('data-room-id');
-            const questionId = this.getAttribute('data-question-id');
-            const notificationId = this.getAttribute('data-notification-id');
-            
-            // Mark notification as read
-            if (notificationId) {
-                fetch('/mark-notification-read/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({ notification_id: notificationId })
-                }).then(response => {
-                    console.log('Notification marked as read');
-                }).catch(error => {
-                    console.error('Error marking notification as read:', error);
-                });
-            }
-            
-            // Store the questionId in sessionStorage to retrieve it on the hub page
-            sessionStorage.setItem('openQuestionId', questionId);
-            
-            // Navigate to the hub room
-            window.location.href = `http://${window.location.host}/students-dashboard/hub-room/${roomId}/`;
-        });
-    });
-    
-    // Helper function to get CSRF token
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-});
-
-
-
-</script>
-
-  
-  
-  
 
   <!-- Vendor JS Files -->
   <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
   <script src="{% static 'vendor/aos/aos.js' %}"></script>
   <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
   <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
   <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
-  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
 
   <!-- Main JS File -->
   <script src="{% static 'js/main.js' %}"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize AOS animations
+      AOS.init({
+        duration: 800,
+        easing: 'ease-in-out',
+        once: true,
+        mirror: false
+      });
+      
+      // Hub buttons click handler
+      const hubButtons = document.querySelectorAll('.hub-btn');
+      hubButtons.forEach(button => {
+          button.addEventListener('click', function() {
+              const url = this.getAttribute('data-url');
+              // Add a small animation before redirecting
+              this.classList.add('clicked');
+              setTimeout(() => {
+                  window.location.href = url;
+              }, 300);
+          });
+      });
+      
+      // Notification buttons click handler
+      const notificationButtons = document.querySelectorAll('.notification-btn');
+      notificationButtons.forEach(button => {
+          button.addEventListener('click', function() {
+              const roomId = this.getAttribute('data-room-id');
+              const questionId = this.getAttribute('data-question-id');
+              const notificationId = this.getAttribute('data-notification-id');
+              
+              // Mark notification as read
+              if (notificationId) {
+                  fetch('/mark-notification-read/', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'X-CSRFToken': getCookie('csrftoken')
+                      },
+                      body: JSON.stringify({ notification_id: notificationId })
+                  }).then(response => {
+                      console.log('Notification marked as read');
+                  }).catch(error => {
+                      console.error('Error marking notification as read:', error);
+                  });
+              }
+              
+              // Store the questionId in sessionStorage to retrieve it on the hub page
+              sessionStorage.setItem('openQuestionId', questionId);
+              
+              // Add a small animation before redirecting
+              this.classList.add('clicked');
+              setTimeout(() => {
+                  window.location.href = `http://${window.location.host}/students-dashboard/hub-room/${roomId}/`;
+              }, 300);
+          });
+      });
+      
+      // Helper function to get CSRF token
+      function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+              const cookies = document.cookie.split(';');
+              for (let i = 0; i < cookies.length; i++) {
+                  const cookie = cookies[i].trim();
+                  if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                      break;
+                  }
+              }
+          }
+          return cookieValue;
+      }
+    });
+  </script>
 </body>
 </html>

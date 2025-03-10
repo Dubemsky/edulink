@@ -1,47 +1,10 @@
 {% load static %}
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up</title>
-    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon"> 
-</head>
-<body>
-    
-</body>
-</html>
-
-
-
-
-<!-- /**
-
-Note: This work is all my idea but with inspiration from
-
----- Bootstrap templates-----
-More info:
-* Template Name: OnePage
-* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
-* Updated: Aug 07 2024 with Bootstrap v5.3.3
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
-
------ ChatGPT for design ideas implimentation -----
------- Reddit for community feedback and ideas -----
------- StackOverflow for coding best practices -----
-
-
-*/ -->
-
-{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Students Analitics</title>
+  <title>Students Analytics - Sign Up</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -54,65 +17,331 @@ More info:
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
   <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
-
-  <!-- CSS Files -->
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-
+  
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    .signup-container {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+    }
+    
+    .signup-image {
+      flex: 1;
+      background: linear-gradient(rgba(25, 135, 84, 0.8), rgba(25, 135, 84, 0.8)), url('{% static "img/students-background.jpg" %}');
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    .signup-form-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background-color: #f8f9fa;
+      overflow-y: auto;
+    }
+    
+    .signup-form {
+      width: 100%;
+      max-width: 450px;
+      background: white;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      margin: 2rem 0;
+    }
+    
+    .signup-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #333;
+      text-align: center;
+    }
+    
+    .signup-subtitle {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #6c757d;
+      font-weight: 300;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #495057;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+    
+    .form-control:focus {
+      border-color: #198754;
+      outline: none;
+      box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+    }
+    
+    .btn-signup {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      background-color: #198754;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 1rem;
+    }
+    
+    .btn-signup:hover {
+      background-color: #146c43;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
+    }
+    
+    .error-message {
+      background-color: #f8d7da;
+      color: #842029;
+      padding: 0.75rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      border: 1px solid #f5c2c7;
+    }
+    
+    .back-button {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      text-decoration: none;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .back-button:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .login-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+    
+    .login-link a {
+      color: #198754;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.3s;
+    }
+    
+    .login-link a:hover {
+      color: #146c43;
+      text-decoration: underline;
+    }
+    
+    .welcome-box {
+      max-width: 450px;
+    }
+    
+    .welcome-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .welcome-text {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      font-weight: 300;
+      line-height: 1.6;
+    }
+    
+    .form-icon {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-icon i {
+      font-size: 3rem;
+      color: #198754;
+    }
+    
+    .password-requirements {
+      background-color: #e9f7ef;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      border: 1px solid #d1e7dd;
+    }
+    
+    .password-requirements h4 {
+      font-size: 1rem;
+      color: #198754;
+      margin-bottom: 0.5rem;
+    }
+    
+    .password-requirements ul {
+      margin: 0;
+      padding-left: 1.5rem;
+      color: #495057;
+    }
+    
+    @media (max-width: 768px) {
+      .signup-container {
+        flex-direction: column;
+      }
+      
+      .signup-image {
+        flex: none;
+        height: 25vh;
+      }
+      
+      .signup-form-container {
+        flex: none;
+        height: 75vh;
+      }
+      
+      .welcome-title {
+        font-size: 1.8rem;
+      }
+      
+      .welcome-text {
+        font-size: 1rem;
+      }
+      
+      .back-button {
+        top: 10px;
+        left: 10px;
+      }
+      
+      .signup-form {
+        padding: 1.5rem;
+      }
+    }
+  </style>
 </head>
 
-<body class="index-page">
-    <div class="container">
-        <h2>Sign Up</h2>
-        <form method="POST">
-            {% csrf_token %}
-            
-            {% if error_message %}
-                <p style="color: red;">{{ error_message }}</p>
-            {% endif %}
-
-
-            <div class="form-group">
-                <label for="text">Username:</label>
-                <input type="text" id="username" name="username" required placeholder="Enter your Username" /><br>
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required placeholder="Enter your @mytudublin.ie email" /><br>
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required placeholder="Password"/><br>
-            </div>
-
-            <div class="form-group">
-                <label for="confirm_password">Confirm Password:</label>
-                <input type="password" id="confirm_password" name="confirm_password" required placeholder="Password"/><br>
-            </div>
-
-            <button type="submit">Sign Up</button>
-        </form>
-
-        <p>Already have an account? <a href="{% url 'login_page' %}?role=student">Login here</a>.</p>
+<body>
+  <div class="signup-container">
+    <!-- Left side - Welcome message with background -->
+    <div class="signup-image">
+      <a href="/" class="back-button">
+        <i class="bi bi-arrow-left"></i> Back
+      </a>
+      <div class="welcome-box">
+        <h1 class="welcome-title">Welcome to EduLink</h1>
+        <p class="welcome-text">Create your account to connect with peers, access personalized learning insights, track your academic progress, and engage in a collaborative learning journey at TU Dublin.</p>
+        <i class="bi bi-mortarboard-fill" style="font-size: 3rem;"></i>
     </div>
-  
+    
+    </div>
+    
+    <!-- Right side - Signup form -->
+    <div class="signup-form-container">
+      <div class="signup-form">
+        <div class="form-icon">
+          <i class="bi bi-person-plus-fill"></i>
+        </div>
+        <h2 class="signup-title">Create Your Account</h2>
+        <p class="signup-subtitle">Fill in your details to get started</p>
+        
+        {% if error_message %}
+          <div class="error-message">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ error_message }}
+          </div>
+        {% endif %}
+        
+        <div class="password-requirements">
+          <h4><i class="bi bi-shield-lock"></i> Password Requirements</h4>
+          <ul>
+            <li>At least 6 characters long</li>
+            <li>Include at least one uppercase letter</li>
+            <li>Include at least one number</li>
+            <li>Include at least one special character (!@#$%^&*)</li>
+          </ul>
+        </div>
+        
+        <form method="POST">
+          {% csrf_token %}
+          
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" class="form-control" required placeholder="Choose a username">
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" class="form-control" required placeholder="your.name@mytudublin.ie">
+            <small class="text-muted">Must be a valid @mytudublin.ie email address</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" class="form-control" required placeholder="Create a strong password">
+          </div>
+          
+          <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" class="form-control" required placeholder="Repeat your password">
+          </div>
+          
+          <button type="submit" class="btn-signup">
+            <i class="bi bi-person-check"></i> Create Account
+          </button>
+        </form>
+        
+        <div class="login-link">
+          Already have an account? <a href="{% url 'login_page' %}?role=student">Login here</a>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Vendor JS Files -->
   <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
   <script src="{% static 'vendor/aos/aos.js' %}"></script>
-  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
-  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
-  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
-  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
-
-  <!-- Main JS File -->
-  <script src="{% static 'js/main.js' %}"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@ import faiss
 
 # Using google colab to host the endpoint online, then connected it to my django app
 
-COLAB_URL = 'https://4cb8-34-145-82-10.ngrok-free.app'
+COLAB_URL = 'https://091d-35-236-227-72.ngrok-free.app'
 
 embedding_dimension = 384
 faiss_index = faiss.IndexFlatL2(embedding_dimension)

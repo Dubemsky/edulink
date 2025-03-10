@@ -6,7 +6,7 @@ from django.shortcuts import render
 from .profile_page_updates import *
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import datetime
+from .models import *
 from .messages import *
 
 logger = logging.getLogger(__name__)
@@ -27,9 +27,11 @@ def students_homepage(request):
         # Get the hubs students joined based on their name.
         students_hubs = Students_joined_hub.objects.filter(student=current_student)
         notifications =get_notifications_by_username(current_student)
+        members = get_members_by_hub_url(id) 
+        print() 
         print(f"\n\n{current_student} {notifications}\n\n")
         
-    return render(request, "myapp/students/students_homepage.html",{"students_hubs":students_hubs, "notifications":notifications})
+    return render(request, "myapp/students/students_homepage.html",{"students_hubs":students_hubs, "notifications":notifications,"username":current_student})
 
 
 
