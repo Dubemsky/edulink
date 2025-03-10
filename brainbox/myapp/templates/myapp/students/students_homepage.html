@@ -23,8 +23,6 @@
   <!-- CSS Files -->
   <link href="{% static 'css/main.css' %}" rel="stylesheet">
   <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
-  <link href="{% static 'css/enhanced-homepage.css' %}" rel="stylesheet">
-
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 </head>
 
@@ -50,7 +48,6 @@
   <section id="hero" class="hero d-flex align-items-center justify-content-center">
     <div class="container text-center" id="hero-content" data-aos="fade-up">
       <h2 class="display-4">Welcome to EduLink,{{username}}</h2>
-      <p class="lead text-white mt-3">Access your learning hubs and connect with teachers and peers</p>
     </div>
   </section>
 
@@ -64,7 +61,7 @@
         {% if students_hubs %}
             {% for hub in students_hubs %}
                 <div class="hub-item" data-aos="zoom-in" data-aos-delay="{{ forloop.counter|add:100 }}">
-                    <button class="btn hub-btn" data-url="{% url 'current_student_hub_room' hub.hub_url %}">
+                    <button class="btn hub-btn" data-url="{% url 'current_student_hub_room' hub.room_url %}">
                         <div class="hub-icon">
                             <i class="bi bi-mortarboard-fill"></i>
                         </div>
@@ -72,7 +69,7 @@
                         <p>Owner: <strong>{{ hub.hub_owner }}</strong></p>
                         <div class="hub-meta">
                             <span class="hub-status active">Active</span>
-                            <span class="hub-members"><i class="bi bi-people-fill"></i> 12</span>
+                            <span class="hub-members"><i class="bi bi-people-fill"></i> {{ hub.member_count }}</span>
                         </div>
                     </button>
                 </div>

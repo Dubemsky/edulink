@@ -18,16 +18,31 @@ logger = logging.getLogger(__name__)
 """
 
 def teachers_homepage(request):
-
     current_teacher = request.session.get("teachers_name")
+    
     if current_teacher:
-
         # Retrieve all hubs where teachers name is the current teacher
-        teachers_hubs = Teachers_created_hub.objects.filter(hub_owner=current_teacher)
-
-        notifications =get_notifications_by_username(current_teacher)
-        print(f"\n\n{current_teacher} {notifications}\n\n")
-    return render(request, "myapp/teachers/teachers_homepage.html",{"teachers_hubs":teachers_hubs,"notifications":notifications,"username":current_teacher})
+        teachers_hubs_queryset = Teachers_created_hub.objects.filter(hub_owner=current_teacher)
+        
+        # Create a list with additional data for each hub
+        teachers_hubs = []
+        for hub in teachers_hubs_queryset:
+            hub_data = {
+                'hub_name': hub.hub_name,
+                'hub_privacy_setting': hub.hub_privacy_setting,
+                'room_url': hub.room_url,
+                'hub_description': hub.hub_description,
+                'member_count': get_hub_member_count(hub.room_url)
+            }
+            teachers_hubs.append(hub_data)
+            
+        notifications = get_notifications_by_username(current_teacher)
+        
+    return render(request, "myapp/teachers/teachers_homepage.html", {
+        "teachers_hubs": teachers_hubs,
+        "notifications": notifications,
+        "username": current_teacher
+    })
 
 
 """

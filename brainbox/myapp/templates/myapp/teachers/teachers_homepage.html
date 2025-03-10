@@ -23,8 +23,6 @@
   <!-- CSS Files -->
   <link href="{% static 'css/main.css' %}" rel="stylesheet">
   <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
-  <link href="{% static 'css/enhanced-homepage.css' %}" rel="stylesheet">
-
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 </head>
 
@@ -53,7 +51,7 @@
 
   <section id="hero" class="hero d-flex align-items-center justify-content-center">
     <div class="container text-center" id="hero-content" data-aos="fade-up">
-      <h2 class="display-4">Welcome to EduLink, {{Username}}</h2>
+      <h2 class="display-4">Welcome to EduLink, {{username}}</h2>
     </div>
   </section>
 
@@ -75,7 +73,8 @@
                     <p>Privacy: <strong>{{ hub.hub_privacy_setting }}</strong></p>
                     <div class="hub-meta">
                       <span class="hub-status active">Active</span>
-                      <span class="hub-members"><i class="bi bi-people-fill"></i> 15</span>
+                      <span class="hub-members"><i class="bi bi-people-fill"></i> {{ hub.member_count }}</span>
+                
                     </div>
                   </button>
                 </div>

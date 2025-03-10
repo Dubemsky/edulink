@@ -21,17 +21,30 @@ logger = logging.getLogger(__name__)
 
 
 def students_homepage(request):
-    current_student=request.session.get("students_name")
+    current_student = request.session.get("students_name")
     
     if current_student:
         # Get the hubs students joined based on their name.
-        students_hubs = Students_joined_hub.objects.filter(student=current_student)
-        notifications =get_notifications_by_username(current_student)
-        members = get_members_by_hub_url(id) 
-        print() 
-        print(f"\n\n{current_student} {notifications}\n\n")
+        students_hubs_queryset = Students_joined_hub.objects.filter(student=current_student)
         
-    return render(request, "myapp/students/students_homepage.html",{"students_hubs":students_hubs, "notifications":notifications,"username":current_student})
+        # Create a list with additional data for each hub
+        students_hubs = []
+        for hub_entry in students_hubs_queryset:
+            hub_data = {
+                'hub': hub_entry.hub,
+                'hub_owner': hub_entry.hub_owner,
+                'room_url': hub_entry.hub.room_url,
+                'member_count': get_hub_member_count(hub_entry.hub.room_url)
+            }
+            students_hubs.append(hub_data)
+            
+        notifications = get_notifications_by_username(current_student)
+        
+    return render(request, "myapp/students/students_homepage.html", {
+        "students_hubs": students_hubs, 
+        "notifications": notifications,
+        "username": current_student
+    })
 
 
 
