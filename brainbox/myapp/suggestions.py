@@ -2,9 +2,9 @@ import numpy as np
 from .faiss import *
 from .messages import get_messages_by_room
 
-
 def get_similar_questions_for_room(query, room_id, k=5):
-    faiss_index.reset() #reset the faiss index.
+    faiss_index.reset()  # Reset the FAISS index
+    
     if not query or not room_id:
         logger.error("Query or room_id is empty.")
         return []
@@ -27,7 +27,7 @@ def get_similar_questions_for_room(query, room_id, k=5):
         if message_embedding is not None:
             room_embeddings.append(np.array(message_embedding, dtype=np.float32))
         else:
-            logger.debug(f"Message with id {message.get('id')} has no embedding, skipping.")
+            logger.debug(f"Message with ID {message.get('message_id')} has no embedding, skipping.")
 
     if not room_embeddings:
         logger.warning(f"No valid embeddings found for messages in room: {room_id}")
@@ -36,9 +36,6 @@ def get_similar_questions_for_room(query, room_id, k=5):
     room_embeddings = np.array(room_embeddings, dtype=np.float32)
 
     try:
-        if faiss_index is None:
-            logger.error("FAISS index is not initialized.")
-            return []
         faiss_index.add(room_embeddings)
     except Exception as e:
         logger.error(f"Error adding embeddings to FAISS index: {str(e)}")
