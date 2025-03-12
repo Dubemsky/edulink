@@ -1,0 +1,224 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>{% block title %}Teacher Profile | EduLink{% endblock %}</title>
+  <meta name="description" content="Manage your EduLink teacher profile, personal information, and activity">
+  <meta name="keywords" content="education, teacher profile, learning platform">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+  <!-- CSS Files -->
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+  <link href="{% static 'css/profile_pages.css' %}" rel="stylesheet">
+
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body class="index-page">
+  <!-- ======= Header ======= -->
+  <header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl d-flex align-items-center justify-content-between">
+      <a href="{% url 'teachers_homepage' %}" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">EduLink</h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="{% url 'teachers_homepage' %}" {% if request.resolver_match.url_name == 'teachers_homepage' %}class="active"{% endif %}>Home</a></li>
+          <li><a href="{% url 'teachers_community_page' %}" {% if request.resolver_match.url_name == 'teachers_community_page' %}class="active"{% endif %}>Community</a></li>
+          <li><a href="{% url 'teachers_profile_page' %}" {% if 'profile' in request.resolver_match.url_name %}class="active"{% endif %}>My Profile</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ======= Profile Header Section ======= -->
+    <section class="profile-container">
+      <div class="profile-header" data-aos="fade-up">
+        <div class="profile-avatar">
+          <img src="{{ profile_pic_url|default:'https://via.placeholder.com/150' }}" alt="{{ teacher.name|default:'Teacher' }}" id="profilePic">
+          <div class="profile-avatar-overlay">
+            <button type="button" class="avatar-edit-btn" id="changeProfileBtn">
+              <i class="bi bi-camera"></i> Change
+            </button>
+          </div>
+        </div>
+        
+        <h2 class="profile-name">{{ teacher.name|default:"Teacher Name" }}</h2>
+        <div class="profile-role">Teacher</div>
+        
+        <div class="profile-stats">
+          <div class="stat-item">
+            <div class="stat-value">{{ teacher.hubs_count|default:"0" }}</div>
+            <div class="stat-label">Hubs</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ teacher.students_count|default:"0" }}</div>
+            <div class="stat-label">Students</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ teacher.years_experience|default:"0" }}</div>
+            <div class="stat-label">Years</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Profile Content -->
+      <div class="profile-content" data-aos="fade-up" data-aos-delay="100">
+        <!-- Left Navigation -->
+        <nav class="profile-nav">
+          <ul class="profile-nav-list">
+            <li class="profile-nav-item">
+              <a href="{% url 'teacher_profile_page_my_profile' %}" class="profile-nav-link {% if active_tab == 'my_profile' %}active{% endif %}">
+                <i class="bi bi-person-workspace profile-nav-icon"></i>
+                My Profile
+              </a>
+            </li>
+            <li class="profile-nav-item">
+              <a href="{% url 'teacher_profile_page_activity_contribution' %}" class="profile-nav-link {% if active_tab == 'activity' %}active{% endif %}">
+                <i class="bi bi-bar-chart profile-nav-icon"></i>
+                Activity & Analytics
+              </a>
+            </li>
+            <li class="profile-nav-item">
+              <a href="{% url 'teacher_profile_page_securty_settings' %}" class="profile-nav-link {% if active_tab == 'security' %}active{% endif %}">
+                <i class="bi bi-shield-lock profile-nav-icon"></i>
+                Security & Settings
+              </a>
+            </li>
+            <li class="profile-nav-item">
+              <a href="{% url 'first_page' %}?role=teacher" class="profile-nav-link">
+                <i class="bi bi-box-arrow-right profile-nav-icon"></i>
+                Logout
+              </a>
+            </li>
+          </ul>
+        </nav>
+        
+        <!-- Right Detail Area -->
+        <div class="profile-detail">
+          {% block profile_content %}{% endblock %}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- File upload form (hidden) -->
+  <form id="profilePicForm" method="POST" action="{% url 'teacher_profile_page_my_profile' %}" enctype="multipart/form-data" style="display: none;">
+    {% csrf_token %}
+    <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
+  </form>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
+  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'js/main.js' %}"></script>
+  
+  <!-- Profile Common JS -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize AOS animations
+      AOS.init({
+        duration: 800,
+        easing: 'ease-in-out',
+        once: true,
+        mirror: false
+      });
+      
+      // Profile picture upload
+      const changeProfileBtn = document.getElementById('changeProfileBtn');
+      const profilePicInput = document.getElementById('profilePicInput');
+      
+      if (changeProfileBtn && profilePicInput) {
+        changeProfileBtn.addEventListener('click', function() {
+          profilePicInput.click();
+        });
+        
+        profilePicInput.addEventListener('change', function() {
+          if (this.files && this.files[0]) {
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              document.getElementById('profilePic').src = e.target.result;
+            };
+            reader.readAsDataURL(this.files[0]);
+            
+            // Submit form
+            document.getElementById('profilePicForm').submit();
+          }
+        });
+      }
+      
+      // Helper function to display notifications
+      window.showNotification = function(message, type = 'success') {
+        const notifContainer = document.createElement('div');
+        notifContainer.className = 'notification-container';
+        
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+          <i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'}"></i>
+          <span>${message}</span>
+        `;
+        
+        notifContainer.appendChild(notification);
+        document.body.appendChild(notifContainer);
+        
+        setTimeout(() => {
+          notification.style.opacity = '1';
+          notification.style.transform = 'translateY(0)';
+        }, 10);
+        
+        setTimeout(() => {
+          notification.style.opacity = '0';
+          notification.style.transform = 'translateY(-20px)';
+          
+          setTimeout(() => {
+            notifContainer.remove();
+          }, 300);
+        }, 5000);
+      }
+      
+      // Check for notification parameter in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('notification')) {
+        const message = urlParams.get('notification');
+        const type = urlParams.get('notif_type') || 'success';
+        
+        if (message) {
+          showNotification(decodeURIComponent(message), type);
+          
+          // Remove parameters from URL without reloading
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
+      }
+    });
+  </script>
+  
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

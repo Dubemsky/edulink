@@ -1,401 +1,220 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>EduLink - Student Profile</title>
-  <meta name="description" content="Manage your EduLink student profile, settings, and activities">
-  <meta name="keywords" content="education, profile, student, settings">
+<!-- /**
 
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com" rel="preconnect">
-  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+Note: This work is all my idea but with inspiration from
 
-  <!-- Vendor CSS Files -->
-  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+---- Bootstrap templates-----
+More info:
+* Template Name: OnePage
+* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
+* Updated: Aug 07 2024 with Bootstrap v5.3.3
+* Author: BootstrapMade.com
+* License: https://bootstrapmade.com/license/
 
-  <!-- CSS Files -->
-  <link href="{% static 'css/main.css' %}" rel="stylesheet">
-  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
-  <link href="{% static 'css/profile_pages.css' %}" rel="stylesheet">
+----- ChatGPT for design ideas implimentation -----
+------ Reddit for community feedback and ideas -----
+------ StackOverflow for coding best practices -----
 
-  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-</head>
+*/ -->
+{% extends "myapp/students/profile/base_profile.html" %}
 
-<body class="index-page">
-  <!-- Header -->
-  <header id="header" class="header d-flex align-items-center sticky-top">
-    <div class="container-fluid container-xl position-relative d-flex align-items-center">
-      <a href="{% url 'students_homepage' %}" class="logo d-flex align-items-center me-auto">
-        <h1 class="sitename">EduLink</h1>
-      </a>
+{% block title %}My Profile | EduLink{% endblock %}
 
-      <nav id="navmenu" class="navmenu">
-        <ul>
-          <li><a href="{% url 'students_homepage' %}">Home</a></li>
-          <li><a href="{% url 'students_join_hub_page' %}">Join Hubs</a></li>
-          <li><a href="{% url 'community_page' %}">Community</a></li>
-          <li><a href="{% url 'student_profile_page' %}" class="active">My Profile</a></li>
-        </ul>
-        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
-      </nav>
-    </div>
-  </header>
-
-  <main id="main">
-    <section class="container profile-container">
-      <!-- Profile Header -->
-      <div class="profile-header" data-aos="fade-up">
-        <form id="profilePicForm" method="POST" action="{% url 'students_profile_update' %}" enctype="multipart/form-data">
-          {% csrf_token %}
-          <div class="profile-avatar">
-            <img src="{{ profile_picture }}" alt="{{ name }}" id="profilePic">
-            <div class="profile-avatar-overlay">
-              <button type="button" class="avatar-edit-btn" id="changeProfileBtn">
-                <i class="bi bi-camera"></i> Change
-              </button>
-            </div>
-            <input type="file" name="profile_picture" id="fileInput" accept="image/*" style="display: none;">
-          </div>
-        </form>
-        
-        <h2 class="profile-name">{{ name }}</h2>
-        <div class="profile-role">Student</div>
-        
-        <div class="profile-stats">
-          <div class="stat-item">
-            <div class="stat-value">{{ followers }}</div>
-            <div class="stat-label">Followers</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ followings }}</div>
-            <div class="stat-label">Following</div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Profile Content -->
-      <div class="profile-content" data-aos="fade-up" data-aos-delay="100">
-        <!-- Left Navigation -->
-        <nav class="profile-nav">
-          <ul class="profile-nav-list">
-            <li class="profile-nav-item">
-              <a href="{% url 'student_profile_page_my_profile' %}" class="profile-nav-link {% if request.resolver_match.url_name == 'student_profile_page_my_profile' %}active{% endif %}">
-                <i class="bi bi-person-circle profile-nav-icon"></i>
-                My Profile
-              </a>
-            </li>
-            <li class="profile-nav-item">
-              <a href="{% url 'student_profile_page_activity_contribution' %}" class="profile-nav-link {% if request.resolver_match.url_name == 'student_profile_page_activity_contribution' %}active{% endif %}">
-                <i class="bi bi-bar-chart profile-nav-icon"></i>
-                Activity & Contributions
-              </a>
-            </li>
-            <li class="profile-nav-item">
-              <a href="{% url 'student_profile_page_securty_settings' %}" class="profile-nav-link {% if request.resolver_match.url_name == 'student_profile_page_securty_settings' %}active{% endif %}">
-                <i class="bi bi-shield-lock profile-nav-icon"></i>
-                Security & Settings
-              </a>
-            </li>
-            <li class="profile-nav-item">
-              <a href="{% url 'login_page' %}?role=student" class="profile-nav-link">
-                <i class="bi bi-box-arrow-right profile-nav-icon"></i>
-                Logout
-              </a>
-            </li>
-          </ul>
-        </nav>
-        
-        <!-- Right Detail Area -->
-        <div class="profile-detail">
-          {% block profile_content %}
-          <!-- My Profile Content -->
-          <div class="profile-detail-header">
-            <h3 class="profile-detail-title">My Profile</h3>
-          </div>
-          
-          <!-- Bio Section -->
-          <div class="profile-section">
-            <h4 class="section-title">
-              <i class="bi bi-person-vcard"></i> About Me
-            </h4>
-            <form id="bioForm" method="POST" action="{% url 'students_profile_update' %}">
-              {% csrf_token %}
-              <div class="form-row">
-                <textarea name="bio" id="bioInput" class="form-control" placeholder="Tell others about yourself...">{{ bio }}</textarea>
-              </div>
-              <div class="form-row">
-                <button type="submit" id="submitBioBtn" class="btn btn-primary">
-                  <i class="bi bi-check-circle"></i> Save Bio
-                </button>
-              </div>
-            </form>
-          </div>
-          
-          <!-- Websites Section -->
-          <div class="profile-section">
-            <h4 class="section-title">
-              <i class="bi bi-link-45deg"></i> My Websites
-            </h4>
-            <form id="websitesForm" method="POST" action="{% url 'students_profile_update' %}">
-              {% csrf_token %}
-              <div class="website-input-group">
-                <input type="text" name="website" id="websiteInput" class="form-control" placeholder="Enter your website URL">
-                <button type="button" id="addWebsiteBtn" class="btn btn-primary">
-                  <i class="bi bi-plus-lg"></i> Add
-                </button>
-              </div>
-            </form>
-            
-            <ul id="websiteList" class="website-list">
-              {% for website in websites %}
-                <li class="website-item">
-                  <a href="{{ website }}" target="_blank">{{ website }}</a>
-                  <button type="button" class="btn-remove" data-website="{{ website }}">
-                    <i class="bi bi-x-circle"></i>
-                  </button>
-                </li>
-              {% empty %}
-                <li class="website-item" id="no-websites">No websites added yet.</li>
-              {% endfor %}
-            </ul>
-          </div>
-          
-          <!-- Account Information -->
-          <div class="profile-section">
-            <h4 class="section-title">
-              <i class="bi bi-info-circle"></i> Account Information
-            </h4>
-            <div class="account-info">
-              <i class="bi bi-calendar-check account-info-icon"></i>
-              <div>
-                <div>Member since</div>
-                <div class="account-info-date">{{ created_at }}</div>
-              </div>
-            </div>
-          </div>
-          {% endblock %}
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Vendor JS Files -->
-  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/aos/aos.js' %}"></script>
-  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
-  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
-  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
-
-  <!-- Main JS File -->
-  <script src="{% static 'js/main.js' %}"></script>
+{% block profile_content %}
+<!-- View Profile Section -->
+<div id="viewProfileSection">
+  <div class="profile-detail-header">
+    <h3 class="profile-detail-title">Personal Information</h3>
+    <button type="button" id="editProfileBtn" class="btn btn-primary">
+      <i class="bi bi-pencil-square"></i> Edit Profile
+    </button>
+  </div>
   
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Initialize AOS animations
-      AOS.init({
-        duration: 800,
-        easing: 'ease-in-out',
-        once: true,
-        mirror: false
+  <div class="profile-section">
+    <h4 class="section-title"><i class="bi bi-person"></i> Basic Details</h4>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <strong class="form-label">Full Name</strong>
+        <p>{{ student.name|default:"Student Name" }}</p>
+      </div>
+      <div class="col-md-6 mb-3">
+        <strong class="form-label">Email</strong>
+        <p>{{ student.email|default:"student@example.com" }}</p>
+      </div>
+      <div class="col-md-6 mb-3">
+        <strong class="form-label">Student ID</strong>
+        <p>{{ student.student_id|default:"STU123456" }}</p>
+      </div>
+      <div class="col-md-6 mb-3">
+        <strong class="form-label">Grade/Year</strong>
+        <p>{{ student.grade|default:"10th Grade" }}</p>
+      </div>
+      <div class="col-md-6 mb-3">
+        <strong class="form-label">Joined On</strong>
+        <p>{{ student.joined_date|date:"F d, Y"|default:"January 1, 2023" }}</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="profile-section">
+    <h4 class="section-title"><i class="bi bi-journal-text"></i> About Me</h4>
+    <p>{{ student.bio|default:"No bio information has been added yet." }}</p>
+  </div>
+  
+  <div class="profile-section">
+    <h4 class="section-title"><i class="bi bi-link-45deg"></i> Connected Websites</h4>
+    <ul class="website-list">
+      {% for website in student.websites %}
+        <li class="website-item">
+          <a href="{{ website.url }}" target="_blank">{{ website.name|default:website.url }}</a>
+        </li>
+      {% empty %}
+        <li class="website-item">
+          <span>No websites have been added yet.</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<!-- Edit Profile Section (Hidden by Default) -->
+<div id="editProfileSection" style="display: none;">
+  <div class="profile-detail-header">
+    <h3 class="profile-detail-title">Edit Profile</h3>
+  </div>
+
+  <form id="profileEditForm" method="POST" action="{% url 'student_profile_page_my_profile' %}">
+    {% csrf_token %}
+    <input type="hidden" name="type" value="profile">
+    
+    <div class="profile-section">
+      <h4 class="section-title"><i class="bi bi-person"></i> Basic Details</h4>
+      <div class="row">
+        <div class="col-md-6 form-row">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-control" name="name" value="{{ student.name|default:'' }}" required>
+        </div>
+        <div class="col-md-6 form-row">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" name="email" value="{{ student.email|default:'' }}" readonly>
+          <small class="form-text">Email cannot be changed. Contact support for assistance.</small>
+        </div>
+        <div class="col-md-6 form-row">
+          <label class="form-label">Grade/Year</label>
+          <select class="form-control" name="grade">
+            <option value="">Select Grade/Year</option>
+            <option value="9th Grade" {% if student.grade == '9th Grade' %}selected{% endif %}>9th Grade</option>
+            <option value="10th Grade" {% if student.grade == '10th Grade' %}selected{% endif %}>10th Grade</option>
+            <option value="11th Grade" {% if student.grade == '11th Grade' %}selected{% endif %}>11th Grade</option>
+            <option value="12th Grade" {% if student.grade == '12th Grade' %}selected{% endif %}>12th Grade</option>
+            <option value="Freshman" {% if student.grade == 'Freshman' %}selected{% endif %}>Freshman</option>
+            <option value="Sophomore" {% if student.grade == 'Sophomore' %}selected{% endif %}>Sophomore</option>
+            <option value="Junior" {% if student.grade == 'Junior' %}selected{% endif %}>Junior</option>
+            <option value="Senior" {% if student.grade == 'Senior' %}selected{% endif %}>Senior</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <div class="profile-section">
+      <h4 class="section-title"><i class="bi bi-journal-text"></i> About Me</h4>
+      <div class="form-row">
+        <textarea class="form-control" name="bio" rows="4" placeholder="Share something about yourself, your interests, and learning goals.">{{ student.bio|default:'' }}</textarea>
+        <small class="form-text">Your bio will be visible to other students and teachers in your hubs.</small>
+      </div>
+    </div>
+    
+    <div class="profile-section">
+      <h4 class="section-title"><i class="bi bi-link-45deg"></i> Connected Websites</h4>
+      <div id="websitesContainer">
+        {% for website in student.websites %}
+          <div class="website-input-group">
+            <input type="text" class="form-control" name="website_name[]" value="{{ website.name }}" placeholder="Website Name">
+            <input type="url" class="form-control" name="website_url[]" value="{{ website.url }}" placeholder="https://example.com">
+            <button type="button" class="btn btn-danger remove-website">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        {% empty %}
+          <div class="website-input-group">
+            <input type="text" class="form-control" name="website_name[]" placeholder="Website Name">
+            <input type="url" class="form-control" name="website_url[]" placeholder="https://example.com">
+            <button type="button" class="btn btn-danger remove-website">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn btn-secondary mt-3" id="addWebsiteBtn">
+        <i class="bi bi-plus-circle"></i> Add Website
+      </button>
+    </div>
+    
+    <div class="form-row text-end mt-4">
+      <button type="button" class="btn btn-secondary me-2" id="cancelEditBtn">Cancel</button>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-circle"></i> Save Changes
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Toggle between view and edit profile modes
+    const editProfileBtn = document.getElementById('editProfileBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const viewProfileSection = document.getElementById('viewProfileSection');
+    const editProfileSection = document.getElementById('editProfileSection');
+    
+    if (editProfileBtn && cancelEditBtn) {
+      editProfileBtn.addEventListener('click', function() {
+        viewProfileSection.style.display = 'none';
+        editProfileSection.style.display = 'block';
       });
       
-      // Handle profile picture upload
-      const changeProfileBtn = document.getElementById('changeProfileBtn');
-      const fileInput = document.getElementById('fileInput');
-
-      if (changeProfileBtn && fileInput) {
-        changeProfileBtn.addEventListener('click', () => fileInput.click());
-
-        fileInput.addEventListener('change', function(event) {
-          const file = event.target.files[0];
-          if (!file) return;
-
-          // Preview image
-          const reader = new FileReader();
-          reader.onload = (e) => document.getElementById('profilePic').src = e.target.result;
-          reader.readAsDataURL(file);
-
-          // Send to backend
-          const formData = new FormData();
-          formData.append('profile_picture', file);
-          formData.append('type', 'profile_pic');
-          const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-          fetch("{% url 'students_profile_update' %}", {
-            method: 'POST',
-            headers: { "X-CSRFToken": csrftoken },
-            body: formData,
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              showNotification('Profile picture updated successfully!', 'success');
-            } else {
-              showNotification(data.error || 'Error updating profile picture', 'error');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            showNotification('Network error. Please try again.', 'error');
-          });
-        });
-      }
+      cancelEditBtn.addEventListener('click', function() {
+        editProfileSection.style.display = 'none';
+        viewProfileSection.style.display = 'block';
+      });
+    }
+    
+    // Handle website fields
+    const addWebsiteBtn = document.getElementById('addWebsiteBtn');
+    const websitesContainer = document.getElementById('websitesContainer');
+    
+    if (addWebsiteBtn && websitesContainer) {
+      // Add new website field
+      addWebsiteBtn.addEventListener('click', function() {
+        const newWebsiteField = document.createElement('div');
+        newWebsiteField.className = 'website-input-group';
+        newWebsiteField.innerHTML = `
+          <input type="text" class="form-control" name="website_name[]" placeholder="Website Name">
+          <input type="url" class="form-control" name="website_url[]" placeholder="https://example.com">
+          <button type="button" class="btn btn-danger remove-website">
+            <i class="bi bi-trash"></i>
+          </button>
+        `;
+        websitesContainer.appendChild(newWebsiteField);
+      });
       
-      // Handle website additions
-      const addWebsiteBtn = document.getElementById('addWebsiteBtn');
-      const websiteInput = document.getElementById('websiteInput');
-      const websiteList = document.getElementById('websiteList');
-      const noWebsitesElement = document.getElementById('no-websites');
-      
-      if (addWebsiteBtn && websiteInput && websiteList) {
-        addWebsiteBtn.addEventListener('click', function() {
-          const websiteUrl = websiteInput.value.trim();
-          if (!websiteUrl) return;
+      // Remove website field
+      websitesContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-website') || e.target.parentElement.classList.contains('remove-website')) {
+          const button = e.target.closest('.remove-website');
+          const fieldGroup = button.closest('.website-input-group');
           
-          // Send to backend
-          const formData = new FormData();
-          formData.append('website', websiteUrl);
-          formData.append('type', 'website');
-          const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-          
-          fetch("{% url 'students_profile_update' %}", {
-            method: 'POST',
-            headers: { "X-CSRFToken": csrftoken },
-            body: formData,
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              // Remove "no websites" message if present
-              if (noWebsitesElement) {
-                noWebsitesElement.remove();
-              }
-              
-              // Create and add website item
-              const li = document.createElement('li');
-              li.className = 'website-item';
-              li.innerHTML = `
-                <a href="${websiteUrl}" target="_blank">${websiteUrl}</a>
-                <button type="button" class="btn-remove" data-website="${websiteUrl}">
-                  <i class="bi bi-x-circle"></i>
-                </button>
-              `;
-              websiteList.appendChild(li);
-              
-              // Clear input
-              websiteInput.value = '';
-              
-              showNotification('Website added successfully!', 'success');
-            } else {
-              showNotification(data.error || 'Error adding website', 'error');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            showNotification('Network error. Please try again.', 'error');
-          });
-        });
-      }
-      
-      // Handle bio update
-      const bioForm = document.getElementById('bioForm');
-      if (bioForm) {
-        bioForm.addEventListener('submit', function(e) {
-          e.preventDefault();
-          
-          const bioInput = document.getElementById('bioInput');
-          const bioText = bioInput.value.trim();
-          
-          // Send to backend
-          const formData = new FormData();
-          formData.append('bio', bioText);
-          formData.append('type', 'bio');
-          const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-          
-          fetch("{% url 'students_profile_update' %}", {
-            method: 'POST',
-            headers: { "X-CSRFToken": csrftoken },
-            body: formData,
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              showNotification('Bio updated successfully!', 'success');
-            } else {
-              showNotification(data.error || 'Error updating bio', 'error');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            showNotification('Network error. Please try again.', 'error');
-          });
-        });
-      }
-      
-      // Function to show notifications
-      function showNotification(message, type) {
-        // Check if a notification container exists
-        let notificationContainer = document.getElementById('notification-container');
-        if (!notificationContainer) {
-          // Create notification container
-          notificationContainer = document.createElement('div');
-          notificationContainer.id = 'notification-container';
-          notificationContainer.style.position = 'fixed';
-          notificationContainer.style.top = '80px';
-          notificationContainer.style.right = '20px';
-          notificationContainer.style.zIndex = '9999';
-          document.body.appendChild(notificationContainer);
+          if (websitesContainer.children.length > 1) {
+            fieldGroup.remove();
+          } else {
+            // Clear the inputs if it's the last one
+            const inputs = fieldGroup.querySelectorAll('input');
+            inputs.forEach(input => input.value = '');
+          }
         }
-        
-        // Create notification
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.style.backgroundColor = type === 'success' ? '#28a745' : '#dc3545';
-        notification.style.color = 'white';
-        notification.style.padding = '12px 20px';
-        notification.style.marginBottom = '10px';
-        notification.style.borderRadius = '4px';
-        notification.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateX(50px)';
-        notification.style.transition = 'opacity 0.3s, transform 0.3s';
-        
-        // Add icon based on type
-        const icon = document.createElement('i');
-        icon.className = type === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill';
-        icon.style.marginRight = '10px';
-        
-        notification.appendChild(icon);
-        notification.appendChild(document.createTextNode(message));
-        
-        // Add notification to container
-        notificationContainer.appendChild(notification);
-        
-        // Trigger animation
-        setTimeout(() => {
-          notification.style.opacity = '1';
-          notification.style.transform = 'translateX(0)';
-        }, 10);
-        
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-          notification.style.opacity = '0';
-          notification.style.transform = 'translateX(50px)';
-          
-          // Remove from DOM after animation completes
-          setTimeout(() => {
-            notification.remove();
-          }, 300);
-        }, 5000);
-      }
-    });
-  </script>
-</body>
-</html>
+      });
+    }
+  });
+</script>
+{% endblock %}

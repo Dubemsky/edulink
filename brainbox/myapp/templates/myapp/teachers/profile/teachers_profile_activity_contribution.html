@@ -1,218 +1,796 @@
-<!-- /**
+{% extends "myapp/teachers/profile/base_profile.html" %}
 
-Note: This work is all my idea but with inspiration from
+{% block title %}Activity & Analytics | EduLink{% endblock %}
 
----- Bootstrap templates-----
-More info:
-* Template Name: OnePage
-* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
-* Updated: Aug 07 2024 with Bootstrap v5.3.3
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
+{% block profile_content %}
+<div class="profile-detail-header">
+  <h3 class="profile-detail-title">Activity & Analytics</h3>
+  <div class="filter-dropdown">
+    <select class="form-control" id="activityFilter">
+      <option value="all" {% if filter == 'all' %}selected{% endif %}>All Activity</option>
+      <option value="hubs" {% if filter == 'hubs' %}selected{% endif %}>Hub Activity</option>
+      <option value="responses" {% if filter == 'responses' %}selected{% endif %}>Responses</option>
+      <option value="content" {% if filter == 'content' %}selected{% endif %}>Content Creation</option>
+      <option value="moderation" {% if filter == 'moderation' %}selected{% endif %}>Moderation</option>
+    </select>
+  </div>
+</div>
 
------ ChatGPT for design ideas implimentation -----
------- Reddit for community feedback and ideas -----
------- StackOverflow for coding best practices -----
-
-
-*/ -->
-
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Students Profile</title>
-  <meta name="description" content="">
-  <meta name="keywords" content="">
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com" rel="preconnect">
-  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
-
-  <!-- Vendor CSS Files -->
-  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
-
-  <!-- CSS Files -->
-  <link href="{% static 'css/main.css' %}" rel="stylesheet">
-  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
-
-  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-
-  <style>
-    /* Styling for the big box */
-    .big-box {
-      display: flex;
-      height: 400px; /* Adjust height as needed */
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Left Section (Full Height Box) */
-.left-section {
-  display: flex;
-  flex-direction: column;
-  background-color: white;
-  border-radius: 15px; /* More rounded box */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Softer shadow */
-  overflow: hidden;
-  height: 100%; /* Ensure it takes full height */
-}
-
-/* Ensuring buttons take full width & equal height */
-.left-section a {
-  flex: 1; /* Make each link fill its parent */
-  text-decoration: none; /* Remove underline */
-  height: 25%; /* Each button takes 25% of left-section */
-}
-
-/* Buttons */
-.left-section button {
-  width: 100%;
-  height: 100%; /* Each button fully occupies its section */
-  background-color: white;
-  font-size: 1.2rem;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 600;
-  text-transform: capitalize;
-  letter-spacing: 0.5px;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.3s ease-in-out;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Hover Effect */
-.left-section button:hover {
-  background-color: #f5f5f5;
-  transform: scale(1.03);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Click (Active) Effect */
-.left-section button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
+<!-- Analytics Summary Section -->
+<div class="profile-section">
+  <h4 class="section-title"><i class="bi bi-pie-chart"></i> Hub Analytics Overview</h4>
+  
+  <div class="analytics-overview">
+    <div class="row">
+      <div class="col-md-4 mb-4">
+        <div class="analytics-card">
+          <div class="analytics-icon">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <div class="analytics-info">
+            <h5>{{ stats.total_students|default:"0" }}</h5>
+            <p>Total Students</p>
+            <div class="progress-small">
+              <div class="progress-bar" ></div>
+            </div>
+            <span class="progress-info">
+              {% if stats.student_growth > 0 %}
+                <i class="bi bi-arrow-up-short"></i> {{ stats.student_growth|default:"0" }} new this month
+              {% elif stats.student_growth < 0 %}
+                <i class="bi bi-arrow-down-short"></i> {{ stats.student_growth|default:"0" }} fewer this month
+              {% else %}
+                <i class="bi bi-dash"></i> No change this month
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-4">
+        <div class="analytics-card">
+          <div class="analytics-icon">
+            <i class="bi bi-chat-square-text"></i>
+          </div>
+          <div class="analytics-info">
+            <h5>{{ stats.engagement_score|default:"0" }}</h5>
+            <p>Engagement Score</p>
+            <div class="progress-small">
+              <div class="progress-bar" ></div>
+            </div>
+            <span class="progress-info">
+              {% if stats.engagement_change > 0 %}
+                <i class="bi bi-arrow-up-short"></i> {{ stats.engagement_change|default:"0" }}% increase
+              {% elif stats.engagement_change < 0 %}
+                <i class="bi bi-arrow-down-short"></i> {{ stats.engagement_change|default:"0" }}% decrease
+              {% else %}
+                <i class="bi bi-dash"></i> No change
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-4">
+        <div class="analytics-card">
+          <div class="analytics-icon">
+            <i class="bi bi-clock-history"></i>
+          </div>
+          <div class="analytics-info">
+            <h5>{{ stats.response_time|default:"0" }}h</h5>
+            <p>Avg. Response Time</p>
+            <div class="progress-small">
+              <div class="progress-bar" ></div>
+            </div>
+            <span class="progress-info">
+              <i class="bi bi-info-circle"></i> Target: 24h response
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
     
-
-
-
-
-    /* Right Section */
-    .right-section {
-      width: 70%; /* 70% width for the right section */
-      background-color: #ffffff; /* White background */
-      padding: 20px;
-      overflow-y: auto; /* Scroll vertically when content overflows */
-    }
-
-    .section-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 15px;
-  text-align: center;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.13); /* Very faint underline */
-  padding-bottom: 5px; /* Space between the text and the underline */
-}
-    /* Styling for scrollbars */
-    .left-section::-webkit-scrollbar,
-    .right-section::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .left-section::-webkit-scrollbar-thumb,
-    .right-section::-webkit-scrollbar-thumb {
-      background-color: #bbb;
-      border-radius: 4px;
-    }
-
-    .left-section::-webkit-scrollbar-thumb:hover,
-    .right-section::-webkit-scrollbar-thumb:hover {
-      background-color: #888;
-    }
-
-    /* Hero section styles */
-    #hero {
-      background-color: #f8f9fa;
-      padding: 50px 0;
-    }
-
-    #hero h2 {
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
-  </style>
-
-
-
-</head>
-
-
-<body class="index-page">
-  <header id="header" class="header d-flex align-items-center sticky-top">
-    <div class="container-fluid container-xl position-relative d-flex align-items-center">
-      <a href="{% url 'teachers_homepage' %}" class="logo d-flex align-items-center me-auto">
-        <h1 class="sitename">EduLink</h1>
+    <div class="view-details-link">
+      <a href="#" class="btn btn-outline-primary">
+        <i class="bi bi-graph-up"></i> View Detailed Hub Analytics
       </a>
+    </div>
+  </div>
+</div>
 
-      <nav id="navmenu" class="navmenu">
-        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
-        <ul>
-          <li><a href="{% url 'teachers_homepage' %}">Home<br></a></li>
-          <li><a href="{% url 'teachers_profile_page' %}">My Profile</a></li>
+<!-- Engagement Metrics -->
+<div class="profile-section">
+  <h4 class="section-title"><i class="bi bi-bar-chart"></i> Engagement Metrics</h4>
+  
+  <div class="metrics-container">
+    <div class="row">
+      <div class="col-md-6 mb-4">
+        <div class="metrics-card">
+          <h5 class="metrics-title">Most Active Hub</h5>
+          <div class="metrics-content">
+            {% if stats.most_active_hub %}
+              <div class="metrics-highlight">{{ stats.most_active_hub.name }}</div>
+              <ul class="metrics-details">
+                <li><strong>{{ stats.most_active_hub.messages_count|default:"0" }}</strong> messages</li>
+                <li><strong>{{ stats.most_active_hub.questions_count|default:"0" }}</strong> questions</li>
+                <li><strong>{{ stats.most_active_hub.active_students|default:"0" }}</strong> active students</li>
+              </ul>
+              <a href="#" class="metrics-link">View Hub</a>
+            {% else %}
+              <div class="empty-metrics">
+                <i class="bi bi-people"></i>
+                <p>No hub activity data yet</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <div class="metrics-card">
+          <h5 class="metrics-title">Student Engagement</h5>
+          <div class="metrics-content">
+            <div class="engagement-chart">
+              <div class="chart-bar" >
+                <span class="chart-value">{{ stats.high_engagement_count|default:"0" }}</span>
+                <span class="chart-label">High</span>
+              </div>
+              <div class="chart-bar">
+                <span class="chart-value">{{ stats.medium_engagement_count|default:"0" }}</span>
+                <span class="chart-label">Medium</span>
+              </div>
+              <div class="chart-bar" >
+                <span class="chart-value">{{ stats.low_engagement_count|default:"0" }}</span>
+                <span class="chart-label">Low</span>
+              </div>
+              <div class="chart-bar" >
+                <span class="chart-value">{{ stats.inactive_count|default:"0" }}</span>
+                <span class="chart-label">Inactive</span>
+              </div>
+            </div>
+            <p class="chart-explanation">Student engagement is calculated based on participation, views, and interaction frequency.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-6 mb-4">
+        <div class="metrics-card">
+          <h5 class="metrics-title">Top Performing Content</h5>
+          <div class="metrics-content">
+            {% if stats.top_content %}
+              <div class="top-content-list">
+                {% for content in stats.top_content %}
+                  <div class="top-content-item">
+                    <div class="content-type">
+                      <i class="bi {% if content.type == 'question' %}bi-question-circle{% elif content.type == 'resource' %}bi-file-earmark-text{% elif content.type == 'poll' %}bi-clipboard-data{% else %}bi-card-text{% endif %}"></i>
+                    </div>
+                    <div class="content-info">
+                      <h6>{{ content.title }}</h6>
+                      <p>{{ content.views }} views • {{ content.interactions }} interactions</p>
+                    </div>
+                    <a href="#" class="content-link">
+                      <i class="bi bi-arrow-right"></i>
+                    </a>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="empty-metrics">
+                <i class="bi bi-journal-text"></i>
+                <p>No content performance data available</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <div class="metrics-card">
+          <h5 class="metrics-title">Response Rate</h5>
+          <div class="metrics-content">
+            <div class="response-rate-chart">
+              <div class="donut-chart">
+                <svg width="120" height="120" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="#e9ecef" stroke-width="10" />
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="#3a7bd5" stroke-width="10" 
+                      stroke-dasharray="{{ percentage }} "
+                      stroke-dashoffset="25" />
+                  <text x="60" y="60" text-anchor="middle" dominant-baseline="middle" font-size="1.5rem" font-weight="bold">
+                    {{ stats.response_rate_percentage|default:"75" }}%
+                  </text>
+                </svg>
+              </div>
+              <div class="response-details">
+                <div class="response-stat">
+                  <span class="response-label">Questions</span>
+                  <span class="response-value">{{ stats.total_questions|default:"0" }}</span>
+                </div>
+                <div class="response-stat">
+                  <span class="response-label">Responses</span>
+                  <span class="response-value">{{ stats.total_responses|default:"0" }}</span>
+                </div>
+                <div class="response-stat">
+                  <span class="response-label">Unanswered</span>
+                  <span class="response-value">{{ stats.unanswered_questions|default:"0" }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity Timeline -->
+<div class="profile-section">
+  <h4 class="section-title"><i class="bi bi-clock-history"></i> Recent Activity</h4>
+  
+  <div class="activity-timeline">
+    {% for activity in activities %}
+      <div class="activity-item {% if activity.type == 'response' %}activity-response{% elif activity.type == 'content_creation' %}activity-content{% elif activity.type == 'hub_activity' %}activity-hub{% elif activity.type == 'moderation' %}activity-moderation{% endif %}">
+        <span class="activity-date">{{ activity.created_at|date:"F d, Y \a\t h:i A" }}</span>
+        <div class="activity-content">
+          <h5 class="activity-title">
+            {% if activity.type == 'response' %}
+              <i class="bi bi-chat-dots"></i> Responded to a question
+            {% elif activity.type == 'content_creation' %}
+              <i class="bi bi-file-earmark-plus"></i> Created new content
+            {% elif activity.type == 'hub_activity' %}
+              <i class="bi bi-people"></i> Hub activity
+            {% elif activity.type == 'moderation' %}
+              <i class="bi bi-shield-check"></i> Moderation action
+            {% else %}
+              <i class="bi bi-activity"></i> Activity
+            {% endif %}
+          </h5>
+          <div class="activity-detail">
+            {% if activity.type == 'response' %}
+              <p><strong>Question:</strong> {{ activity.question_title }}</p>
+              <p>{{ activity.content|truncatechars:150 }}</p>
+              <a href="#" class="activity-link">View Response</a>
+            {% elif activity.type == 'content_creation' %}
+              <p><strong>Created:</strong> {{ activity.content_title }}</p>
+              <p>{{ activity.content_type|title }} in {{ activity.hub_name }}</p>
+              <a href="#" class="activity-link">View Content</a>
+            {% elif activity.type == 'hub_activity' %}
+              <p><strong>{{ activity.hub_name }}</strong> - {{ activity.action }}</p>
+              <a href="#" class="activity-link">View Hub</a>
+            {% elif activity.type == 'moderation' %}
+              <p><strong>Action:</strong> {{ activity.action_type }}</p>
+              <p>{{ activity.content|truncatechars:150 }}</p>
+              <a href="#" class="activity-link">View Moderation Log</a>
+            {% else %}
+              <p>{{ activity.content }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i class="bi bi-calendar-x"></i>
+        </div>
+        <h5>No activity yet</h5>
+        <p>Your activity will appear here once you start participating in your hubs.</p>
+        <a href="{% url 'teachers_homepage' %}" class="btn btn-primary">Go to Dashboard</a>
+      </div>
+    {% endfor %}
+  </div>
+  
+  {% if activities %}
+    <div class="pagination-container mt-4">
+      <nav aria-label="Activity pagination">
+        <ul class="pagination justify-content-center">
+          {% if activities.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ activities.previous_page_number }}&filter={{ filter|default:'all' }}">Previous</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled">
+              <span class="page-link">Previous</span>
+            </li>
+          {% endif %}
+          
+          {% for i in activities.paginator.page_range %}
+            {% if i == activities.number %}
+              <li class="page-item active">
+                <span class="page-link">{{ i }}</span>
+              </li>
+            {% else %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ i }}&filter={{ filter|default:'all' }}">{{ i }}</a>
+              </li>
+            {% endif %}
+          {% endfor %}
+          
+          {% if activities.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ activities.next_page_number }}&filter={{ filter|default:'all' }}">Next</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled">
+              <span class="page-link">Next</span>
+            </li>
+          {% endif %}
         </ul>
-        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
     </div>
-  </header>
-
-  <section id="profile-section" class="container my-5">
-    <div class="big-box d-flex">
-      <div class="left-section">
-        
-        <a href="{% url 'teacher_profile_page_my_profile' %}"><button type="button">My Profile</button></a>
-        <a href="{% url 'teacher_profile_page_securty_settings' %}"><button type="button">Security & Settings</button></a>
-        <a href="{% url 'teacher_profile_page_activity_contribution' %}"><button type="button">Activity & Contributions</button></a>
-        <a href="{% url 'login_page_teachers' %}?role=teacher"><button type="button">Logout</button></a>
-
-      </div>
+  {% endif %}
+</div>
+{% endblock %}
 
 
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle activity filter change
+    const activityFilter = document.getElementById('activityFilter');
+    
+    if (activityFilter) {
+      activityFilter.addEventListener('change', function() {
+        window.location.href = "?filter=" + this.value;
+      });
+    }
+  });
+</script>
 
-      <!-- Right Section -->
-      <div class="right-section">
-        <h3 class="section-title">Activities & Contributions</h3>
-        Plenty of things are gonna be here
-      </div>
-    </div>
-  </section>
-
-  <!-- Vendor JS Files -->
-  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
-  <script src="{% static 'vendor/aos/aos.js' %}"></script>
-  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
-  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
-  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
-  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
-
-  <!-- Main JS File -->
-  <script src="{% static 'js/main.js' %}"></script>
-</body>
-</html>
+<style>
+  /* Analytics & Activity specific styles */
+  .analytics-overview {
+    margin-bottom: 2rem;
+  }
+  
+  .analytics-card {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    height: 100%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  }
+  
+  .analytics-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+  }
+  
+  .analytics-icon {
+    width: 48px;
+    height: 48px;
+    background-color: rgba(58, 123, 213, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #3a7bd5;
+    flex-shrink: 0;
+  }
+  
+  .analytics-info {
+    flex: 1;
+  }
+  
+  .analytics-info h5 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: #343a40;
+  }
+  
+  .analytics-info p {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-small {
+    height: 4px;
+    background-color: #e9ecef;
+    border-radius: 2px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+  }
+  
+  .progress-small .progress-bar {
+    height: 100%;
+    background-color: #3a7bd5;
+  }
+  
+  .progress-info {
+    font-size: 0.75rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .progress-info i {
+    font-size: 1rem;
+  }
+  
+  .view-details-link {
+    text-align: center;
+    margin-top: 1rem;
+  }
+  
+  /* Metrics Cards */
+  .metrics-container {
+    margin-bottom: 1rem;
+  }
+  
+  .metrics-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    height: 100%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+  }
+  
+  .metrics-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .metrics-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #343a40;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .metrics-content {
+    padding: 0.5rem 0;
+  }
+  
+  .metrics-highlight {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #3a7bd5;
+    margin-bottom: 0.75rem;
+  }
+  
+  .metrics-details {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+  }
+  
+  .metrics-details li {
+    padding: 0.4rem 0;
+    font-size: 0.875rem;
+    color: #343a40;
+    border-bottom: 1px dashed #e9ecef;
+  }
+  
+  .metrics-details li:last-child {
+    border-bottom: none;
+  }
+  
+  .metrics-link {
+    display: inline-block;
+    color: #3a7bd5;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+  }
+  
+  .metrics-link:hover {
+    text-decoration: underline;
+  }
+  
+  .empty-metrics {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #6c757d;
+  }
+  
+  .empty-metrics i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+  }
+  
+  /* Engagement Chart */
+  .engagement-chart {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 150px;
+    padding: 0 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .chart-bar {
+    position: relative;
+    width: 22%;
+    background-color: #3a7bd5;
+    border-radius: 4px 4px 0 0;
+    min-height: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .chart-bar:nth-child(1) {
+    background-color: #28a745;
+  }
+  
+  .chart-bar:nth-child(2) {
+    background-color: #17a2b8;
+  }
+  
+  .chart-bar:nth-child(3) {
+    background-color: #ffc107;
+  }
+  
+  .chart-bar:nth-child(4) {
+    background-color: #dc3545;
+  }
+  
+  .chart-value {
+    position: absolute;
+    top: -25px;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  .chart-label {
+    position: absolute;
+    bottom: -25px;
+    font-size: 0.75rem;
+    color: #6c757d;
+  }
+  
+  .chart-explanation {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-align: center;
+    margin-top: 2rem;
+  }
+  
+  /* Top Content List */
+  .top-content-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .top-content-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .top-content-item:hover {
+    background-color: #f1f3f5;
+    transform: translateX(5px);
+  }
+  
+  .content-type {
+    width: 36px;
+    height: 36px;
+    background-color: rgba(58, 123, 213, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #3a7bd5;
+    flex-shrink: 0;
+  }
+  
+  .content-info {
+    flex: 1;
+  }
+  
+  .content-info h6 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #343a40;
+  }
+  
+  .content-info p {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin: 0;
+  }
+  
+  .content-link {
+    width: 28px;
+    height: 28px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3a7bd5;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .content-link:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Response Rate Chart */
+  .response-rate-chart {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .donut-chart {
+    flex-shrink: 0;
+  }
+  
+  .response-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-left: 1rem;
+  }
+  
+  .response-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #e9ecef;
+  }
+  
+  .response-stat:last-child {
+    border-bottom: none;
+  }
+  
+  .response-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
+  
+  .response-value {
+    font-weight: 600;
+    color: #343a40;
+  }
+  
+  /* Activity Timeline */
+  .activity-timeline {
+    position: relative;
+    padding-left: 2rem;
+  }
+  
+  .activity-timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 8px;
+    width: 2px;
+    background-color: #e9ecef;
+  }
+  
+  .activity-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+  }
+  
+  .activity-item::before {
+    content: '';
+    position: absolute;
+    left: -2rem;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #3a7bd5;
+    border: 3px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .activity-date {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+  
+  .activity-content {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+  }
+  
+  .activity-content:hover {
+    background-color: #f1f3f5;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .activity-title {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #343a40;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .activity-detail {
+    font-size: 0.875rem;
+    color: #495057;
+  }
+  
+  .activity-detail p {
+    margin-bottom: 0.5rem;
+  }
+  
+  .activity-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: #3a7bd5;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  
+  .activity-link:hover {
+    text-decoration: underline;
+  }
+  
+  .activity-response::before {
+    background-color: #17a2b8;
+  }
+  
+  .activity-content::before {
+    background-color: #28a745;
+  }
+  
+  .activity-hub::before {
+    background-color: #3a7bd5;
+  }
+  
+  .activity-moderation::before {
+    background-color: #6c757d;
+  }
+  
+  /* Filter dropdown */
+  .filter-dropdown {
+    width: 150px;
+  }
+  
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+  }
+  
+  .empty-state-icon {
+    font-size: 2.5rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+  
+  .empty-state h5 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  .empty-state p {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+  }
+</style>
+{% endblock %}

@@ -1,218 +1,489 @@
-<!-- /**
+{% extends "myapp/students/profile/base_profile.html" %}
 
-Note: This work is all my idea but with inspiration from
+{% block title %}Security & Settings | EduLink{% endblock %}
 
----- Bootstrap templates-----
-More info:
-* Template Name: OnePage
-* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
-* Updated: Aug 07 2024 with Bootstrap v5.3.3
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
+{% block profile_content %}
+<div class="profile-detail-header">
+  <h3 class="profile-detail-title">Security & Settings</h3>
+</div>
 
------ ChatGPT for design ideas implimentation -----
------- Reddit for community feedback and ideas -----
------- StackOverflow for coding best practices -----
+<!-- Password Section -->
+<div class="profile-section">
+  <h4 class="section-title"><i class="bi bi-shield-lock"></i> Password</h4>
+  
+  <form id="passwordForm" method="POST" action="#">
+    {% csrf_token %}
+    <div class="form-row">
+      <label class="form-label">Current Password</label>
+      <input type="password" class="form-control" name="current_password" required>
+    </div>
+    <div class="form-row">
+      <label class="form-label">New Password</label>
+      <input type="password" class="form-control" name="new_password" required>
+      <small class="form-text">Password must be at least 8 characters and include a number and a special character.</small>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Confirm New Password</label>
+      <input type="password" class="form-control" name="confirm_password" required>
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-circle"></i> Update Password
+    </button>
+  </form>
+</div>
 
-
-*/ -->
-
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Students Profile</title>
-  <meta name="description" content="">
-  <meta name="keywords" content="">
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com" rel="preconnect">
-  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
-
-  <!-- Vendor CSS Files -->
-  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
-
-  <!-- CSS Files -->
-  <link href="{% static 'css/main.css' %}" rel="stylesheet">
-  <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
-
-  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-
-  <style>
-    /* Styling for the big box */
-    .big-box {
-      display: flex;
-      height: 400px; /* Adjust height as needed */
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Left Section (Full Height Box) */
-.left-section {
-  display: flex;
-  flex-direction: column;
-  background-color: white;
-  border-radius: 15px; /* More rounded box */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Softer shadow */
-  overflow: hidden;
-  height: 100%; /* Ensure it takes full height */
-}
-
-/* Ensuring buttons take full width & equal height */
-.left-section a {
-  flex: 1; /* Make each link fill its parent */
-  text-decoration: none; /* Remove underline */
-  height: 25%; /* Each button takes 25% of left-section */
-}
-
-/* Buttons */
-.left-section button {
-  width: 100%;
-  height: 100%; /* Each button fully occupies its section */
-  background-color: white;
-  font-size: 1.2rem;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 600;
-  text-transform: capitalize;
-  letter-spacing: 0.5px;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.3s ease-in-out;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Hover Effect */
-.left-section button:hover {
-  background-color: #f5f5f5;
-  transform: scale(1.03);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Click (Active) Effect */
-.left-section button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
+<!-- Privacy Settings Section -->
+<div class="profile-section">
+  <h4 class="section-title"><i class="bi bi-eye"></i> Privacy Settings</h4>
+  
+  <form id="privacyForm" method="POST" action="#">
+    {% csrf_token %}
     
+    <div class="security-option">
+      <div class="security-option-info">
+        <h5 class="security-option-title">Profile Visibility</h5>
+        <p class="security-option-desc">Control who can see your profile information</p>
+      </div>
+      <div class="security-option-control">
+        <select class="form-control" name="profile_visibility">
+          <option value="public" {% if privacy.profile_visibility == 'public' %}selected{% endif %}>Public - Anyone can view</option>
+          <option value="hubs" {% if privacy.profile_visibility == 'hubs' %}selected{% endif %}>Hub Members - Only members of your hubs</option>
+          <option value="private" {% if privacy.profile_visibility == 'private' %}selected{% endif %}>Private - Only you and teachers</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="security-option">
+      <div class="security-option-info">
+        <h5 class="security-option-title">Activity Visibility</h5>
+        <p class="security-option-desc">Control who can see your questions, answers and participation</p>
+      </div>
+      <div class="security-option-control">
+        <select class="form-control" name="activity_visibility">
+          <option value="public" {% if privacy.activity_visibility == 'public' %}selected{% endif %}>Public - Anyone can view</option>
+          <option value="hubs" {% if privacy.activity_visibility == 'hubs' %}selected{% endif %}>Hub Members - Only members of your hubs</option>
+          <option value="private" {% if privacy.activity_visibility == 'private' %}selected{% endif %}>Private - Only you and teachers</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="security-option">
+      <div class="security-option-info">
+        <h5 class="security-option-title">Show Online Status</h5>
+        <p class="security-option-desc">Allow others to see when you're active on EduLink</p>
+      </div>
+      <div class="security-option-control">
+        <label class="toggle-switch">
+          <input type="checkbox" name="show_online_status" {% if privacy.show_online_status %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <button type="submit" class="btn btn-primary mt-3">
+      <i class="bi bi-check-circle"></i> Save Privacy Settings
+    </button>
+  </form>
+</div>
 
+<!-- Notification Settings Section -->
+<div class="profile-section">
+  <h4 class="section-title"><i class="bi bi-bell"></i> Notification Settings</h4>
+  
+  <form id="notificationForm" method="POST" action="#">
+    {% csrf_token %}
+    
+    <div class="security-option">
+      <div class="security-option-info">
+        <h5 class="security-option-title">Email Notifications</h5>
+        <p class="security-option-desc">Receive important updates to your email</p>
+      </div>
+      <div class="security-option-control">
+        <label class="toggle-switch">
+          <input type="checkbox" name="email_notifications" {% if notifications.email_notifications %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="security-option">
+      <div class="security-option-info">
+        <h5 class="security-option-title">Question Replies</h5>
+        <p class="security-option-desc">Get notified when someone answers your question</p>
+      </div>
+      <div class="security-option-control">
+        <label class="toggle-switch">
+          <input type="checkbox" name="question_replies" {% if notifications.question_replies %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="security-option">
+      <div class="security-option-info">
+        <h5 class="security-option-title">Hub Updates</h5>
+        <p class="security-option-desc">Get notified about new content in your hubs</p>
+      </div>
+      <div class="security-option-control">
+        <label class="toggle-switch">
+          <input type="checkbox" name="hub_updates" {% if notifications.hub_updates %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="security-option">
+      <div class="security-option-info">
+        <h5 class="security-option-title">Upvotes & Mentions</h5>
+        <p class="security-option-desc">Get notified when someone upvotes or mentions you</p>
+      </div>
+      <div class="security-option-control">
+        <label class="toggle-switch">
+          <input type="checkbox" name="upvotes_mentions" {% if notifications.upvotes_mentions %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <button type="submit" class="btn btn-primary mt-3">
+      <i class="bi bi-check-circle"></i> Save Notification Settings
+    </button>
+  </form>
+</div>
 
+<!-- Account Settings Section -->
+<div class="profile-section">
+  <h4 class="section-title"><i class="bi bi-gear"></i> Account Settings</h4>
+  
+  <div class="security-option">
+    <div class="security-option-info">
+      <h5 class="security-option-title">Language</h5>
+      <p class="security-option-desc">Choose your preferred language for EduLink</p>
+    </div>
+    <div class="security-option-control">
+      <select class="form-control" id="languageSelector">
+        <option value="en" selected>English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="zh">中文</option>
+      </select>
+    </div>
+  </div>
+  
+  <div class="security-option">
+    <div class="security-option-info">
+      <h5 class="security-option-title">Dark Mode</h5>
+      <p class="security-option-desc">Switch between light and dark themes</p>
+    </div>
+    <div class="security-option-control">
+      <label class="toggle-switch">
+        <input type="checkbox" id="darkModeToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+  
+  <div class="alert alert-warning mt-4">
+    <h5><i class="bi bi-exclamation-triangle"></i> Danger Zone</h5>
+    <p>These actions are permanent and cannot be undone. Please be careful.</p>
+    
+    <div class="mt-3">
+      <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deactivateModal">
+        <i class="bi bi-pause-circle"></i> Deactivate Account
+      </button>
+      
+      <button type="button" class="btn btn-outline-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
+        <i class="bi bi-trash"></i> Delete Account
+      </button>
+    </div>
+  </div>
+</div>
 
+<!-- Deactivate Account Modal -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deactivateModalLabel">Deactivate Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to deactivate your account? Your profile will be hidden and you won't be able to access EduLink until you log in again.</p>
+        <form id="deactivateForm" method="POST" action="#">
+          {% csrf_token %}
+          <div class="form-row">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" required>
+            <small class="form-text">Please enter your password to confirm</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" form="deactivateForm" class="btn btn-danger">Deactivate Account</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    /* Right Section */
-    .right-section {
-      width: 70%; /* 70% width for the right section */
-      background-color: #ffffff; /* White background */
-      padding: 20px;
-      overflow-y: auto; /* Scroll vertically when content overflows */
-    }
-
-    .section-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 15px;
-  text-align: center;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.13); /* Very faint underline */
-  padding-bottom: 5px; /* Space between the text and the underline */
-}
-
-    /* Styling for scrollbars */
-    .left-section::-webkit-scrollbar,
-    .right-section::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .left-section::-webkit-scrollbar-thumb,
-    .right-section::-webkit-scrollbar-thumb {
-      background-color: #bbb;
-      border-radius: 4px;
-    }
-
-    .left-section::-webkit-scrollbar-thumb:hover,
-    .right-section::-webkit-scrollbar-thumb:hover {
-      background-color: #888;
-    }
-
-    /* Hero section styles */
-    #hero {
-      background-color: #f8f9fa;
-      padding: 50px 0;
-    }
-
-    #hero h2 {
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
-  </style>
-
-
-
-</head>
-
-
-<body class="index-page">
-  <header id="header" class="header d-flex align-items-center sticky-top">
-    <div class="container-fluid container-xl position-relative d-flex align-items-center">
-      <a href="{% url 'students_homepage' %}" class="logo d-flex align-items-center me-auto">
-        <h1 class="sitename">EduLink</h1>
-      </a>
-
-      <nav id="navmenu" class="navmenu">
-        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Delete Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle"></i> Warning: This action cannot be undone!
+        </div>
+        <p>Deleting your account will:</p>
         <ul>
-          <li><a href="{% url 'students_homepage' %}">Home<br></a></li>
-          <li><a href="{% url 'students_join_hub_page' %}">Join Hubs</a></li>
-          <li><a href="{% url 'community_page' %}">Community</a></li>
-          <li><a href="{% url 'student_profile_page' %}">My Profile</a></li>
+          <li>Remove all your personal information</li>
+          <li>Delete your questions, answers, and comments</li>
+          <li>Remove you from all hubs</li>
         </ul>
-        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
-      </nav>
+        <form id="deleteForm" method="POST" action="#">
+          {% csrf_token %}
+          <div class="form-row">
+            <label class="form-label">Type "DELETE" to confirm</label>
+            <input type="text" class="form-control" name="confirmation" required pattern="DELETE">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" form="deleteForm" class="btn btn-danger">Delete Account</button>
+      </div>
     </div>
-  </header>
+  </div>
+</div>
+{% endblock %}
 
-  <section id="profile-section" class="container my-5">
-    <div class="big-box d-flex">
-      <div class="left-section">
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Form submission handlers with validation
+    const passwordForm = document.getElementById('passwordForm');
+    if (passwordForm) {
+      passwordForm.addEventListener('submit', function(e) {
+        e.preventDefault();
         
-        <a href="{% url 'student_profile_page_my_profile' %}"><button type="button">My Profile</button></a>
-        <a href="{% url 'student_profile_page_securty_settings' %}"><button type="button">Security & Settings</button></a>
-        <a href="{% url 'student_profile_page_activity_contribution' %}"><button type="button">Activity & Contributions</button></a>
-        <a href="{% url 'login_page' %}?role=student"><button type="button">Logout</button></a>
+        const newPassword = this.querySelector('input[name="new_password"]').value;
+        const confirmPassword = this.querySelector('input[name="confirm_password"]').value;
+        
+        // Check if passwords match
+        if (newPassword !== confirmPassword) {
+          showNotification('New passwords do not match', 'error');
+          return;
+        }
+        
+        // Check password strength
+        if (newPassword.length < 8) {
+          showNotification('Password must be at least 8 characters long', 'error');
+          return;
+        }
+        
+        // Has number and special character
+        const hasNumber = /\d/.test(newPassword);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
+        
+        if (!hasNumber || !hasSpecial) {
+          showNotification('Password must include a number and a special character', 'error');
+          return;
+        }
+        
+        // If all checks pass, submit the form
+        this.submit();
+      });
+    }
+    
+    // Toggle switches animation
+    const toggleSwitches = document.querySelectorAll('.toggle-switch input[type="checkbox"]');
+    
+    toggleSwitches.forEach(toggle => {
+      toggle.addEventListener('change', function() {
+        const slider = this.nextElementSibling;
+        
+        if (this.checked) {
+          slider.style.animation = 'sliderOn 0.3s forwards';
+        } else {
+          slider.style.animation = 'sliderOff 0.3s forwards';
+        }
+      });
+    });
+    
+    // Fake dark mode toggle for demonstration
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    if (darkModeToggle) {
+      darkModeToggle.addEventListener('change', function() {
+        if (this.checked) {
+          showNotification('Dark mode is not implemented yet', 'info');
+        }
+      });
+    }
+    
+    // Fake language selector for demonstration
+    const languageSelector = document.getElementById('languageSelector');
+    if (languageSelector) {
+      languageSelector.addEventListener('change', function() {
+        if (this.value !== 'en') {
+          showNotification('Language change is not implemented yet', 'info');
+          this.value = 'en';
+        }
+      });
+    }
+  });
+</script>
 
-      </div>
-
-      <div class="right-section">
-        <h3 class="section-title">Security and settings</h3>
-        Plenty of things are gonna be here
-      </div>
-    </div>
-  </section>
-
-  <!-- Vendor JS Files -->
-  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
-  <script src="{% static 'vendor/aos/aos.js' %}"></script>
-  <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
-  <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
-  <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
-  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
-
-  <!-- Main JS File -->
-  <script src="{% static 'js/main.js' %}"></script>
-</body>
-</html>
+<style>
+  /* Security Settings Specific Styles */
+  .security-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+  }
+  
+  .security-option:hover {
+    background-color: #f1f3f5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  
+  .security-option-info {
+    flex: 1;
+  }
+  
+  .security-option-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #212529;
+  }
+  
+  .security-option-desc {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0;
+  }
+  
+  .security-option-control {
+    flex-shrink: 0;
+    width: 150px;
+    text-align: right;
+  }
+  
+  /* Toggle Switch */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+  }
+  
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .3s;
+    border-radius: 24px;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: #3a7bd5;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(26px);
+  }
+  
+  @keyframes sliderOn {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(26px); }
+  }
+  
+  @keyframes sliderOff {
+    0% { transform: translateX(26px); }
+    100% { transform: translateX(0); }
+  }
+  
+  /* Alert Style */
+  .alert {
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+  }
+  
+  .alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+    color: #664d03;
+  }
+  
+  .alert h5 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  
+  /* Modal customizations */
+  .modal-content {
+    border-radius: 0.5rem;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+  
+  .modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  .btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+  }
+  
+  .btn-outline-danger:hover {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+  }
+</style>
+{% endblock %}

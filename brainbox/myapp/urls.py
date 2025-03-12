@@ -24,11 +24,7 @@ urlpatterns = [
     path('students-dashboard/', students_homepage, name='students_homepage'),
     path('students-dashboard/join-hubs',students_join_hub_page,name='students_join_hub_page'),
     path('students-dashboard/student-profile',student_profile_page,name='student_profile_page'),
-
-
     path('room-analytics/<str:id>/',get_room_analytics, name='get_room_analytics'),
-
-
     path('students-dashboard/hub-room/<str:id>/', current_student_hub_room, name='current_student_hub_room'),
     path('students-dashboard/student-profile/my_profile',student_profile_page_my_profile,name='student_profile_page_my_profile'),
     path('students-dashboard/hub-room/<str:id>/<str:message_id>/', hub_room_message_student_replies, name='hub_room_message_replies'),
