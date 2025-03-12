@@ -683,7 +683,39 @@ body.index-page {
 
 
 
+.summary-box {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  display: none;
+}
 
+.summary-content {
+  margin-bottom: 20px;
+}
+
+.hand-icon {
+  font-size: 24px;
+  animation: hand-animation 1s infinite;
+}
+
+@keyframes hand-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(15deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
 
 
 
