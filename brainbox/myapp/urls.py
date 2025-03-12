@@ -67,9 +67,10 @@ urlpatterns = [
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
     path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
     path('summarize-replies/',summarize_replies, name='summarize_replies'),
-    path('follow-user/', follow_user_view, name='follow_user'),
-    path('unfollow-user/', unfollow_user_view, name='unfollow_user'),
-    path('get-following/', get_following_list, name='get_following'),
+    path('follow_user/', follow_user_view, name='follow_user'),
+    path('unfollow_user/', unfollow_user_view, name='unfollow_user'),
+    path('get_following/', get_following_list, name='get_following'),
+    path('search_users/', search_users, name='search_users'),
 
 
 

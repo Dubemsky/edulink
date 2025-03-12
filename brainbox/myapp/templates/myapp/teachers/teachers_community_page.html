@@ -114,6 +114,238 @@
           <p style="color: white;">{{current_teacher_name}}, connect with fellow educators and students to grow your professional network.</p>
         </div>
       </section>
+      <!-- Add this search bar with enhanced UX to your community_page.html template -->
+<!-- Place this after the hero section and before the filter buttons -->
+
+<div class="search-container" data-aos="fade-up" data-aos-delay="50">
+  <div class="search-bar">
+    <i class="bi bi-search search-icon"></i>
+    <input type="text" id="userSearchInput" placeholder="Search for users by name...">
+    <div class="search-loading">
+      <div class="search-spinner"></div>
+    </div>
+    <button id="clearSearchBtn" class="clear-search-btn" aria-label="Clear search">
+      <i class="bi bi-x"></i>
+    </button>
+  </div>
+  
+  <!-- Search suggestions will appear here -->
+  <div id="searchSuggestions" class="search-suggestions"></div>
+</div>
+
+<!-- Add this CSS in a <style> tag in the <head> section or in your community_page.css file -->
+<style>
+  /* Search Container Styles */
+  .search-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 25px;
+    padding: 0 20px;
+    position: relative;
+  }
+  
+  /* Search Bar Styles */
+  .search-bar {
+    position: relative;
+    width: 100%;
+    background-color: white;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    transition: all 0.3s ease;
+    z-index: 20;
+  }
+  
+  .search-bar:focus-within {
+    box-shadow: 0 6px 25px rgba(52, 152, 219, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  /* Search Icon */
+  .search-icon {
+    color: #3498db;
+    font-size: 1.2rem;
+    margin-right: 10px;
+  }
+  
+  /* Search Input */
+  #userSearchInput {
+    flex: 1;
+    border: none;
+    padding: 15px 0;
+    font-size: 1rem;
+    outline: none;
+    width: 100%;
+    background: transparent;
+  }
+  
+  /* Search Loading Indicator */
+  .search-loading {
+    display: none;
+    margin-right: 10px;
+  }
+  
+  .search-loading.active {
+    display: block;
+  }
+  
+  .search-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(52, 152, 219, 0.2);
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: search-spin 0.8s linear infinite;
+  }
+  
+  @keyframes search-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Clear Search Button */
+  .clear-search-btn {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    display: none;
+    transition: color 0.3s ease;
+  }
+  
+  .clear-search-btn:hover {
+    color: #3498db;
+  }
+  
+  /* Show the clear button when search has input */
+  .search-bar.has-text .clear-search-btn {
+    display: block;
+  }
+  
+  /* Search Suggestions */
+  .search-suggestions {
+    position: absolute;
+    top: 60px;
+    left: 20px;
+    right: 20px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    z-index: 10;
+    opacity: 0;
+  }
+  
+  .search-suggestions.active {
+    opacity: 1;
+    max-height: 300px;
+    padding: 10px 0;
+    overflow-y: auto;
+  }
+  
+  .suggestion-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s ease;
+  }
+  
+  .suggestion-item:hover {
+    background-color: #f1f9ff;
+  }
+  
+  .suggestion-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 15px;
+    object-fit: cover;
+  }
+  
+  .suggestion-info {
+    flex: 1;
+  }
+  
+  .suggestion-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 3px;
+  }
+  
+  .suggestion-role {
+    font-size: 0.8rem;
+    color: #777;
+  }
+  
+  .highlight {
+    background-color: rgba(52, 152, 219, 0.2);
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+  
+  /* No Suggestions Message */
+  .no-suggestions {
+    padding: 15px 20px;
+    text-align: center;
+    color: #777;
+    font-style: italic;
+  }
+  
+  /* Search Stats */
+  .search-stats {
+    width: 100%;
+    margin: 0 auto 20px;
+    padding: 10px;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .search-results-info {
+    background-color: #e3f2fd;
+    padding: 10px 15px;
+    border-radius: 8px;
+    display: inline-block;
+    color: #0d47a1;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  
+  .search-results-info.empty {
+    background-color: #fff3e0;
+    color: #e65100;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 576px) {
+    .search-bar {
+      padding: 0 15px;
+    }
+    
+    #userSearchInput {
+      padding: 12px 0;
+      font-size: 0.9rem;
+    }
+    
+    .search-suggestions {
+      top: 50px;
+    }
+  }
+</style>
 
       <div class="filter-container" data-aos="fade-up" data-aos-delay="100">
         <button class="filter-button active" data-filter="all">
@@ -197,6 +429,269 @@
   <script src="{% static 'js/main.js' %}"></script>
 
   <script>
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize enhanced search functionality
+  initEnhancedSearchFunctionality();
+});
+
+function getCsrfToken() {
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='))
+    ?.split('=')[1];
+  return cookieValue || '';
+}
+/**
+ * Initialize enhanced search functionality for the user community page
+ * This uses the server-side search API
+ */
+function initEnhancedSearchFunctionality() {
+  const searchInput = document.getElementById('userSearchInput');
+  const clearSearchBtn = document.getElementById('clearSearchBtn');
+  const searchBar = searchInput.closest('.search-bar');
+  const userGrid = document.getElementById('user-grid');
+  const loadingSpinner = document.getElementById('loading-spinner');
+  const filterButtons = document.querySelectorAll('.filter-button');
+  
+  // Track current filter type
+  let currentFilterType = 'all';
+  
+  // Update current filter when buttons are clicked
+  filterButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      currentFilterType = this.getAttribute('data-filter');
+      
+      // If there's an active search, perform search with new filter
+      const searchTerm = searchInput.value.trim();
+      if (searchTerm) {
+        performSearch(searchTerm, currentFilterType);
+      }
+    });
+  });
+  
+  // Handle search input with debounce
+  let debounceTimeout;
+  searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.trim();
+    
+    // Toggle clear button visibility
+    if (searchTerm) {
+      searchBar.classList.add('has-text');
+    } else {
+      searchBar.classList.remove('has-text');
+      // If search is cleared, reload users with current filter
+      if (window.loadUsers) {
+        window.loadUsers(currentFilterType);
+      }
+      return;
+    }
+    
+    // Debounce search to prevent too many requests
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+      if (searchTerm.length >= 2) { // Only search with at least 2 characters
+        performSearch(searchTerm, currentFilterType);
+      }
+    }, 300);
+  });
+  
+  // Handle clear button click
+  clearSearchBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    searchBar.classList.remove('has-text');
+    
+    // Reset to show all users for current filter
+    if (window.loadUsers) {
+      window.loadUsers(currentFilterType);
+    }
+  });
+  
+  /**
+   * Perform search using the server-side API
+   * @param {string} searchTerm - The search term
+   * @param {string} filterType - The filter type (all, teachers, students)
+   */
+  function performSearch(searchTerm, filterType) {
+    // Show loading spinner
+    userGrid.innerHTML = '';
+    loadingSpinner.style.display = 'flex';
+    
+    // Fetch search results from the server
+    fetch("/search_users/", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ 
+        search_term: searchTerm,
+        filter_type: filterType
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Hide loading spinner
+      loadingSpinner.style.display = 'none';
+      
+      if (data.success) {
+        // Render search results
+        renderUsers(data.users);
+        
+        // Update filter buttons to match current filter
+        filterButtons.forEach(btn => {
+          if (btn.getAttribute('data-filter') === data.filter_type) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+        
+        // Show search stats
+        showSearchStats(data.search_term, data.count, data.filter_type);
+        
+        // Fetch following status for the users
+        fetchFollowingStatus();
+      } else {
+        showToast(data.error || 'Failed to search users', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      loadingSpinner.style.display = 'none';
+      showToast('Error connecting to server', 'error');
+    });
+  }
+  
+  /**
+   * Show search statistics above the user grid
+   */
+  function showSearchStats(searchTerm, count, filterType) {
+    // Remove any existing search stats
+    const existingStats = document.getElementById('search-stats');
+    if (existingStats) {
+      existingStats.remove();
+    }
+    
+    // Create search stats container
+    const statsContainer = document.createElement('div');
+    statsContainer.id = 'search-stats';
+    statsContainer.className = 'search-stats';
+    
+    // Format filter type for display
+    let filterDisplay = 'all users';
+    if (filterType === 'teachers') filterDisplay = 'teachers';
+    if (filterType === 'students') filterDisplay = 'students';
+    
+    if (count > 0) {
+      statsContainer.innerHTML = `
+        <div class="search-results-info">
+          Found <span class="search-count">${count}</span> ${count === 1 ? 'result' : 'results'} 
+          for "<span class="search-term">${searchTerm}</span>" 
+          in <span class="filter-type">${filterDisplay}</span>
+        </div>
+      `;
+    } else {
+      statsContainer.innerHTML = `
+        <div class="search-results-info empty">
+          No results found for "<span class="search-term">${searchTerm}</span>" 
+          in <span class="filter-type">${filterDisplay}</span>
+        </div>
+        <button class="reset-search-btn">Clear Search</button>
+      `;
+      
+      // Add event listener to reset button
+      statsContainer.querySelector('.reset-search-btn').addEventListener('click', function() {
+        searchInput.value = '';
+        searchBar.classList.remove('has-text');
+        
+        // Reset to show all users for current filter
+        if (window.loadUsers) {
+          window.loadUsers(currentFilterType);
+        }
+        
+        // Remove search stats
+        statsContainer.remove();
+      });
+    }
+    
+    // Insert stats before the user grid
+    userGrid.parentNode.insertBefore(statsContainer, userGrid);
+  }
+  
+  // Apply initial focus when clicking on the search bar
+  searchBar.addEventListener('click', function() {
+    searchInput.focus();
+  });
+}
+
+// Add this CSS for the search stats
+document.head.insertAdjacentHTML('beforeend', `
+  <style>
+    .search-stats {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      padding: 0 20px;
+      text-align: center;
+    }
+    
+    .search-results-info {
+      background-color: #e3f2fd;
+      padding: 10px 15px;
+      border-radius: 8px;
+      display: inline-block;
+      color: #0d47a1;
+      font-size: 0.95rem;
+    }
+    
+    .search-results-info.empty {
+      background-color: #fff3e0;
+      color: #e65100;
+    }
+    
+    .search-count {
+      font-weight: 700;
+      color: #1565c0;
+    }
+    
+    .search-term {
+      font-weight: 700;
+      color: #0d47a1;
+    }
+    
+    .filter-type {
+      font-style: italic;
+    }
+    
+    .reset-search-btn {
+      margin-top: 10px;
+      background-color: #ff7043;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+    
+    .reset-search-btn:hover {
+      background-color: #f4511e;
+    }
+  </style>
+`);
+
+
+
+
+
+
     document.addEventListener('DOMContentLoaded', function() {
       // Initialize AOS animations
       AOS.init({
@@ -396,179 +891,269 @@
       });
       
       // Function to follow a user
-      function followUser(userId) {
-        // Show loading state
-        const followButton = document.getElementById('followButton');
-        followButton.disabled = true;
-        followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Following...';
-        
-        // Send follow request to server
-        fetch("{% url 'follow_user' %}", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-          },
-          body: JSON.stringify({ 
-            userId: userId,
-            action: 'unfollow'
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          followButton.disabled = false;
-          
-          if (data.success) {
-            // Update button state
-            followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
-            followButton.classList.add('following');
-            
-            // Add to our following set
-            followingUsers.add(userId);
-            
-            // Update follower count in modal
-            const followersElement = document.getElementById('modalFollowers');
-            followersElement.textContent = (parseInt(followersElement.textContent) + 1).toString();
-            
-            // Update card if visible
-            const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
-            if (userCard) {
-              const followersStat = userCard.querySelector('.stat-value');
-              if (followersStat) {
-                followersStat.textContent = (parseInt(followersStat.textContent) + 1).toString();
-              }
-            }
-            
-            // Show success message
-            showToast('You are now following this user', 'success');
-          } else {
-            showToast(data.error || 'Failed to follow user', 'error');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          followButton.disabled = false;
-          followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
-          showToast('Error connecting to server', 'error');
-        });
-      }
+      // Enhanced functions for frontend follow/unfollow logic
+
+// 1. Function to follow a user with improved error handling
+function followUser(userId) {
+  // Show loading state
+  const followButton = document.getElementById('followButton');
+  followButton.disabled = true;
+  followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Following...';
+  
+  // Send follow request to server
+  fetch("/follow_user/", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({ 
+      userId: userId
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    followButton.disabled = false;
+    
+    if (data.success) {
+      // Update button state
+      followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
+      followButton.classList.add('following');
       
-      // Function to unfollow a user
-      function unfollowUser(userId) {
-        // Show loading state
-        const followButton = document.getElementById('followButton');
-        followButton.disabled = true;
-        followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Unfollowing...';
-        
-        // Send unfollow request to server
-        fetch("{% url 'follow_user' %}", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-          },
-          body: JSON.stringify({ 
-            userId: userId,
-            
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          followButton.disabled = false;
-          
-          if (data.success) {
-            // Update button state
-            followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
-            followButton.classList.remove('following');
-            
-            // Remove from our following set
-            followingUsers.delete(userId);
-            
-            // Update follower count in modal
-            const followersElement = document.getElementById('modalFollowers');
-            const currentFollowers = parseInt(followersElement.textContent);
-            followersElement.textContent = Math.max(0, currentFollowers - 1).toString();
-            
-            // Update card if visible
-            const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
-            if (userCard) {
-              const followersStat = userCard.querySelector('.stat-value');
-              if (followersStat) {
-                const currentCardFollowers = parseInt(followersStat.textContent);
-                followersStat.textContent = Math.max(0, currentCardFollowers - 1).toString();
-              }
-            }
-            
-            // Show success message
-            showToast('You unfollowed this user', 'success');
-          } else {
-            showToast(data.error || 'Failed to unfollow user', 'error');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          followButton.disabled = false;
-          followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
-          showToast('Error connecting to server', 'error');
-        });
-      }
+      // Add to our following set
+      followingUsers.add(userId);
       
-      // Function to fetch which users we're following
-      function fetchFollowingStatus() {
-        fetch("{% url 'get_following' %}")
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data.success && Array.isArray(data.following)) {
-            // Clear the set and add all following users
-            followingUsers.clear();
-            data.following.forEach(userId => followingUsers.add(userId));
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching following status:', error);
-          // Continue without following data
-        });
-      }
+      // Update follower count in modal
+      const followersElement = document.getElementById('modalFollowers');
+      followersElement.textContent = (parseInt(followersElement.textContent) + 1).toString();
       
-      // Function to show toast notification
-      function showToast(message, type = 'default') {
-        const toastContainer = document.getElementById('toastContainer');
-        
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        
-        let icon = '';
-        if (type === 'success') {
-          icon = '<i class="bi bi-check-circle-fill"></i>';
-        } else if (type === 'error') {
-          icon = '<i class="bi bi-exclamation-circle-fill"></i>';
-        } else if (type === 'info') {
-          icon = '<i class="bi bi-info-circle-fill"></i>';
+      // Update card if visible
+      const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+      if (userCard) {
+        const followersStat = userCard.querySelector('.stat-value');
+        if (followersStat) {
+          followersStat.textContent = (parseInt(followersStat.textContent) + 1).toString();
         }
-        
-        toast.innerHTML = `${icon} <span class="ms-2">${message}</span>`;
-        toastContainer.appendChild(toast);
-        
-        // Remove toast after animation completes
-        setTimeout(() => {
-          toast.remove();
-        }, 3000);
       }
       
-      // Helper function to get CSRF token
-      function getCsrfToken() {
-        const cookieValue = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('csrftoken='))
-          ?.split('=')[1];
-        return cookieValue || '';
+      // Show success message
+      showToast(data.message || 'You are now following this user', 'success');
+    } else {
+      followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
+      showToast(data.error || 'Failed to follow user', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    followButton.disabled = false;
+    followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
+    showToast('Error connecting to server', 'error');
+  });
+}
+
+// 2. Function to unfollow a user with improved error handling
+function unfollowUser(userId) {
+  // Show loading state
+  const followButton = document.getElementById('followButton');
+  followButton.disabled = true;
+  followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Unfollowing...';
+  
+  // Send unfollow request to server
+  fetch("/unfollow_user/", {  // Note: Corrected endpoint URL
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({ 
+      userId: userId
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    followButton.disabled = false;
+    
+    if (data.success) {
+      // Update button state
+      followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
+      followButton.classList.remove('following');
+      
+      // Remove from our following set
+      followingUsers.delete(userId);
+      
+      // Update follower count in modal
+      const followersElement = document.getElementById('modalFollowers');
+      const currentFollowers = parseInt(followersElement.textContent);
+      followersElement.textContent = Math.max(0, currentFollowers - 1).toString();
+      
+      // Update card if visible
+      const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+      if (userCard) {
+        const followersStat = userCard.querySelector('.stat-value');
+        if (followersStat) {
+          const currentCardFollowers = parseInt(followersStat.textContent);
+          followersStat.textContent = Math.max(0, currentCardFollowers - 1).toString();
+        }
+      }
+      
+      // Show success message
+      showToast(data.message || 'You unfollowed this user', 'success');
+    } else {
+      followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
+      followButton.classList.add('following');
+      showToast(data.error || 'Failed to unfollow user', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    followButton.disabled = false;
+    followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
+    showToast('Error connecting to server', 'error');
+  });
+}
+
+// 3. Function to fetch user's following list with improved error handling
+function fetchFollowingStatus() {
+  fetch("/get_following/")
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success && Array.isArray(data.following)) {
+      // Clear the set and add all following users
+      followingUsers.clear();
+      data.following.forEach(userId => followingUsers.add(userId));
+      
+      // Update UI for any visible users
+      document.querySelectorAll('.user-card').forEach(card => {
+        const userId = card.dataset.userId;
+        if (followingUsers.has(userId)) {
+          // Mark as following in the UI if needed
+          // This could be expanded if we want to show following status in the cards
+        }
+      });
+    } else {
+      console.warn('Failed to fetch following status or no data returned');
+    }
+  })
+  .catch(error => {
+    console.error('Error fetching following status:', error);
+    // Continue without following data, but log the error
+  });
+}
+
+// 4. Enhanced toggle follow button handler
+function setupFollowButton() {
+  const followButton = document.getElementById('followButton');
+  
+  if (followButton) {
+    followButton.addEventListener('click', function() {
+      if (this.disabled) return; // Don't process if button is disabled
+      
+      const userId = this.dataset.userId;
+      if (!userId) {
+        console.error('No user ID found for follow button');
+        return;
+      }
+      
+      const isFollowing = this.classList.contains('following');
+      
+      // Toggle follow state
+      if (isFollowing) {
+        unfollowUser(userId);
+      } else {
+        followUser(userId);
       }
     });
+  }
+}
+
+// 5. Enhanced toast notification function
+function showToast(message, type = 'default', duration = 3000) {
+  const toastContainer = document.getElementById('toastContainer');
+  
+  if (!toastContainer) {
+    console.error('Toast container not found');
+    return;
+  }
+  
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  
+  let icon = '';
+  if (type === 'success') {
+    icon = '<i class="bi bi-check-circle-fill"></i>';
+  } else if (type === 'error') {
+    icon = '<i class="bi bi-exclamation-circle-fill"></i>';
+  } else if (type === 'info') {
+    icon = '<i class="bi bi-info-circle-fill"></i>';
+  }
+  
+  toast.innerHTML = `${icon} <span class="ms-2">${message}</span>`;
+  toastContainer.appendChild(toast);
+  
+  // Remove toast after animation completes
+  setTimeout(() => {
+    toast.classList.add('fade-out');
+    setTimeout(() => {
+      toast.remove();
+    }, 300); // Allow time for fade-out animation
+  }, duration);
+}
+
+// 6. Helper function to get CSRF token
+function getCsrfToken() {
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='))
+    ?.split('=')[1];
+  return cookieValue || '';
+}
+
+// 7. Initialize follow functionality
+function initFollowSystem() {
+  // Create a Set to track which users we're following
+  window.followingUsers = new Set();
+  
+  // Fetch initial following status
+  fetchFollowingStatus();
+  
+  // Set up the follow button
+  setupFollowButton();
+  
+  // Set up follow buttons in user profile modal
+  const userProfileModal = document.getElementById('userProfileModal');
+  if (userProfileModal) {
+    userProfileModal.addEventListener('show.bs.modal', function (event) {
+      // This will run when the modal is about to be shown
+      setupFollowButton();
+    });
+  }
+}
+      
+
+
+
+
+    });
+
+
+
+
+    
   </script>
 </body>
 </html>

@@ -402,6 +402,20 @@ def get_bookmarked_messages(username, room_id):
 
 
 
+DEFAULT_PIC_URL = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+
+def update_profile_pictures():
+    users_ref = db.collection("users_profile")
+    docs = users_ref.stream()
+
+    for doc in docs:
+        user_data = doc.to_dict()
+        profile_pic = user_data.get("profile_picture", "")
+
+        if not profile_pic:  # Check if null or empty
+            doc_ref = users_ref.document(doc.id)
+            doc_ref.update({"profile_picture": DEFAULT_PIC_URL})
+            print(f"Updated profile picture for user: {doc.id}")
 
 
 
