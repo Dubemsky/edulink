@@ -175,8 +175,15 @@ def current_student_hub_room(request, id):
     
 
 def hub_room_message_student_replies(request, id, message_id):
-    # Fetch the reply data from the database or whatever source you are using
-    reply_data = get_message_reply_room(id, message_id)
+    # Get sort parameter from request query parameters, default to 'recent'
+    sort_by = request.GET.get('sort', 'recent')
+    
+    # Validate sort parameter
+    if sort_by not in ['recent', 'top']:
+        sort_by = 'recent'  # Default to recent if invalid parameter
+    
+    # Fetch the reply data with the sort preference
+    reply_data = get_message_reply_room(id, message_id, sort_by)
 
     # Structure the data into a list of dictionaries
     structured_replies = []
@@ -184,27 +191,28 @@ def hub_room_message_student_replies(request, id, message_id):
     for reply in reply_data:
         structured_replies.append({
             'question_id': reply.get('question_id'),
-            'upvotes': reply.get('upvotes'),
-            'downvotes': reply.get('downvotes'),
+            'upvotes': reply.get('upvotes', 0),
+            'downvotes': reply.get('downvotes', 0),
             'sender': reply.get('sender'),
             'reply_content': reply.get('reply_content'),
             'role': reply.get('role'),
             'room_id': reply.get('room_id'),
             'timestamp': reply.get('timestamp'),
+            'created_at': reply.get('created_at') or reply.get('timestamp'),
             'reply_id': reply.get('message_id')
         })
     return JsonResponse(structured_replies, safe=False)
 
-
-
-
-
-
-
-
-def hub_room_message_teacher_replies(request,id, message_id):
-    # Fetch the reply data from the database or whatever source you are using
-    reply_data = get_message_reply_room(id, message_id)
+def hub_room_message_teacher_replies(request, id, message_id):
+    # Get sort parameter from request query parameters, default to 'recent'
+    sort_by = request.GET.get('sort', 'recent')
+    
+    # Validate sort parameter
+    if sort_by not in ['recent', 'top']:
+        sort_by = 'recent'  # Default to recent if invalid parameter
+    
+    # Fetch the reply data with the sort preference
+    reply_data = get_message_reply_room(id, message_id, sort_by)
 
     # Structure the data into a list of dictionaries
     structured_replies = []
@@ -212,13 +220,14 @@ def hub_room_message_teacher_replies(request,id, message_id):
     for reply in reply_data:
         structured_replies.append({
             'question_id': reply.get('question_id'),
-            'upvotes': reply.get('upvotes'),
-            'downvotes': reply.get('downvotes'),
+            'upvotes': reply.get('upvotes', 0),
+            'downvotes': reply.get('downvotes', 0),
             'sender': reply.get('sender'),
             'reply_content': reply.get('reply_content'),
             'role': reply.get('role'),
             'room_id': reply.get('room_id'),
             'timestamp': reply.get('timestamp'),
+            'created_at': reply.get('created_at') or reply.get('timestamp'),
             'reply_id': reply.get('message_id')
         })
 

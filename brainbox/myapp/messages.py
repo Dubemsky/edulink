@@ -258,10 +258,15 @@ def get_questions_with_top_replies(room_id):
 
 
 
-def get_message_reply_room(room_id, question_id):
+def get_message_reply_room(room_id, question_id, sort_by='recent'):
     """
     Retrieve all replies for a specific room and question from Firestore,
-    ordered by net votes (upvotes - downvotes) in descending order.
+    ordered by either 'recent' (timestamp, newest first) or 'top' (net votes).
+    
+    Args:
+        room_id: The ID of the room
+        question_id: The ID of the question
+        sort_by: Sorting method - 'recent' (default) or 'top'
     """
     try:
         replies_ref = db.collection('hub_message_reply')
@@ -273,18 +278,37 @@ def get_message_reply_room(room_id, question_id):
 
         results = query.stream()
 
-        # Calculate net_votes (upvotes - downvotes) and store replies
+        # Store all replies
         reply_list = []
         for reply in results:
             reply_data = reply.to_dict()
             reply_data['message_id'] = reply.id
+            
+            # Ensure upvotes and downvotes are properly initialized
             upvotes = reply_data.get('upvotes', 0)
             downvotes = reply_data.get('downvotes', 0)
-            reply_data['net_votes'] = upvotes - downvotes  
+            reply_data['net_votes'] = upvotes - downvotes
+            
+            # Ensure timestamp is available (use created_at if timestamp missing)
+            if 'timestamp' not in reply_data and 'created_at' in reply_data:
+                reply_data['timestamp'] = reply_data['created_at']
+            elif 'timestamp' not in reply_data:
+                # If no timestamp found, use a default distant past time
+                reply_data['timestamp'] = "1970-01-01T00:00:00Z"
+                
             reply_list.append(reply_data)
 
-        # Sort replies by net_votes in descending order
-        sorted_replies = sorted(reply_list, key=lambda x: x['net_votes'], reverse=True)
+        # Sort replies based on sort_by parameter
+        if sort_by == 'recent':
+            # Sort by timestamp in descending order (newest first)
+            sorted_replies = sorted(reply_list, 
+                                    key=lambda x: x.get('timestamp', "1970-01-01T00:00:00Z"), 
+                                    reverse=True)
+        else:  # sort_by == 'top'
+            # Sort by net_votes in descending order
+            sorted_replies = sorted(reply_list, 
+                                    key=lambda x: x.get('net_votes', 0), 
+                                    reverse=True)
 
         return sorted_replies
 
