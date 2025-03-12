@@ -37,21 +37,27 @@ def students_homepage(request):
                 'member_count': get_hub_member_count(hub_entry.hub.room_url)
             }
             students_hubs.append(hub_data)
+
+       
+
             
         notifications = get_notifications_by_username(current_student)
+        number_of_nofications = len(notifications)
         
     return render(request, "myapp/students/students_homepage.html", {
         "students_hubs": students_hubs, 
+        "number_of_hubs":len(students_hubs),
         "notifications": notifications,
+        "number_of_nofications": number_of_nofications,
         "username": current_student
     })
 
 
 
 def students_join_hub_page(request):
-    
 
     if request.method == 'POST':
+        print("This is me")
         search_query = request.POST.get('room_name', '').strip()
         
         """
@@ -67,19 +73,16 @@ def students_join_hub_page(request):
         
         # Find the number of available hubs
         number_of_hubs = len(hubs)
+
+        print(f"\n\n\n{hubs}")
         
         return render(request, "myapp/students/join_hub_page.html", {
             "teachers_hubs":hubs,
             "number_of_hubs":number_of_hubs
         })
 
-
-    
     teachers_hubs = Teachers_created_hub.objects.filter(hub_privacy_setting='public')
     number_of_hubs=len(teachers_hubs)
-    
-
-
     return render(request, "myapp/students/join_hub_page.html", {
         "teachers_hubs":teachers_hubs,
         "number_of_hubs":number_of_hubs
@@ -98,6 +101,7 @@ def students_join_hub_page(request):
 def join_hub(request):
     if request.method == 'POST':
         try:
+        
             # Parse JSON body from the request
             data = json.loads(request.body)
             hub_name = data.get('hub_name')

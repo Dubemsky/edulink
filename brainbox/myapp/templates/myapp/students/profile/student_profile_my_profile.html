@@ -1,36 +1,17 @@
-<!-- /**
-
-Note: This work is all my idea but with inspiration from
-
----- Bootstrap templates-----
-More info:
-* Template Name: OnePage
-* Template URL: https://bootstrapmade.com/onepage-multipurpose-bootstrap-template/
-* Updated: Aug 07 2024 with Bootstrap v5.3.3
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
-
------ ChatGPT for design ideas implimentation -----
------- Reddit for community feedback and ideas -----
------- StackOverflow for coding best practices -----
-
-
-*/ -->
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Students Profile</title>
-  <meta name="description" content="">
-  <meta name="keywords" content="">
+  <title>EduLink - Student Profile</title>
+  <meta name="description" content="Manage your EduLink student profile, settings, and activities">
+  <meta name="keywords" content="education, profile, student, settings">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
@@ -42,282 +23,13 @@ More info:
   <!-- CSS Files -->
   <link href="{% static 'css/main.css' %}" rel="stylesheet">
   <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+  <link href="{% static 'css/profile_pages.css' %}" rel="stylesheet">
 
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-
-  <style>
-    /* Styling for the big box */
-    .big-box {
-      display: flex;
-      height: 400px; /* Adjust height as needed */
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Left Section (Full Height Box) */
-.left-section {
-  display: flex;
-  flex-direction: column;
-  background-color: white;
-  border-radius: 15px; /* More rounded box */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Softer shadow */
-  overflow: hidden;
-  height: 100%; /* Ensure it takes full height */
-}
-
-/* Ensuring buttons take full width & equal height */
-.left-section a {
-  flex: 1; /* Make each link fill its parent */
-  text-decoration: none; /* Remove underline */
-  height: 25%; /* Each button takes 25% of left-section */
-}
-
-/* Buttons */
-.left-section button {
-  width: 100%;
-  height: 100%; /* Each button fully occupies its section */
-  background-color: white;
-  font-size: 1.2rem;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 600;
-  text-transform: capitalize;
-  letter-spacing: 0.5px;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.3s ease-in-out;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Hover Effect */
-.left-section button:hover {
-  background-color: #f5f5f5;
-  transform: scale(1.03);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Click (Active) Effect */
-.left-section button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-    
-
-
-
-
-    /* Right Section */
-    .right-section {
-      width: 70%; /* 70% width for the right section */
-      background-color: #ffffff; /* White background */
-      padding: 20px;
-      overflow-y: auto; /* Scroll vertically when content overflows */
-    }
-
-   /* Section Titles */
-/* Section Titles */
-.section-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 15px;
-  text-align: center;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.13); /* Very faint underline */
-  padding-bottom: 5px; /* Space between the text and the underline */
-}
-
-
-    
-    /* Styling for scrollbars */
-    .left-section::-webkit-scrollbar,
-    .right-section::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .left-section::-webkit-scrollbar-thumb,
-    .right-section::-webkit-scrollbar-thumb {
-      background-color: #bbb;
-      border-radius: 4px;
-    }
-
-    .left-section::-webkit-scrollbar-thumb:hover,
-    .right-section::-webkit-scrollbar-thumb:hover {
-      background-color: #888;
-    }
-
-    /* Hero section styles */
-    #hero {
-      background-color: #f8f9fa;
-      padding: 50px 0;
-    }
-
-    #hero h2 {
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
-
-
-.sections{
-  
-  border-bottom: 1px solid rgba(0, 0, 0, 0.03); /* Very faint underline */
-  padding-bottom: 5px; /* Space between the text and the underline */
-  padding-top: 10px;
-}
-
-.profile-pic-container {
-  text-align: center;
-}
-
-.profile-pic-circle {
-  width: 150px; /* You can adjust the size */
-  height: 150px; /* Same height as width to maintain a circle */
-  border-radius: 50%; /* Makes it a circle */
-  overflow: hidden; /* Ensures the image fits within the circle and doesn't overflow */
-  margin: 0 auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #f0f0f0; /* Optional: Add a background color */
-}
-
-.profile-pic {
-  width: 100%; /* Image will take up full width of the circle */
-  height: 100%; /* Image will take up full height of the circle */
-  object-fit: cover; /* Ensures the image covers the circle without distortion, cropping if necessary */
-}
-
-h4.user-name, h3.followers-following {
-  margin-top: 10px;
-}
-
-.user-name {
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.followers-following {
-  font-size: 25px; 
-  font-weight: bold;
-  margin: 5px 0;
-}
-
-.account-created span {
-  font-weight: bold;
-}
-
-
-.change-profile-btn {
-  background-color: #007bff;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.change-profile-btn:hover {
-  background-color: 0056b3;
-}
-
-
-.website-input {
-  width: 100%; 
-  max-width: 400px; 
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
-
-/* Style the button */
-.fa-plus {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  font-size: 18px;
-  cursor: pointer;
-  border-radius: 5px;
-  margin-left: 10px;
-}
-
-.fa-plus:hover {
-  background-color: #0056b3;
-}
-
-
-.website-list {
-  list-style: none;
-  padding: 0;
-}
-
-.website-list li {
-  margin-top: 5px;
-  padding: 5px;
-  background-color: #f8f9fa;
-  border-radius: 5px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.remove-btn {
-  background-color: red;
-  color: white;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-
-.bio-input {
-  width: 100%;
-  height: 100px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  resize: none;
-  font-size: 16px;
-}
-
-.submit-bio-btn {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.submit-bio-btn:hover {
-  background-color: #0056b3;
-}
-
-
-.account-created {
-  font-size: 18px;
-  font-weight: bold;
-  text-align: center;
-  margin-top: auto; 
-}
-
-  </style>
-
-
-
 </head>
 
-
 <body class="index-page">
+  <!-- Header -->
   <header id="header" class="header d-flex align-items-center sticky-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center">
       <a href="{% url 'students_homepage' %}" class="logo d-flex align-items-center me-auto">
@@ -325,223 +37,365 @@ h4.user-name, h3.followers-following {
       </a>
 
       <nav id="navmenu" class="navmenu">
-        <d2l-icon icon="tier3:notification-bell"></d2l-icon>
         <ul>
-          <li><a href="{% url 'students_homepage' %}">Home<br></a></li>
+          <li><a href="{% url 'students_homepage' %}">Home</a></li>
           <li><a href="{% url 'students_join_hub_page' %}">Join Hubs</a></li>
           <li><a href="{% url 'community_page' %}">Community</a></li>
-          <li><a href="{% url 'student_profile_page' %}">My Profile</a></li>
+          <li><a href="{% url 'student_profile_page' %}" class="active">My Profile</a></li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
     </div>
   </header>
 
-  <section id="profile-section" class="container my-5">
-    <div class="big-box d-flex">
-  
-      <!-- Left Section -->
-      <div class="left-section">
-        <a href="{% url 'student_profile_page_my_profile' %}"><button type="button">My Profile</button></a>
-        <a href="{% url 'student_profile_page_securty_settings' %}"><button type="button">Security & Settings</button></a>
-        <a href="{% url 'student_profile_page_activity_contribution' %}"><button type="button">Activity & Contributions</button></a>
-        <a href="{% url 'login_page' %}?role=student"><button type="button">Logout</button></a>
+  <main id="main">
+    <section class="container profile-container">
+      <!-- Profile Header -->
+      <div class="profile-header" data-aos="fade-up">
+        <form id="profilePicForm" method="POST" action="{% url 'students_profile_update' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="profile-avatar">
+            <img src="{{ profile_picture }}" alt="{{ name }}" id="profilePic">
+            <div class="profile-avatar-overlay">
+              <button type="button" class="avatar-edit-btn" id="changeProfileBtn">
+                <i class="bi bi-camera"></i> Change
+              </button>
+            </div>
+            <input type="file" name="profile_picture" id="fileInput" accept="image/*" style="display: none;">
+          </div>
+        </form>
+        
+        <h2 class="profile-name">{{ name }}</h2>
+        <div class="profile-role">Student</div>
+        
+        <div class="profile-stats">
+          <div class="stat-item">
+            <div class="stat-value">{{ followers }}</div>
+            <div class="stat-label">Followers</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ followings }}</div>
+            <div class="stat-label">Following</div>
+          </div>
+        </div>
       </div>
-  
-      <!-- Right Section -->
-      <div class="right-section">
-        <h3 class="section-title">My Profile</h3>
-    
-        <div class="sections">
-            <form id="profilePicForm" method="POST" action="{% url 'students_profile_update' %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="profile-pic-container">
-                    <div class="profile-pic-circle">
-                        <img src="{{ profile_picture }}" alt="Profile Picture" class="profile-pic" id="profilePic">
-                    </div><br>
-    
-                    <h4 class="user-name">{{ name }}</h4>
-                    <h3 class="followers-following">
-                        <span>{{ followers }}</span> Followers <span>{{ followings }}</span> Following
-                    </h3><br>
-    
-                    <input type="file" name="profile_picture" id="fileInput" accept="image/*" style="display: none;">
-                    <button type="button" class="change-profile-btn" id="changeProfileBtn">Change Profile</button>
-                </div>
-            </form>
-        </div>
-    
-        <div class="sections">
-            <form id="websitesForm" method="POST" action="{% url 'students_profile_update' %}">
-                {% csrf_token %}
-                <h4 class="my-website">My Websites</h4>
-                <input type="text" name="website" id="websiteInput" class="website-input" placeholder="Enter your website">
-                <button type="submit" id="addWebsiteBtn" class="fa fa-plus">+</button>
-            </form>
-            <ul id="websiteList" class="website-list">
-                {% for website in websites %}
-                    <li>{{ website }}</li>
-                {% empty %}
-                    <li>No websites added yet.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    
-        <div class="sections">
+      
+      <!-- Profile Content -->
+      <div class="profile-content" data-aos="fade-up" data-aos-delay="100">
+        <!-- Left Navigation -->
+        <nav class="profile-nav">
+          <ul class="profile-nav-list">
+            <li class="profile-nav-item">
+              <a href="{% url 'student_profile_page_my_profile' %}" class="profile-nav-link {% if request.resolver_match.url_name == 'student_profile_page_my_profile' %}active{% endif %}">
+                <i class="bi bi-person-circle profile-nav-icon"></i>
+                My Profile
+              </a>
+            </li>
+            <li class="profile-nav-item">
+              <a href="{% url 'student_profile_page_activity_contribution' %}" class="profile-nav-link {% if request.resolver_match.url_name == 'student_profile_page_activity_contribution' %}active{% endif %}">
+                <i class="bi bi-bar-chart profile-nav-icon"></i>
+                Activity & Contributions
+              </a>
+            </li>
+            <li class="profile-nav-item">
+              <a href="{% url 'student_profile_page_securty_settings' %}" class="profile-nav-link {% if request.resolver_match.url_name == 'student_profile_page_securty_settings' %}active{% endif %}">
+                <i class="bi bi-shield-lock profile-nav-icon"></i>
+                Security & Settings
+              </a>
+            </li>
+            <li class="profile-nav-item">
+              <a href="{% url 'login_page' %}?role=student" class="profile-nav-link">
+                <i class="bi bi-box-arrow-right profile-nav-icon"></i>
+                Logout
+              </a>
+            </li>
+          </ul>
+        </nav>
+        
+        <!-- Right Detail Area -->
+        <div class="profile-detail">
+          {% block profile_content %}
+          <!-- My Profile Content -->
+          <div class="profile-detail-header">
+            <h3 class="profile-detail-title">My Profile</h3>
+          </div>
+          
+          <!-- Bio Section -->
+          <div class="profile-section">
+            <h4 class="section-title">
+              <i class="bi bi-person-vcard"></i> About Me
+            </h4>
             <form id="bioForm" method="POST" action="{% url 'students_profile_update' %}">
-                {% csrf_token %}
-                <textarea name="bio" id="bioInput" class="bio-input" placeholder="Enter your bio">{{ bio }}</textarea>
-                <button type="submit" id="submitBioBtn" class="submit-bio-btn">Submit</button>
+              {% csrf_token %}
+              <div class="form-row">
+                <textarea name="bio" id="bioInput" class="form-control" placeholder="Tell others about yourself...">{{ bio }}</textarea>
+              </div>
+              <div class="form-row">
+                <button type="submit" id="submitBioBtn" class="btn btn-primary">
+                  <i class="bi bi-check-circle"></i> Save Bio
+                </button>
+              </div>
             </form>
+          </div>
+          
+          <!-- Websites Section -->
+          <div class="profile-section">
+            <h4 class="section-title">
+              <i class="bi bi-link-45deg"></i> My Websites
+            </h4>
+            <form id="websitesForm" method="POST" action="{% url 'students_profile_update' %}">
+              {% csrf_token %}
+              <div class="website-input-group">
+                <input type="text" name="website" id="websiteInput" class="form-control" placeholder="Enter your website URL">
+                <button type="button" id="addWebsiteBtn" class="btn btn-primary">
+                  <i class="bi bi-plus-lg"></i> Add
+                </button>
+              </div>
+            </form>
+            
+            <ul id="websiteList" class="website-list">
+              {% for website in websites %}
+                <li class="website-item">
+                  <a href="{{ website }}" target="_blank">{{ website }}</a>
+                  <button type="button" class="btn-remove" data-website="{{ website }}">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </li>
+              {% empty %}
+                <li class="website-item" id="no-websites">No websites added yet.</li>
+              {% endfor %}
+            </ul>
+          </div>
+          
+          <!-- Account Information -->
+          <div class="profile-section">
+            <h4 class="section-title">
+              <i class="bi bi-info-circle"></i> Account Information
+            </h4>
+            <div class="account-info">
+              <i class="bi bi-calendar-check account-info-icon"></i>
+              <div>
+                <div>Member since</div>
+                <div class="account-info-date">{{ created_at }}</div>
+              </div>
+            </div>
+          </div>
+          {% endblock %}
         </div>
-    
-        <div class="sections">
-            <p class="account-created">Account Created: <span>{{ created_at }}</span></p>
-        </div>
-    </div>
-
-
-
-    </div>
-  </section>
-  
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle Change Profile Picture
-    const changeProfileBtn = document.getElementById('changeProfileBtn');
-    const fileInput = document.getElementById('fileInput');
-
-    changeProfileBtn.addEventListener('click', () => fileInput.click()); // Trigger file input
-
-    fileInput.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-  
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => document.getElementById('profilePic').src = e.target.result; // Preview image
-            reader.readAsDataURL(file);
-
-            // Send to backend with a message type
-            const formData = new FormData();
-            formData.append('profile_picture', file);
-            formData.append('type', 'profile_pic');  // Specify the type of update
-            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            fetch("{% url 'students_profile_update' %}", {
-                method: 'POST',
-                headers: { "X-CSRFToken": csrftoken },
-                body: formData,
-            })
-            .then(response => response.json())
-            .then(data => data.success ? alert('Profile picture updated!') : alert(`Error: ${data.error}`))
-            .catch(() => alert('Something went wrong while uploading the profile picture.'));
-        }
-    }
-  );
-
-    // Handle Adding Websites
-    const websiteInput = document.getElementById('websiteInput');
-    const addWebsiteBtn = document.getElementById('addWebsiteBtn');
-    const websiteList = document.getElementById('websiteList');
-
-    addWebsiteBtn.addEventListener('click', function(event) {
-        event.preventDefault(); // Prevent form submission
-        const website = websiteInput.value.trim();
-        if (website) {
-            const listItem = document.createElement('li');
-            listItem.textContent = website;
-
-            const removeBtn = document.createElement('button');
-            removeBtn.textContent = "Remove";
-            removeBtn.classList.add('remove-btn');
-            removeBtn.addEventListener('click', () => websiteList.removeChild(listItem));
-
-            listItem.appendChild(removeBtn);
-            websiteList.appendChild(listItem);
-
-            websiteInput.value = '';
-
-            // Send website to backend with message type
-            const formData = new FormData();
-            formData.append('website', website);
-            formData.append('type', 'website');  // Specify the type of update
-            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            fetch("{% url 'students_profile_update' %}", {
-              method: 'POST',
-              headers: { "X-CSRFToken": csrftoken },
-              body: formData,
-          })
-          .then(response => {
-              if (!response.ok) {
-                  return response.json().then(err => { 
-                      console.error('Response Error:', err); // Log backend error
-                      throw new Error(err.error || 'Unknown error occurred'); 
-                  });
-              }
-              return response.json();
-          })
-          .then(data => {
-              if (data.success) {
-                  console.log('Website added successfully!', data);  // Log success data
-                  alert('Website added!');
-              } else {
-                  console.error('Backend Error:', data.error); // Log backend error
-                  alert(`Error: ${data.error}`);
-              }
-          })
-          .catch(error => {
-              console.error(`Fetch Error: ${error.message}`);  // Log fetch or parsing errors
-          });
-
-        }
-    });
-
-    // Handle Submitting Bio
-    const submitBioBtn = document.getElementById('submitBioBtn');
-    submitBioBtn.addEventListener('click', function(event) {
-        event.preventDefault(); // Prevent form submission
-        const bio = document.getElementById('bioInput').value.trim();
-        if (bio) {
-            const formData = new FormData();
-            formData.append('bio', bio);
-            formData.append('type', 'bio');  // Specify the type of update
-            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            fetch("{% url 'students_profile_update' %}", {
-                method: 'POST',
-                headers: { "X-CSRFToken": csrftoken },
-                body: formData,
-            })
-            .then(response => response.json())
-            .then(data => data.success ? alert('Bio updated!') : alert(`Error: ${data.error}`))
-            .catch(() => console.log(`Something went wrong: ${error.message}`));
-        } else {
-            alert('Please enter a bio before submitting.');
-        }
-    });
-});
-
-
-
-
-
-
-</script>
-
+      </div>
+    </section>
+  </main>
 
   <!-- Vendor JS Files -->
   <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/php-email-form/validate.js' %}"></script>
   <script src="{% static 'vendor/aos/aos.js' %}"></script>
   <script src="{% static 'vendor/purecounter/purecounter_vanilla.js' %}"></script>
   <script src="{% static 'vendor/glightbox/js/glightbox.min.js' %}"></script>
   <script src="{% static 'vendor/swiper/swiper-bundle.min.js' %}"></script>
-  <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
-  <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
 
   <!-- Main JS File -->
   <script src="{% static 'js/main.js' %}"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize AOS animations
+      AOS.init({
+        duration: 800,
+        easing: 'ease-in-out',
+        once: true,
+        mirror: false
+      });
+      
+      // Handle profile picture upload
+      const changeProfileBtn = document.getElementById('changeProfileBtn');
+      const fileInput = document.getElementById('fileInput');
+
+      if (changeProfileBtn && fileInput) {
+        changeProfileBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', function(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          // Preview image
+          const reader = new FileReader();
+          reader.onload = (e) => document.getElementById('profilePic').src = e.target.result;
+          reader.readAsDataURL(file);
+
+          // Send to backend
+          const formData = new FormData();
+          formData.append('profile_picture', file);
+          formData.append('type', 'profile_pic');
+          const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+          fetch("{% url 'students_profile_update' %}", {
+            method: 'POST',
+            headers: { "X-CSRFToken": csrftoken },
+            body: formData,
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              showNotification('Profile picture updated successfully!', 'success');
+            } else {
+              showNotification(data.error || 'Error updating profile picture', 'error');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showNotification('Network error. Please try again.', 'error');
+          });
+        });
+      }
+      
+      // Handle website additions
+      const addWebsiteBtn = document.getElementById('addWebsiteBtn');
+      const websiteInput = document.getElementById('websiteInput');
+      const websiteList = document.getElementById('websiteList');
+      const noWebsitesElement = document.getElementById('no-websites');
+      
+      if (addWebsiteBtn && websiteInput && websiteList) {
+        addWebsiteBtn.addEventListener('click', function() {
+          const websiteUrl = websiteInput.value.trim();
+          if (!websiteUrl) return;
+          
+          // Send to backend
+          const formData = new FormData();
+          formData.append('website', websiteUrl);
+          formData.append('type', 'website');
+          const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+          
+          fetch("{% url 'students_profile_update' %}", {
+            method: 'POST',
+            headers: { "X-CSRFToken": csrftoken },
+            body: formData,
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Remove "no websites" message if present
+              if (noWebsitesElement) {
+                noWebsitesElement.remove();
+              }
+              
+              // Create and add website item
+              const li = document.createElement('li');
+              li.className = 'website-item';
+              li.innerHTML = `
+                <a href="${websiteUrl}" target="_blank">${websiteUrl}</a>
+                <button type="button" class="btn-remove" data-website="${websiteUrl}">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              `;
+              websiteList.appendChild(li);
+              
+              // Clear input
+              websiteInput.value = '';
+              
+              showNotification('Website added successfully!', 'success');
+            } else {
+              showNotification(data.error || 'Error adding website', 'error');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showNotification('Network error. Please try again.', 'error');
+          });
+        });
+      }
+      
+      // Handle bio update
+      const bioForm = document.getElementById('bioForm');
+      if (bioForm) {
+        bioForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const bioInput = document.getElementById('bioInput');
+          const bioText = bioInput.value.trim();
+          
+          // Send to backend
+          const formData = new FormData();
+          formData.append('bio', bioText);
+          formData.append('type', 'bio');
+          const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+          
+          fetch("{% url 'students_profile_update' %}", {
+            method: 'POST',
+            headers: { "X-CSRFToken": csrftoken },
+            body: formData,
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              showNotification('Bio updated successfully!', 'success');
+            } else {
+              showNotification(data.error || 'Error updating bio', 'error');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showNotification('Network error. Please try again.', 'error');
+          });
+        });
+      }
+      
+      // Function to show notifications
+      function showNotification(message, type) {
+        // Check if a notification container exists
+        let notificationContainer = document.getElementById('notification-container');
+        if (!notificationContainer) {
+          // Create notification container
+          notificationContainer = document.createElement('div');
+          notificationContainer.id = 'notification-container';
+          notificationContainer.style.position = 'fixed';
+          notificationContainer.style.top = '80px';
+          notificationContainer.style.right = '20px';
+          notificationContainer.style.zIndex = '9999';
+          document.body.appendChild(notificationContainer);
+        }
+        
+        // Create notification
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.style.backgroundColor = type === 'success' ? '#28a745' : '#dc3545';
+        notification.style.color = 'white';
+        notification.style.padding = '12px 20px';
+        notification.style.marginBottom = '10px';
+        notification.style.borderRadius = '4px';
+        notification.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(50px)';
+        notification.style.transition = 'opacity 0.3s, transform 0.3s';
+        
+        // Add icon based on type
+        const icon = document.createElement('i');
+        icon.className = type === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill';
+        icon.style.marginRight = '10px';
+        
+        notification.appendChild(icon);
+        notification.appendChild(document.createTextNode(message));
+        
+        // Add notification to container
+        notificationContainer.appendChild(notification);
+        
+        // Trigger animation
+        setTimeout(() => {
+          notification.style.opacity = '1';
+          notification.style.transform = 'translateX(0)';
+        }, 10);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          notification.style.opacity = '0';
+          notification.style.transform = 'translateX(50px)';
+          
+          // Remove from DOM after animation completes
+          setTimeout(() => {
+            notification.remove();
+          }, 300);
+        }, 5000);
+      }
+    });
+  </script>
 </body>
 </html>

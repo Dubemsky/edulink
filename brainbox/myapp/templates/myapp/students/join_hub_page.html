@@ -92,12 +92,6 @@ More info:
         <div class="hub-grid" data-aos="fade-up" data-aos-delay="100">
           {% for hub in teachers_hubs %}
             <div class="hub-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter|add:100 }}">
-              {% if hub.hub_image %}
-                <img src="{{ hub.hub_image.url }}" alt="{{ hub.hub_name }}" class="hub-image">
-              {% else %}
-                <img src="{% static 'images/default_hub.jpg' %}" alt="{{ hub.hub_name }}" class="hub-image">
-              {% endif %}
-              
               <div class="hub-content">
                 <h4 class="hub-name">{{ hub.hub_name }}</h4>
                 <p class="hub-description">{{ hub.hub_description }}</p>
@@ -120,7 +114,6 @@ More info:
                 <button class="hub-join-btn" data-bs-toggle="modal" data-bs-target="#createHubModal"
                       data-hub-name="{{ hub.hub_name }}"
                       data-hub-url="{{ hub.room_url }}"
-                      data-hub-image="{{ hub.hub_image.url|default:'default_image.jpg' }}"
                       data-hub-description="{{ hub.hub_description }}"
                       data-owner-name="{{ hub.hub_owner }}"
                       data-privacy-setting="{{ hub.hub_privacy_setting }}"
@@ -160,7 +153,6 @@ More info:
         </div>
         
         <div class="modal-body">
-          <img src="" alt="Hub Image" id="imageDisplay" class="hub-modal-image">
           
           <div class="hub-detail-section">
             <div class="hub-detail-label">Hub Name</div>
@@ -208,7 +200,6 @@ More info:
       // Get the button that triggered the modal
       const button = event.relatedTarget;
       const hubName = button.getAttribute('data-hub-name');
-      const hubImage = button.getAttribute('data-hub-image');
       const hubUrl = button.getAttribute('data-hub-url');
       const ownerName = button.getAttribute('data-owner-name');
       const hubDescription = button.getAttribute('data-hub-description');
@@ -221,7 +212,6 @@ More info:
       document.getElementById('ownerNameDisplay').textContent = ownerName;
       document.getElementById('privacySettingDisplay').textContent = privacySetting === 'public' ? 'Public' : 'Private (Invitation Only)';
       document.getElementById('memberCountDisplay').textContent = memberCount;
-      document.getElementById('imageDisplay').src = hubImage || '{% static "images/default_image.jpg" %}';
       
       // Reset message container
       const messageContainer = document.getElementById('messageContainer');

@@ -37,10 +37,13 @@ def teachers_homepage(request):
             teachers_hubs.append(hub_data)
             
         notifications = get_notifications_by_username(current_teacher)
-        
+        number_of_nofications = len(notifications)
+
     return render(request, "myapp/teachers/teachers_homepage.html", {
         "teachers_hubs": teachers_hubs,
+        "number_of_hubs" : len(teachers_hubs),
         "notifications": notifications,
+        "number_of_notifications": number_of_nofications,
         "username": current_teacher
     })
 
