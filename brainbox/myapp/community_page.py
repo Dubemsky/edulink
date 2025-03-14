@@ -171,6 +171,7 @@ def follow_user(follower_id, user_to_follow_id):
     try:
         # Validate inputs
         if not follower_id or not user_to_follow_id:
+            print("I cant find it")
             return {
                 'success': False,
                 'message': 'Missing user IDs for follow operation'

@@ -17,40 +17,40 @@
     <div class="row">
       <div class="col-md-6 mb-3">
         <strong class="form-label">Full Name</strong>
-        <p>{{ teacher.name|default:"Teacher Name" }}</p>
+        <p>{{ name|default:"Teacher Name" }}</p>
       </div>
       <div class="col-md-6 mb-3">
         <strong class="form-label">Email</strong>
-        <p>{{ teacher.email|default:"teacher@example.com" }}</p>
+        <p>{{ email|default:"teacher@example.com" }}</p>
       </div>
       <div class="col-md-6 mb-3">
         <strong class="form-label">Subject Area</strong>
-        <p>{{ teacher.subject|default:"Mathematics" }}</p>
+        <p>{{ subject|default:"Mathematics" }}</p>
       </div>
       <div class="col-md-6 mb-3">
         <strong class="form-label">Experience</strong>
-        <p>{{ teacher.years_experience|default:"5" }} years</p>
+        <p>{{ years_experience|default:"5" }} years</p>
       </div>
       <div class="col-md-6 mb-3">
         <strong class="form-label">School/Institution</strong>
-        <p>{{ teacher.school|default:"Edison High School" }}</p>
+        <p>{{ school|default:"Edison High School" }}</p>
       </div>
       <div class="col-md-6 mb-3">
         <strong class="form-label">Joined On</strong>
-        <p>{{ teacher.joined_date|date:"F d, Y"|default:"January 1, 2023" }}</p>
+        <p>{{ created_at|default:"January 1, 2023" }}</p>
       </div>
     </div>
   </div>
   
   <div class="profile-section">
     <h4 class="section-title"><i class="bi bi-journal-text"></i> Professional Bio</h4>
-    <p>{{ teacher.bio|default:"No professional bio has been added yet." }}</p>
+    <p>{{ bio|default:"No professional bio has been added yet." }}</p>
   </div>
   
   <div class="profile-section">
     <h4 class="section-title"><i class="bi bi-mortarboard"></i> Education & Qualifications</h4>
     <ul class="qualifications-list">
-      {% for qualification in teacher.qualifications %}
+      {% for qualification in qualifications %}
         <li class="qualification-item">
           <div class="qualification-degree">{{ qualification.degree }}</div>
           <div class="qualification-school">{{ qualification.institution }}</div>
@@ -65,7 +65,7 @@
   <div class="profile-section">
     <h4 class="section-title"><i class="bi bi-link-45deg"></i> Professional Websites</h4>
     <ul class="website-list">
-      {% for website in teacher.websites %}
+      {% for website in websites %}
         <li class="website-item">
           <a href="{{ website.url }}" target="_blank">{{ website.name|default:website.url }}</a>
         </li>
@@ -84,7 +84,7 @@
     <h3 class="profile-detail-title">Edit Profile</h3>
   </div>
 
-  <form id="profileEditForm" method="POST" action="{% url 'teacher_profile_page_my_profile' %}">
+  <form id="profileEditForm" method="POST" action="{% url 'teacher_profile_update' %}">
     {% csrf_token %}
     <input type="hidden" name="type" value="profile">
     
@@ -93,24 +93,24 @@
       <div class="row">
         <div class="col-md-6 form-row">
           <label class="form-label">Full Name</label>
-          <input type="text" class="form-control" name="name" value="{{ teacher.name|default:'' }}" required>
+          <input type="text" class="form-control" name="name" value="{{ name|default:'' }}" required>
         </div>
         <div class="col-md-6 form-row">
           <label class="form-label">Email</label>
-          <input type="email" class="form-control" name="email" value="{{ teacher.email|default:'' }}" readonly>
+          <input type="email" class="form-control" name="email" value="{{ email|default:'' }}" readonly>
           <small class="form-text">Email cannot be changed. Contact support for assistance.</small>
         </div>
         <div class="col-md-6 form-row">
           <label class="form-label">Subject Area</label>
-          <input type="text" class="form-control" name="subject" value="{{ teacher.subject|default:'' }}">
+          <input type="text" class="form-control" name="subject" value="{{ subject|default:'' }}">
         </div>
         <div class="col-md-6 form-row">
           <label class="form-label">Years of Experience</label>
-          <input type="number" class="form-control" name="years_experience" value="{{ teacher.years_experience|default:'' }}" min="0" max="50">
+          <input type="number" class="form-control" name="years_experience" value="{{ years_experience|default:'' }}" min="0" max="50">
         </div>
         <div class="col-md-6 form-row">
           <label class="form-label">School/Institution</label>
-          <input type="text" class="form-control" name="school" value="{{ teacher.school|default:'' }}">
+          <input type="text" class="form-control" name="school" value="{{ school|default:'' }}">
         </div>
       </div>
     </div>
@@ -118,7 +118,7 @@
     <div class="profile-section">
       <h4 class="section-title"><i class="bi bi-journal-text"></i> Professional Bio</h4>
       <div class="form-row">
-        <textarea class="form-control" name="bio" rows="4" placeholder="Share your professional background, teaching philosophy, and expertise.">{{ teacher.bio|default:'' }}</textarea>
+        <textarea class="form-control" name="bio" rows="4" placeholder="Share your professional background, teaching philosophy, and expertise.">{{ bio|default:'' }}</textarea>
         <small class="form-text">Your bio will be visible to students and other teachers on the platform.</small>
       </div>
     </div>
@@ -126,7 +126,7 @@
     <div class="profile-section">
       <h4 class="section-title"><i class="bi bi-mortarboard"></i> Education & Qualifications</h4>
       <div id="qualificationsContainer">
-        {% for qualification in teacher.qualifications %}
+        {% for qualification in qualifications %}
           <div class="qualification-input-group">
             <div class="row">
               <div class="col-md-5 form-row">
@@ -174,9 +174,9 @@
     <div class="profile-section">
       <h4 class="section-title"><i class="bi bi-link-45deg"></i> Professional Websites</h4>
       <div id="websitesContainer">
-        {% for website in teacher.websites %}
+        {% for website in websites %}
           <div class="website-input-group">
-            <input type="text" class="form-control" name="website_name[]" value="{{ website.name }}" placeholder="Website Name">
+            <input type="text" class="form-control" name="website_name[]" value="{{ website.name|default:'' }}" placeholder="Website Name">
             <input type="url" class="form-control" name="website_url[]" value="{{ website.url }}" placeholder="https://example.com">
             <button type="button" class="btn btn-danger remove-website">
               <i class="bi bi-trash"></i>
@@ -204,6 +204,46 @@
       </button>
     </div>
   </form>
+</div>
+
+<!-- Stats Card -->
+<div class="profile-section">
+  <h4 class="section-title"><i class="bi bi-bar-chart"></i> Teaching Statistics</h4>
+  <div class="row">
+    <div class="col-md-4 col-sm-6 mb-3">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-info">
+          <h5>{{ student_count|default:"0" }}</h5>
+          <p>Students</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-6 mb-3">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="bi bi-grid-3x3-gap"></i>
+        </div>
+        <div class="stat-info">
+          <h5>{{ hub_count|default:"0" }}</h5>
+          <p>Active Hubs</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-6 mb-3">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="bi bi-chat-dots"></i>
+        </div>
+        <div class="stat-info">
+          <h5>{{ response_rate|default:"95" }}%</h5>
+          <p>Response Rate</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -359,6 +399,64 @@
     list-style: none;
     padding: 0;
     margin: 0;
+  }
+  
+  /* Statistics cards */
+  .stat-card {
+    display: flex;
+    align-items: center;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    height: 100%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    background-color: rgba(58, 123, 213, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    color: #3a7bd5;
+    font-size: 1.5rem;
+  }
+  
+  .stat-info h5 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #343a40;
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-info p {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0;
+  }
+  
+  .website-input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .website-input-group .form-control {
+    flex: 1;
+  }
+  
+  .website-input-group .btn {
+    flex-shrink: 0;
   }
 </style>
 {% endblock %}

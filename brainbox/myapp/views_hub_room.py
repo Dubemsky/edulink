@@ -290,11 +290,14 @@ def current_teacher_hub_room(request, id):
 
         # Render the hub page
         hub = Teachers_created_hub.objects.get(room_url=id)
+        privacy_setting = hub.hub_privacy_setting
+        print(f"These are the deatils {hub} : {privacy_setting}\n\n")
         members = get_members_by_hub_url(id)
 
         # Send the message list as a response for the frontend to use in the AJAX request
         return render(request, "myapp/teachers/teachers_view_hub_room.html", {
             'hub': hub,
+            'privacy_setting' : privacy_setting,
             'room_id': id,
             'members': members,
             'messages': messages_list,  # Initial set of messages for the page
@@ -714,6 +717,32 @@ def get_user_votes(request):
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
 
+def send_invite(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            content = data.get("content")
 
-def teacher_invite_student(request):
-    pass
+            print(f"Student Email: {content}")
+
+
+            students_ref = db.collection("users_profile")
+            query = students_ref.where("role", "==", "student").stream()
+
+            results = []
+            for student in query:
+                student_data = student.to_dict()
+                if content in student_data.get("name", "").lower(): 
+                    results.append({
+                        "id": student.id,
+                        "name": student_data.get("name", ""),
+                        "profile_pic": student_data.get("profile_pic", "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png")  
+                    })
+
+            print(f"These are the students {results}")
+
+            return JsonResponse({"success": True, "message": "Invite sent successfully!"})
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+
+    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
