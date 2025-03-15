@@ -393,136 +393,222 @@
   <script src="{% static 'js/main.js' %}"></script>
   
   <script>
-
+    // Function to display text word by word
+function wordByWordDisplay(text, element, speed = 50) {
+    const words = text.split(' ');
+    element.innerHTML = ''; // Clear existing content
     
-// Summarization Function for Side Panel
+    let currentIndex = 0;
+    
+    // Create a container for the summary
+    const summaryContainer = document.createElement('div');
+    summaryContainer.className = 'summary-content-text';
+    element.appendChild(summaryContainer);
+    
+    // Add a close button
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '&times;';
+    closeButton.className = 'summary-close-button';
+    element.insertBefore(closeButton, summaryContainer);
+    
+    const displayNextWord = () => {
+        if (currentIndex < words.length) {
+            summaryContainer.textContent += (currentIndex > 0 ? ' ' : '') + words[currentIndex];
+            currentIndex++;
+            setTimeout(displayNextWord, speed);
+        }
+    };
+    
+    // Start the word display
+    displayNextWord();
+    
+    // Add click event to close button
+    closeButton.addEventListener('click', () => {
+        element.style.display = 'none';
+    });
+    
+    // Add escape key listener
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            element.style.display = 'none';
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+    
+    // Add click outside listener
+    const clickHandler = (e) => {
+        if (!element.contains(e.target)) {
+            element.style.display = 'none';
+            document.removeEventListener('click', clickHandler);
+        }
+    };
+    setTimeout(() => {
+        document.addEventListener('click', clickHandler);
+    }, 100); // Small delay to prevent immediate closing
+}
+
+// Initialize summarization feature
 function initializeSummarizationFeature() {
     const summarizeButton = document.getElementById('summariseButton');
-    
     if (!summarizeButton) return;
 
-    // Create summary container
+    // Create summary container with loading and error states
     const summaryContainer = document.createElement('div');
     summaryContainer.id = 'side-panel-summary';
-    summaryContainer.classList.add('side-panel-summary');
-    summaryContainer.innerHTML = `
-        <div class="summary-content"></div>
-    `;
-
+    summaryContainer.className = 'side-panel-summary';
+    
     // Add to side panel messages
     const sidePanelMessages = document.getElementById('sidePanelMessages');
     if (sidePanelMessages) {
         sidePanelMessages.appendChild(summaryContainer);
     }
 
-    // Summarization click handler
+    // Add click handler for summarize button
     summarizeButton.addEventListener('click', function() {
-        // Collect reply contents
+        // Collect all reply contents
         const replyContents = Array.from(
             document.querySelectorAll('#sidePanelMessages .reply-content')
         ).map(el => el.textContent.trim());
 
-        // Validate replies
-        if (replyContents.length === 0) {
-            showToast('No replies to summarize', 'info');
+        // Count total words
+        const totalWords = replyContents.join(' ').split(/\s+/).length;
+
+        // Validate word count
+        if (totalWords < 70) {
+            summaryContainer.style.display = 'block';
+            summaryContainer.innerHTML = `
+                <div class="summary-error">
+                    <p>Cannot generate summary: text is too short (${totalWords} words).</p>
+                    <p>At least 70 words are required.</p>
+                </div>
+            `;
             return;
         }
 
-        // Collect additional debug information
-        const debugInfo = {
-            replyCount: replyContents.length,
-            replyLengths: replyContents.map(reply => reply.split(' ').length),
-            firstFewReplies: replyContents.slice(0, 3)
-        };
-
-        // Clear previous summary and show loading
-        const summaryContentEl = summaryContainer.querySelector('.summary-content');
-        summaryContentEl.innerHTML = '<div class="summary-loading">Generating summary...</div>';
+        // Show loading state
         summaryContainer.style.display = 'block';
+        summaryContainer.innerHTML = `
+            <div class="summary-loading">
+                <div class="summary-spinner"></div>
+                <p>Generating summary...</p>
+            </div>
+        `;
 
-        // Fetch summary
+        // Make API request
         fetch('/summarize-replies/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify({ 
-                replies: replyContents,
-                debug: debugInfo  // Send debug information to backend
+            body: JSON.stringify({
+                replies: replyContents
             })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Word-by-word display
-                wordByWordDisplay(data.summary, summaryContentEl);
+                // Create container for summary text
+                const summaryContent = document.createElement('div');
+                summaryContent.className = 'summary-content';
+                summaryContainer.innerHTML = ''; // Clear loading state
+                summaryContainer.appendChild(summaryContent);
+                
+                // Display summary word by word
+                wordByWordDisplay(data.summary, summaryContent);
             } else {
-                // Detailed error display
-                summaryContentEl.innerHTML = `
+                summaryContainer.innerHTML = `
                     <div class="summary-error">
-                        <strong>Error:</strong> ${data.error || 'Failed to generate summary'}
-                        <details>
-                            <summary>Debug Information</summary>
-                            <pre>${JSON.stringify(debugInfo, null, 2)}</pre>
-                        </details>
+                        <p>Error generating summary:</p>
+                        <p>${data.error || 'Unknown error occurred'}</p>
                     </div>
                 `;
             }
         })
         .catch(error => {
             console.error('Summary Error:', error);
-            summaryContentEl.innerHTML = `
+            summaryContainer.innerHTML = `
                 <div class="summary-error">
-                    <strong>Network Error:</strong> ${error.message}
-                    <details>
-                        <summary>Debug Information</summary>
-                        <pre>${JSON.stringify(debugInfo, null, 2)}</pre>
-                    </details>
+                    <p>Failed to generate summary:</p>
+                    <p>${error.message || 'Network error occurred'}</p>
                 </div>
             `;
         });
     });
 }
 
-// Existing word-by-word display function remains the same
-
-// Update CSS to improve error display
+// Add CSS styles for the summary feature
 const summaryStyles = `
 .side-panel-summary {
-    background-color: #f9f9f9;
+    display: none;
+    position: absolute;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    background: white;
     border-top: 1px solid #e0e0e0;
     padding: 15px;
-    margin-top: 15px;
-    max-height: 300px;  /* Increased height */
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    max-height: 40%;
     overflow-y: auto;
+}
+
+.summary-loading {
+    text-align: center;
+    padding: 20px;
+}
+
+.summary-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
 }
 
 .summary-error {
-    color: #d9534f;
+    color: #721c24;
     background-color: #f8d7da;
     border: 1px solid #f5c6cb;
-    padding: 10px;
+    padding: 15px;
     border-radius: 4px;
+    margin-bottom: 10px;
 }
 
-.summary-error details {
-    margin-top: 10px;
-    background-color: #fff;
-    padding: 10px;
+.summary-content {
+    position: relative;
+    padding: 15px;
+    background: #f8f9fa;
     border-radius: 4px;
+    line-height: 1.6;
 }
 
-.summary-error pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-size: 0.8em;
-    max-height: 200px;
-    overflow-y: auto;
+.summary-close-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px 10px;
+    color: #666;
+}
+
+.summary-close-button:hover {
+    color: #333;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 `;
 
-// Add styles to document head
+// Add styles to document
 const styleElement = document.createElement('style');
 styleElement.textContent = summaryStyles;
 document.head.appendChild(styleElement);
