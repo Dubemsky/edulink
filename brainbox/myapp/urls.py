@@ -6,6 +6,7 @@ from .views_teachers import *
 from .views_students import *
 from .views_hub_room import *
 from .community_page import *
+from .private_messages import *
 from . profile_page_updates import *
 
 urlpatterns = [
@@ -66,6 +67,15 @@ urlpatterns = [
     path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
     path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
+
+
+
+
+    # Private messaging routes
+    path('start_chat/', start_private_chat, name='start_private_chat'),
+    path('send_message/', send_message, name='send_message'),
+    path('get_chats/', get_chats, name='get_chats'),
+    path('get_chat_history/', get_chat_history, name='get_chat_history'),
     
 
 

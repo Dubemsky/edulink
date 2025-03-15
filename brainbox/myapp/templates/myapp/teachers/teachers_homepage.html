@@ -23,6 +23,7 @@
   <!-- CSS Files -->
   <link href="{% static 'css/main.css' %}" rel="stylesheet">
   <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
+  <link href="{% static 'css/private_message.css' %}" rel="stylesheet">
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 </head>
 
@@ -175,9 +176,19 @@
 
   <!-- Main JS File -->
   <script src="{% static 'js/main.js' %}"></script>
-  <script src="{% static 'js/teachers_homepage.js' %}"></script>
+  <script src="{% static 'js/private_messaging.js' %}"></script>
 
   <script>
+    // messaging-system.js - LinkedIn-style messaging system for EduLink
+
+
+
+
+
+
+
+
+
     function createHub() {
       // Get the create button and change its state
       const createButton = document.querySelector('.btn-primary');
@@ -369,5 +380,111 @@
       }
     });
   </script>
+
+
+<div class="messaging-container">
+  <!-- Messaging Button -->
+  <div class="messaging-button" id="messagingButton">
+    <i class="bi bi-chat-dots-fill"></i>
+    <span class="unread-badge" id="unreadBadge">0</span>
+  </div>
+  
+  <!-- Messaging Panel -->
+  <div class="messaging-panel" id="messagingPanel">
+    <div class="messaging-header">
+      <h3>Messages</h3>
+      <button class="close-panel-btn" id="closePanelBtn">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    
+    <div class="messaging-tabs">
+      <button class="tab-btn active" id="primaryInboxTab" data-tab="primaryInbox">
+        Primary Inbox
+        <span class="tab-badge" id="primaryInboxBadge">0</span>
+      </button>
+      <button class="tab-btn" id="messageRequestsTab" data-tab="messageRequests">
+        Message Requests
+        <span class="tab-badge" id="messageRequestsBadge">0</span>
+      </button>
+    </div>
+    
+    <div class="messaging-search">
+      <i class="bi bi-search"></i>
+      <input type="text" id="messageSearch" placeholder="Search messages">
+    </div>
+    
+    <div class="tab-content active" id="primaryInbox">
+      <div class="chat-list" id="primaryInboxList">
+        <!-- Chat items will be added here dynamically -->
+        <div class="loading-chats">
+          <div class="spinner"></div>
+          <p>Loading conversations...</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="messageRequests">
+      <div class="chat-list" id="messageRequestsList">
+        <!-- Message requests will be added here dynamically -->
+        <div class="loading-chats">
+          <div class="spinner"></div>
+          <p>Loading message requests...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Chat Windows Container -->
+  <div class="chat-windows-container" id="chatWindowsContainer">
+    <!-- Chat windows will be added here dynamically -->
+  </div>
+</div>
+
+<!-- Chat Window Template (hidden, will be cloned for each chat) -->
+<template id="chatWindowTemplate">
+  <div class="chat-window" data-chat-id="">
+    <div class="chat-header">
+      <div class="chat-user-info">
+        <img src="" alt="" class="chat-user-img">
+        <div class="chat-user-details">
+          <h4 class="chat-user-name"></h4>
+          <span class="chat-user-role"></span>
+        </div>
+      </div>
+      <div class="chat-actions">
+        <button class="minimize-chat-btn">
+          <i class="bi bi-dash-lg"></i>
+        </button>
+        <button class="close-chat-btn">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="chat-messages">
+      <!-- Messages will be added here dynamically -->
+      <div class="chat-loading">
+        <div class="spinner"></div>
+      </div>
+    </div>
+    
+    <div class="chat-input-container">
+      <textarea class="chat-input" placeholder="Type a message..."></textarea>
+      <button class="send-message-btn">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+  </div>
+</template>
+
+<!-- Message Template (hidden, will be cloned for each message) -->
+<template id="messageTemplate">
+  <div class="message">
+    <div class="message-content"></div>
+    <div class="message-time"></div>
+  </div>
+</template>
+
 </body>
 </html>

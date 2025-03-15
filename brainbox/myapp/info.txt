@@ -1,18 +1,11 @@
 # More ideas to Add
 
 
-- IFRAMES for videos and images for multi media uploads
-
-
 - message are encrypted and stored in database
-- Private messaging   (student and teachers)
 - Bookmark : allows people to follow up with conversations
 - Notifications : will show replies, tags
 - schedule  session livestream and screen record. this will save it to the chats or a section called live streams
 - Building and customising it. Jisti Meet for live stream  Mediastream API for screen recording and upload videos to Firebase
-
-
-
 
 
 
@@ -36,10 +29,6 @@
 
 
 
-
-
-
-
 https://www.youtube.com/watch?v=1h6lfzJ0wZw   for explanation
 
 
@@ -53,8 +42,11 @@ OLLAMA
 
 
 
-do when i press a button, either increments or decrements the numbers in the reply database
-it then keeps track of vote reply.
+- Private messaging   (student and teachers)
+It will make use of the 
+so it will be grouped into 2 sections. Primary Inbox (Both follows eachother), Message Request (U dont follow them)
+
+
 
 
 
