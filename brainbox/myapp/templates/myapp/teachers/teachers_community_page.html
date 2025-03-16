@@ -402,16 +402,16 @@
             <div class="modal-stats">
               <div class="modal-stat-item">
                 <div id="modalFollowers" class="modal-stat-value">0</div>
-                <div class="modal-stat-label">Followers</div>
+                <div class="modal-stat-label">Connections</div>
               </div>
               <div class="modal-stat-item">
                 <div id="modalFollowing" class="modal-stat-value">0</div>
-                <div class="modal-stat-label">Following</div>
+                <div class="modal-stat-label">Connected</div>
               </div>
             </div>
             
             <button id="followButton" class="follow-btn">
-              <i class="bi bi-person-plus me-2"></i>Follow
+              <i class="bi bi-person-plus me-2"></i>Connect
             </button>
             <button id="messageButton" class="message-btn">
               <i class="bi bi-chat-text me-2"></i>Message
@@ -1039,10 +1039,10 @@ document.head.insertAdjacentHTML('beforeend', `
         followButton.dataset.userId = user.id;
         
         if (followingUsers.has(user.id)) {
-          followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
+          followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
           followButton.classList.add('following');
         } else {
-          followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
+          followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
           followButton.classList.remove('following');
         }
         
@@ -1072,7 +1072,7 @@ function followUser(userId) {
   // Show loading state
   const followButton = document.getElementById('followButton');
   followButton.disabled = true;
-  followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Following...';
+  followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Connected...';
   
   // Send follow request to server
   fetch("/follow_user/", {
@@ -1096,7 +1096,7 @@ function followUser(userId) {
     
     if (data.success) {
       // Update button state
-      followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
+      followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
       followButton.classList.add('following');
       
       // Add to our following set
@@ -1118,14 +1118,14 @@ function followUser(userId) {
       // Show success message
       showToast(data.message || 'You are now following this user', 'success');
     } else {
-      followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
+      followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
       showToast(data.error || 'Failed to follow user', 'error');
     }
   })
   .catch(error => {
     console.error('Error:', error);
     followButton.disabled = false;
-    followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
+    followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
     showToast('Error connecting to server', 'error');
   });
 }
@@ -1159,7 +1159,7 @@ function unfollowUser(userId) {
     
     if (data.success) {
       // Update button state
-      followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Follow';
+      followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
       followButton.classList.remove('following');
       
       // Remove from our following set
@@ -1183,7 +1183,7 @@ function unfollowUser(userId) {
       // Show success message
       showToast(data.message || 'You unfollowed this user', 'success');
     } else {
-      followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
+      followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
       followButton.classList.add('following');
       showToast(data.error || 'Failed to unfollow user', 'error');
     }
@@ -1191,7 +1191,7 @@ function unfollowUser(userId) {
   .catch(error => {
     console.error('Error:', error);
     followButton.disabled = false;
-    followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Following';
+    followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
     showToast('Error connecting to server', 'error');
   });
 }

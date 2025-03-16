@@ -160,8 +160,3 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'chidubemamechi2@gmail.com'  
 EMAIL_HOST_PASSWORD = 'xyiwgloguzpwckyo' 
 
-
-
-
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_NAME = 'sessionid' 
