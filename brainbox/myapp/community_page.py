@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from .firebase import *
 import json
 from django.views.decorators.csrf import csrf_exempt
+from .profile_page_updates import get_user_by_name
 
 # Main community page views
 def community_page(request):
@@ -424,22 +425,27 @@ def follow_user_view(request):
         print(f"Received follow request for user ID: {user_id_to_follow}")
         
         # Get the current user ID (could be student or teacher)
-        current_user_id = None
+
+        user_role = request.session.get("role")
+
+        if user_role == "teacher":
+
+
+            current_user_name = get_teacher_user_id(request)
+            details=get_user_by_name(current_user_name)
+            current_user_id= details.get('uid')
+            print(f"Current student: {current_user_name} -> ID: {current_user_id}")
+
+        elif user_role == "student":
+
+
+            current_user_name = get_student_user_id(request)
+            details=get_user_by_name(current_user_name)
+            current_user_id= details.get('uid')
+            print(f"Current student: {current_user_name} -> ID: {current_user_id}")
+
         
-        # Check if user is a student
-        current_student_name = get_student_user_id(request)
-        if current_student_name:
-            # Get the user ID from the student name
-            current_user_id = get_user_id_by_name(current_student_name)
-            print(f"Current student: {current_student_name} -> ID: {current_user_id}")
-        else:
-            # Check if user is a teacher
-            current_teacher_name = get_teacher_user_id(request)
-            if current_teacher_name:
-                current_user_id = get_user_id_by_name(current_teacher_name)
-                print(f"Current teacher: {current_teacher_name} -> ID: {current_user_id}")
-        
-        if not current_user_id:
+        else :
             return JsonResponse({
                 'success': False,
                 'error': 'Unable to determine current user'
@@ -497,6 +503,8 @@ def follow_user_view(request):
             'success': False,
             'error': str(e)
         }, status=500)
+    
+
 
 @csrf_exempt
 def unfollow_user_view(request):
@@ -518,19 +526,19 @@ def unfollow_user_view(request):
             }, status=400)
         
         # Get the current user ID (could be student or teacher)
-        current_user_id = None
-        
-        # Check if user is a student
-        current_student_name = get_student_user_id(request)
-        if current_student_name:
-            current_user_id = get_user_id_by_name(current_student_name)
-            print(f"Current student: {current_student_name} -> ID: {current_user_id}")
-        else:
-            # Check if user is a teacher
-            current_teacher_name = get_teacher_user_id(request)
-            if current_teacher_name:
-                current_user_id = get_user_id_by_name(current_teacher_name)
-                print(f"Current teacher: {current_teacher_name} -> ID: {current_user_id}")
+        user_role = request.session.get("role")
+
+        if user_role == "teacher":
+            current_user_name = get_teacher_user_id(request)
+            details=get_user_by_name(current_user_name)
+            current_user_id= details.get('uid')
+            print(f"Current student: {current_user_name} -> ID: {current_user_id}")
+
+        elif user_role == "student":
+            current_user_name = get_student_user_id(request)
+            details=get_user_by_name(current_user_name)
+            current_user_id= details.get('uid')
+            print(f"Current student: {current_user_name} -> ID: {current_user_id}")
         
         if not current_user_id:
             return JsonResponse({
@@ -575,34 +583,63 @@ def unfollow_user_view(request):
 @csrf_exempt
 def get_following_list(request):
     """
-    Return a list of user IDs that the current user is following
+    Return a list of users that the current user is following with their details
     """
     try:
         # Get the current user ID (could be student or teacher)
         current_user_id = None
         
-        # Check if user is a student
-        current_student_name = get_student_user_id(request)
-        if current_student_name:
-            current_user_id = get_user_id_by_name(current_student_name)
+        user_role = request.session.get("role")
+
+        if user_role == "teacher":
+
+            current_user_name = get_teacher_user_id(request)
+            details=get_user_by_name(current_user_name)
+            current_user_id= details.get('uid')
+            
+
+            print(f"User name is {current_user_name} and their id {current_user_id}")
+        elif user_role == "student":
+
+
+            current_user_name = get_student_user_id(request)
+            details=get_user_by_name(current_user_name)
+            current_user_id= details.get('uid')
+            print(f"User name is {current_user_name} and their id {current_user_id}")
+
+
         else:
-            # Check if user is a teacher
-            current_teacher_name = get_teacher_user_id(request)
-            if current_teacher_name:
-                current_user_id = get_user_id_by_name(current_teacher_name)
-        
-        if not current_user_id:
+            print("I am here userrole isnt right")
             return JsonResponse({
                 'success': False,
                 'error': 'Unable to determine current user'
             }, status=401)
-            
+        
+        
+        print(f"\n\nThis is the userid {current_user_id}")
         # Get the list of users being followed
         following_ids = get_user_following(current_user_id)
         
+        
+        # Get details for each followed user
+        users_ref = db.collection('users_profile')
+        following_details = []
+        
+        for user_id in following_ids:
+            user_doc = users_ref.document(user_id).get()
+            if user_doc.exists:
+                user_data = user_doc.to_dict()
+                following_details.append({
+                    "id": user_id,
+                    "name": user_data.get('name'),
+                    "role": user_data.get('role'),
+                    "profile_picture": user_data.get('profile_picture')
+                })
+        
+        print(f"\n\nThis is the folowing list\n\n{following_details}\n\n")
         return JsonResponse({
             'success': True,
-            'following': following_ids
+            'following': following_details  # Now includes user details
         })
         
     except Exception as e:
@@ -612,6 +649,8 @@ def get_following_list(request):
             'error': str(e)
         }, status=500)
     
+
+
 
 # Add this search function to your community_page.py file
 

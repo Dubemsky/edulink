@@ -3,19 +3,11 @@ import logging
 from .firebase import *
 from django.shortcuts import render, redirect
 
-"""
-Initialize the logger which is used to track my apps behaviours
-It is used for debugging
-"""
+# Initialize the logger which is used to track app behaviors
 logger = logging.getLogger(__name__)
 
-
-
 """
------------------------------------------------------------------------
 ---------------------- SIGNUP/SIGN-IN  SECTIONS -----------------------
------------------------------------------------------------------------
-
 """
 
 def first_page(request):
@@ -29,21 +21,21 @@ def login_page(request):
 
         # Verify that the user is a student
         if get_users_role(email) != "student":
-            error_message = "Error!!! Try again"
+            error_message = "Error! Try again."
             return render(request, "myapp/login/login.html", {"error": error_message})
 
         # Authenticate user credentials
         auth_result = authenticate_user(email, password)
         if auth_result["success"]:
-            # Storing students name in session for later use
             request.session['students_name'] = get_user_display_name(email)
-            # Redirect with the token included in the URL
-            return redirect(f'/students-dashboard/')
+            request.session['role'] = 'student'
+            return redirect('/students-dashboard/')  # Directly using the URL path
         else:
             error_message = auth_result["error"]
             return render(request, "myapp/login/login.html", {"error": error_message})
 
     return render(request, "myapp/login/login.html")
+
 
 def login_page_teachers(request):
     if request.method == 'POST':
@@ -51,16 +43,15 @@ def login_page_teachers(request):
         password = request.POST.get('password')
 
         if get_users_role(email) != "lecturer":
-            error_message = "Error!!! Try again!!!"
+            error_message = "Error! Try again!"
             return render(request, "myapp/login/login_teachers.html", {"error": error_message})
 
         # Authenticate teacher credentials
         auth_result = authenticate_user(email, password)
-
         if auth_result["success"]:
-            # Storing the teachers name in the sesion for later uses
             request.session['teachers_name'] = get_user_display_name(email)
-            return redirect(f'/teachers-dashboard/')
+            request.session['role'] = 'teacher'
+            return redirect('/teachers-dashboard/')  # Directly using the URL path
         else:
             error_message = auth_result["error"]
             return render(request, "myapp/login/login_teachers.html", {"error": error_message})
@@ -79,7 +70,6 @@ def signup_page(request):
         confirm_password = request.POST.get('confirm_password')
 
         # Validate email domain and password strength using regular expression (regex)
-    
         if not email.endswith('@mytudublin.ie'):
             error_message = "Email must be from the domain @mytudublin.ie."
         elif password != confirm_password:
@@ -100,13 +90,11 @@ def signup_page(request):
                 else:
                     error_message = "Username already exists. Please use a different email."
             except Exception as e:
-                print(e)
+                logger.error(f"Error during user signup: {e}")
+                error_message = "Something went wrong, please try again."
 
     return render(request, "myapp/login/signup.html", {'error_message': error_message, 'role': role})
 
 
 def success_page(request):
     return render(request, "myapp/login/success.html")
-
-
-

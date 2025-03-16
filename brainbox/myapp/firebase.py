@@ -334,6 +334,23 @@ def get_teacher_user_id(request):
     current_teacher_name = request.session.get("teachers_name")
     return current_teacher_name
 
+
+
+def get_username(user_id):
+    """Fetches the username from users_profile collection based on user ID."""
+    try:
+        user_ref = db.collection("users_profile").document(user_id)
+        user_doc = user_ref.get()
+        if user_doc.exists:
+            return user_doc.to_dict().get("name", "No name found")
+        else:
+            return "User not found"
+    except Exception as e:
+        return f"Error retrieving user: {e}"
+    
+
+
+    
 def add_users_to_collection(users_list):
     # Reference to the 'users_profile' collection
     users_ref = db.collection('users_profile')
