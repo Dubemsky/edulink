@@ -12,7 +12,7 @@ from .private_messages import *
 
 
 class DirectChatConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
+    async def connect(self,request):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'chat_{self.room_id}'
 
@@ -23,7 +23,7 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
             return
 
         # Get current user from Django session
-        self.user_id = await self.get_user_id_from_session()
+        self.user_id = await self.get_user_id_from_session(request)
         if not self.user_id:
             await self.close()
             return
@@ -174,9 +174,84 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
 
     # Database helper methods
     @database_sync_to_async
-    def get_user_id_from_session(self):
+    def get_user_id_from_session(self,request):
+        from .firebase import get_teacher_user_id, get_student_user_id
 
-        return get_current_user_id(self.scope['session'])
+        print("This is the current user")
+
+        student_id = get_student_user_id(request)
+        teacher_id = get_teacher_user_id(request)
+
+        if student_id:
+            print(student_id)
+        elif teacher_id:
+            print(teacher_id)
+
+        try:
+
+            if 'session' not in self.scope:
+                print("No session in scope")
+                return None
+                
+            session = self.scope['session']
+            if not session:
+                print("Empty session")
+                return None
+                
+            # Try to get user ID from session
+            return get_current_user_id(session)
+        except Exception as e:
+            print(f"Error getting user from session: {str(e)}")
+            return None
+        
+
+
+
+async def connect(self,request):
+    self.room_id = self.scope['url_route']['kwargs']['room_id']
+    self.room_group_name = f'chat_{self.room_id}'
+
+    # Get current user from Django session
+    self.user_id = await self.get_user_id_from_session(request)
+    if not self.user_id:
+        print("No user_id found in session")
+        await self.close()
+        return
+
+    # Extract participant IDs from the room ID
+    parts = self.room_id.split('_')
+    if len(parts) < 3 or parts[0] != 'direct':
+        print("Invalid room ID format")
+        await self.close()
+        return
+
+    # Verify current user is a participant
+    user1_id = parts[1]
+    user2_id = parts[2]
+    if self.user_id != user1_id and self.user_id != user2_id:
+        print("User not authorized for this chat")
+        await self.close()
+        return
+
+    # The other user ID is the recipient
+    self.recipient_id = user2_id if self.user_id == user1_id else user1_id
+
+    # Join room group
+    await self.channel_layer.group_add(
+        self.room_group_name,
+        self.channel_name
+    )
+
+    await self.accept()
+
+    # Mark messages as read when connecting
+    await self.mark_messages_as_read()
+
+    # Update user's online status
+    await self.update_user_online_status(self.user_id)
+
+    # Start listening for real-time updates
+    self.listen_task = asyncio.create_task(self.listen_for_updates())
 
     @database_sync_to_async
     def save_message_to_db(self, content, temp_id=None):

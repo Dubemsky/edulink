@@ -162,3 +162,6 @@ EMAIL_HOST_PASSWORD = 'xyiwgloguzpwckyo'
 
 
 
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_NAME = 'sessionid' 
