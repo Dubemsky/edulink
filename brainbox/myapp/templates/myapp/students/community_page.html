@@ -455,26 +455,152 @@
 
 <script>
 
+// Connect the message button in the user profile modal to direct messaging system
 document.addEventListener('DOMContentLoaded', function() {
-    const messageButton = document.getElementById('messageButton');
-    if (messageButton) {
-      messageButton.addEventListener('click', function() {
-        const userId = document.getElementById('followButton').dataset.userId;
-        const userName = document.getElementById('modalProfileName').textContent;
-        const userRole = document.getElementById('modalRoleBadge').textContent;
-        const userImg = document.getElementById('modalProfileImg').src;
+  const messageButton = document.getElementById('messageButton');
+  
+  if (messageButton) {
+    messageButton.addEventListener('click', function() {
+      // Get user details from the modal
+      const userId = document.getElementById('followButton').dataset.userId;
+      const userName = document.getElementById('modalProfileName').textContent;
+      const userRole = document.getElementById('modalRoleBadge').textContent;
+      const userImg = document.getElementById('modalProfileImg').src;
+      
+      // Close the modal
+      const userProfileModal = bootstrap.Modal.getInstance(document.getElementById('userProfileModal'));
+      userProfileModal.hide();
+      
+      // Start direct messaging with this user
+      startDirectChat(userId, userName, userRole, userImg);
+    });
+  }
+  
+  // Function to start or open a direct chat
+  function startDirectChat(userId, userName, userRole, userImg) {
+    // Show loading state
+    showToast('Connecting...', 'info');
+    
+    // Call the API to create or get a chat room
+    fetch('/start_direct_chat/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        recipient_id: userId
+      })
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Open the direct messaging panel if not already open
+        const directMessagingButton = document.getElementById('directMessagingButton');
+        const directMessagingPanel = document.getElementById('directMessagingPanel');
         
-        // Close the modal
-        const userProfileModal = bootstrap.Modal.getInstance(document.getElementById('userProfileModal'));
-        userProfileModal.hide();
-        
-        // Start chat (assuming messagingSystem is available)
-        if (window.messagingSystem) {
-          window.messagingSystem.startChat(userId, userName, userRole, userImg);
+        if (!directMessagingPanel.classList.contains('show')) {
+          directMessagingButton.click();
         }
-      });
+        
+        // Open the direct chat window
+        if (window.directMessagingSystem) {
+          window.directMessagingSystem.openChat(
+            data.chat_id,
+            userId,
+            userName,
+            userRole,
+            userImg
+          );
+          
+          // Refresh chats list
+          window.directMessagingSystem.loadChats();
+        } else {
+          showToast('Messaging system not initialized', 'error');
+        }
+      } else {
+        showToast(data.error || 'Failed to start conversation', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error starting direct chat:', error);
+      showToast('Connection error. Please try again.', 'error');
+    });
+  }
+  
+  // Helper function to show toast notifications
+  function showToast(message, type = 'info') {
+    // Remove any existing toast
+    const existingToast = document.getElementById('dm-toast');
+    if (existingToast) {
+      existingToast.remove();
     }
-  });
+    
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('dm-toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'dm-toast-container';
+      toastContainer.style.position = 'fixed';
+      toastContainer.style.bottom = '20px';
+      toastContainer.style.right = '20px';
+      toastContainer.style.zIndex = '9999';
+      document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast
+    const toast = document.createElement('div');
+    toast.id = 'dm-toast';
+    toast.style.backgroundColor = 
+      type === 'error' ? '#f44336' : 
+      type === 'success' ? '#4CAF50' : 
+      type === 'warning' ? '#ff9800' : '#2196F3';
+    toast.style.color = 'white';
+    toast.style.padding = '12px 16px';
+    toast.style.borderRadius = '4px';
+    toast.style.marginTop = '10px';
+    toast.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    toast.style.minWidth = '250px';
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    toast.textContent = message;
+    
+    // Add to container
+    toastContainer.appendChild(toast);
+    
+    // Fade in
+    setTimeout(() => {
+      toast.style.opacity = '1';
+    }, 10);
+    
+    // Fade out after 3 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => {
+        toast.remove();
+      }, 300);
+    }, 3000);
+  }
+  
+  // Helper function to get CSRF token
+  function getCsrfToken() {
+    const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (tokenInput) {
+      return tokenInput.value;
+    }
+    
+    // Fallback: try to get from cookie
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('csrftoken='))
+      ?.split('=')[1];
+      
+    return cookieValue || '';
+  }
+});
 
 
 
@@ -1218,54 +1344,66 @@ function initFollowSystem() {
     });
   </script>
 
-
-<div class="messaging-container">
-  <!-- Messaging Button -->
-  <div class="messaging-button" id="messagingButton">
-    <i class="bi bi-chat-dots-fill"></i>
-    <span class="unread-badge" id="unreadBadge">0</span>
+<div class="direct-messaging-container">
+  <!-- Direct Messaging Button -->
+  <div class="direct-messaging-button" id="directMessagingButton" aria-label="Open messaging">
+    <i class="bi bi-chat-fill"></i>
+    <span class="dm-unread-badge" id="dmUnreadBadge">0</span>
   </div>
   
-  <!-- Messaging Panel -->
-  <div class="messaging-panel" id="messagingPanel">
-    <div class="messaging-header">
-      <h3>Messages</h3>
-      <button class="close-panel-btn" id="closePanelBtn">
-        <i class="bi bi-x-lg"></i>
+  <!-- Direct Messaging Panel -->
+  <div class="direct-messaging-panel" id="directMessagingPanel">
+    <div class="direct-messaging-header">
+      <h3>Messaging</h3>
+      <div class="dm-header-actions">
+        <button class="dm-action-btn" id="dmNewMessageBtn" aria-label="New message">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="dm-action-btn" id="dmOptionsBtn" aria-label="Messaging options">
+          <i class="bi bi-three-dots"></i>
+        </button>
+        <button class="dm-close-panel-btn" id="dmClosePanelBtn" aria-label="Close messaging">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="direct-messaging-search">
+      <div class="dm-search-wrapper">
+        <i class="bi bi-search"></i>
+        <input type="text" id="dmMessageSearch" placeholder="Search messages">
+      </div>
+      <button class="dm-filter-btn" id="dmFilterBtn" aria-label="Filter messages">
+        <i class="bi bi-sliders"></i>
       </button>
     </div>
     
-    <div class="messaging-tabs">
-      <button class="tab-btn active" id="primaryInboxTab" data-tab="primaryInbox">
-        Primary Inbox
-        <span class="tab-badge" id="primaryInboxBadge">0</span>
+    <div class="direct-messaging-tabs">
+      <button class="dm-tab-btn active" id="dmPrimaryInboxTab" data-tab="primaryInbox">
+        Focused
+        <span class="dm-tab-badge" id="dmPrimaryInboxBadge">0</span>
       </button>
-      <button class="tab-btn" id="messageRequestsTab" data-tab="messageRequests">
-        Message Requests
-        <span class="tab-badge" id="messageRequestsBadge">0</span>
+      <button class="dm-tab-btn" id="dmMessageRequestsTab" data-tab="messageRequests">
+        Other
+        <span class="dm-tab-badge" id="dmMessageRequestsBadge">0</span>
       </button>
     </div>
     
-    <div class="messaging-search">
-      <i class="bi bi-search"></i>
-      <input type="text" id="messageSearch" placeholder="Search messages">
-    </div>
-    
-    <div class="tab-content active" id="primaryInbox">
-      <div class="chat-list" id="primaryInboxList">
+    <div class="dm-tab-content active" id="dmPrimaryInbox">
+      <div class="dm-chat-list" id="dmPrimaryInboxList">
         <!-- Chat items will be added here dynamically -->
-        <div class="loading-chats">
-          <div class="spinner"></div>
+        <div class="dm-loading-chats">
+          <div class="dm-spinner"></div>
           <p>Loading conversations...</p>
         </div>
       </div>
     </div>
     
-    <div class="tab-content" id="messageRequests">
-      <div class="chat-list" id="messageRequestsList">
+    <div class="dm-tab-content" id="dmMessageRequests">
+      <div class="dm-chat-list" id="dmMessageRequestsList">
         <!-- Message requests will be added here dynamically -->
-        <div class="loading-chats">
-          <div class="spinner"></div>
+        <div class="dm-loading-chats">
+          <div class="dm-spinner"></div>
           <p>Loading message requests...</p>
         </div>
       </div>
@@ -1273,60 +1411,118 @@ function initFollowSystem() {
   </div>
   
   <!-- Chat Windows Container -->
-  <div class="chat-windows-container" id="chatWindowsContainer">
+  <div class="dm-chat-windows-container" id="dmChatWindowsContainer">
     <!-- Chat windows will be added here dynamically -->
+  </div>
+  
+  <!-- New Message Modal -->
+  <div class="dm-new-message-modal" id="dmNewMessageModal">
+    <div class="dm-modal-header">
+      <h4>New message</h4>
+      <button class="dm-modal-close-btn" id="dmModalCloseBtn">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="dm-modal-body">
+      <div class="dm-recipient-search">
+        <label for="dmRecipientInput">To:</label>
+        <input type="text" id="dmRecipientInput" placeholder="Type a name">
+      </div>
+      <div class="dm-recipients-list" id="dmRecipientsList"></div>
+      <div class="dm-message-compose">
+        <textarea id="dmComposeInput" placeholder="Write a message..."></textarea>
+      </div>
+    </div>
+    <div class="dm-modal-footer">
+      <button class="dm-secondary-btn" id="dmCancelBtn">Cancel</button>
+      <button class="dm-primary-btn" id="dmSendBtn">Send</button>
+    </div>
   </div>
 </div>
 
 <!-- Chat Window Template (hidden, will be cloned for each chat) -->
-<template id="chatWindowTemplate">
-  <div class="chat-window" data-chat-id="">
-    <div class="chat-header">
-      <div class="chat-user-info">
-        <img src="" alt="" class="chat-user-img">
-        <div class="chat-user-details">
-          <h4 class="chat-user-name"></h4>
-          <span class="chat-user-role"></span>
+<template id="dmChatWindowTemplate">
+  <div class="dm-chat-window" data-chat-id="">
+    <div class="dm-chat-header">
+      <div class="dm-chat-user-info">
+        <img src="" alt="" class="dm-chat-user-img">
+        <div class="dm-chat-user-details">
+          <h4 class="dm-chat-user-name"></h4>
+          <span class="dm-chat-user-role"></span>
         </div>
       </div>
-      <div class="chat-actions">
-        <button class="minimize-chat-btn">
+      <div class="dm-chat-actions">
+        <button class="dm-action-btn dm-more-options-btn" aria-label="More options">
+          <i class="bi bi-three-dots"></i>
+        </button>
+        <button class="dm-action-btn dm-minimize-chat-btn" aria-label="Minimize">
           <i class="bi bi-dash-lg"></i>
         </button>
-        <button class="close-chat-btn">
+        <button class="dm-action-btn dm-close-chat-btn" aria-label="Close">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
     </div>
     
-    <div class="chat-messages">
+    <div class="dm-chat-messages">
       <!-- Messages will be added here dynamically -->
-      <div class="chat-loading">
-        <div class="spinner"></div>
+      <div class="dm-chat-loading">
+        <div class="dm-spinner"></div>
       </div>
     </div>
     
-    <div class="chat-input-container">
-      <textarea class="chat-input" placeholder="Type a message..."></textarea>
-      <button class="send-message-btn">
-        <i class="bi bi-send-fill"></i>
-      </button>
+    <div class="dm-chat-input-container">
+      <div class="dm-chat-tools">
+        <button class="dm-tool-btn" aria-label="Add attachment">
+          <i class="bi bi-paperclip"></i>
+        </button>
+        <button class="dm-tool-btn" aria-label="Add emoji">
+          <i class="bi bi-emoji-smile"></i>
+        </button>
+        <button class="dm-tool-btn" aria-label="Add GIF">
+          <i class="bi bi-filetype-gif"></i>
+        </button>
+      </div>
+      <div class="dm-chat-input-wrapper">
+        <textarea class="dm-chat-input" placeholder="Write a message..."></textarea>
+        <button class="dm-send-message-btn" aria-label="Send message">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <!-- Message Template (hidden, will be cloned for each message) -->
-<template id="messageTemplate">
-  <div class="message">
-    <div class="message-content"></div>
-    <div class="message-time"></div>
+<template id="dmMessageTemplate">
+  <div class="dm-message">
+    <div class="dm-message-content"></div>
+    <div class="dm-message-footer">
+      <span class="dm-message-time"></span>
+      <div class="dm-message-reactions"></div>
+    </div>
   </div>
 </template>
 
-
-
-
-
+<!-- Chat Item Template (for conversation list) -->
+<template id="dmChatItemTemplate">
+  <div class="dm-chat-item">
+    <div class="dm-chat-item-avatar">
+      <img src="" alt="" class="dm-chat-item-img">
+      <span class="dm-online-indicator"></span>
+    </div>
+    <div class="dm-chat-item-details">
+      <div class="dm-chat-item-header">
+        <h4 class="dm-chat-item-name"></h4>
+        <span class="dm-chat-item-time"></span>
+      </div>
+      <div class="dm-chat-item-preview">
+        <p class="dm-chat-item-last-message"></p>
+        <span class="dm-chat-item-badge"></span>
+      </div>
+    </div>
+  </div>
+</template>
 
 
 </body>

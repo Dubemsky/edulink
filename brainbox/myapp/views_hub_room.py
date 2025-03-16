@@ -8,6 +8,7 @@ from django.shortcuts import render
 import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .encryption import encryption_manager
 
 """
 -----------------------------------------------------------------------
@@ -60,10 +61,6 @@ def get_suggestions(request):
         logger.error(f"Error fetching suggestions for query: {query} in room: {room_id} - {str(e)}")
         return JsonResponse({'error': 'Internal Server Error'}, status=500)
 
-
-
-
-
 def log_tab_click(request):
     if request.method == "POST":
         try:
@@ -85,9 +82,6 @@ def log_tab_click(request):
     
     return JsonResponse({"status": "error", "message": "Invalid request method"})
 
-
-
-
 def current_student_hub_room(request, id):
     try:
         # Initialize members list
@@ -108,46 +102,46 @@ def current_student_hub_room(request, id):
 
         # Prepare the messages list with necessary details
         messages_list = [
-    {
-        'content': message['content'],  # Original message content
-        'sender': message['sender'],
-        'room_id': message['room_id'],
-        'role': message.get('role', 'unknown'),
-        'created_at': message['timestamp'],
-        'is_current_user': message['sender'] == current_student_name,
-        'message_id': message['message_id'],
-        'image_url': message.get('image_url'),
-        'file_url': message.get('file_url'),
-        'video_url': message.get('video_url'),
-        'is_poll': message.get('is_poll'),
-        'poll_options': message.get('poll_options'),
-        'top_reply_content': next(
-            (
-                q['top_reply']['reply_content'] 
-                for q in questions_with_top_replies 
-                if q['question_id'] == message['message_id'] and q['top_reply']
-            ),
-            'No replies yet.'
-        ),
-        'top_reply_upvotes': next(
-            (
-                q['top_reply']['upvotes'] 
-                for q in questions_with_top_replies 
-                if q['question_id'] == message['message_id'] and q['top_reply']
-            ),
-            0
-        ),
-        'top_reply_downvotes': next(
-            (
-                q['top_reply']['downvotes'] 
-                for q in questions_with_top_replies 
-                if q['question_id'] == message['message_id'] and q['top_reply']
-            ),
-            0
-        )
-    }
-    for message in firebase_messages
-]
+            {
+                'content': message['content'],  # Content already decrypted in get_messages_by_room
+                'sender': message['sender'],
+                'room_id': message['room_id'],
+                'role': message.get('role', 'unknown'),
+                'created_at': message['timestamp'],
+                'is_current_user': message['sender'] == current_student_name,
+                'message_id': message['message_id'],
+                'image_url': message.get('image_url'),
+                'file_url': message.get('file_url'),
+                'video_url': message.get('video_url'),
+                'is_poll': message.get('is_poll'),
+                'poll_options': message.get('poll_options'),  # Poll options already decrypted in get_messages_by_room
+                'top_reply_content': next(
+                    (
+                        q['top_reply']['reply_content']  # Reply content already decrypted in get_questions_with_top_replies
+                        for q in questions_with_top_replies 
+                        if q['question_id'] == message['message_id'] and q['top_reply']
+                    ),
+                    'No replies yet.'
+                ),
+                'top_reply_upvotes': next(
+                    (
+                        q['top_reply']['upvotes'] 
+                        for q in questions_with_top_replies 
+                        if q['question_id'] == message['message_id'] and q['top_reply']
+                    ),
+                    0
+                ),
+                'top_reply_downvotes': next(
+                    (
+                        q['top_reply']['downvotes'] 
+                        for q in questions_with_top_replies 
+                        if q['question_id'] == message['message_id'] and q['top_reply']
+                    ),
+                    0
+                )
+            }
+            for message in firebase_messages
+        ]
         print(f"This is my list {messages_list}")
 
         # Retrieve the hub details using the provided room_url
@@ -171,9 +165,6 @@ def current_student_hub_room(request, id):
         print(f"Error: {e}")
         return render(request, 'myapp/students/students_homepage.html', {'error': 'An error occurred'})
 
-
-    
-
 def hub_room_message_student_replies(request, id, message_id):
     # Get sort parameter from request query parameters, default to 'recent'
     sort_by = request.GET.get('sort', 'recent')
@@ -183,6 +174,7 @@ def hub_room_message_student_replies(request, id, message_id):
         sort_by = 'recent'  # Default to recent if invalid parameter
     
     # Fetch the reply data with the sort preference
+    # Replies are decrypted in get_message_reply_room
     reply_data = get_message_reply_room(id, message_id, sort_by)
 
     # Structure the data into a list of dictionaries
@@ -194,7 +186,7 @@ def hub_room_message_student_replies(request, id, message_id):
             'upvotes': reply.get('upvotes', 0),
             'downvotes': reply.get('downvotes', 0),
             'sender': reply.get('sender'),
-            'reply_content': reply.get('reply_content'),
+            'reply_content': reply.get('reply_content'),  # Already decrypted
             'role': reply.get('role'),
             'room_id': reply.get('room_id'),
             'timestamp': reply.get('timestamp'),
@@ -223,7 +215,7 @@ def hub_room_message_teacher_replies(request, id, message_id):
             'upvotes': reply.get('upvotes', 0),
             'downvotes': reply.get('downvotes', 0),
             'sender': reply.get('sender'),
-            'reply_content': reply.get('reply_content'),
+            'reply_content': reply.get('reply_content'),  # Already decrypted
             'role': reply.get('role'),
             'room_id': reply.get('room_id'),
             'timestamp': reply.get('timestamp'),
@@ -232,8 +224,6 @@ def hub_room_message_teacher_replies(request, id, message_id):
         })
 
     return JsonResponse(structured_replies, safe=False)
-
-
 
 def current_teacher_hub_room(request, id):
     try:
@@ -247,51 +237,51 @@ def current_teacher_hub_room(request, id):
         
         # Prepare the messages list for rendering
         messages_list = [
-    {
-        'content': message['content'],  # Original message content
-        'sender': message['sender'],
-        'room_id': message['room_id'],
-        'role': message.get('role', 'unknown'),
-        'created_at': message['timestamp'],
-        'is_current_user': message['sender'] == current_teacher,
-        'message_id': message['message_id'],
-        'image_url': message.get('image_url'),
-        'file_url': message.get('file_url'),
-        'video_url': message.get('video_url'),
-        'is_poll': message.get('is_poll'),
-        'poll_options': message.get('poll_options'),
-        'top_reply_content': next(
-            (
-                q['top_reply']['reply_content'] 
-                for q in questions_with_top_replies 
-                if q['question_id'] == message['message_id'] and q['top_reply']
-            ),
-            'No replies yet.'
-        ),
-        'top_reply_upvotes': next(
-            (
-                q['top_reply']['upvotes'] 
-                for q in questions_with_top_replies 
-                if q['question_id'] == message['message_id'] and q['top_reply']
-            ),
-            0
-        ),
-        'top_reply_downvotes': next(
-            (
-                q['top_reply']['downvotes'] 
-                for q in questions_with_top_replies 
-                if q['question_id'] == message['message_id'] and q['top_reply']
-            ),
-            0
-        )
-    }
-    for message in firebase_messages
-]
+            {
+                'content': message['content'],  # Content already decrypted in get_messages_by_room
+                'sender': message['sender'],
+                'room_id': message['room_id'],
+                'role': message.get('role', 'unknown'),
+                'created_at': message['timestamp'],
+                'is_current_user': message['sender'] == current_teacher,
+                'message_id': message['message_id'],
+                'image_url': message.get('image_url'),
+                'file_url': message.get('file_url'),
+                'video_url': message.get('video_url'),
+                'is_poll': message.get('is_poll'),
+                'poll_options': message.get('poll_options'),  # Poll options already decrypted in get_messages_by_room
+                'top_reply_content': next(
+                    (
+                        q['top_reply']['reply_content']  # Reply content already decrypted in get_questions_with_top_replies
+                        for q in questions_with_top_replies 
+                        if q['question_id'] == message['message_id'] and q['top_reply']
+                    ),
+                    'No replies yet.'
+                ),
+                'top_reply_upvotes': next(
+                    (
+                        q['top_reply']['upvotes'] 
+                        for q in questions_with_top_replies 
+                        if q['question_id'] == message['message_id'] and q['top_reply']
+                    ),
+                    0
+                ),
+                'top_reply_downvotes': next(
+                    (
+                        q['top_reply']['downvotes'] 
+                        for q in questions_with_top_replies 
+                        if q['question_id'] == message['message_id'] and q['top_reply']
+                    ),
+                    0
+                )
+            }
+            for message in firebase_messages
+        ]
 
         # Render the hub page
         hub = Teachers_created_hub.objects.get(room_url=id)
         privacy_setting = hub.hub_privacy_setting
-        print(f"These are the deatils {hub} : {privacy_setting}\n\n")
+        print(f"These are the details {hub} : {privacy_setting}\n\n")
         members = get_members_by_hub_url(id)
 
         # Send the message list as a response for the frontend to use in the AJAX request
@@ -308,16 +298,16 @@ def current_teacher_hub_room(request, id):
         print(f"Error: {e}")
         return render(request, 'myapp/teachers/teachers_homepage.html', {'error_message': 'An error occurred.'})
 
-
-
 def get_question_content(question_id):
     doc_ref = db.collection("hub_messages").document(question_id)
     # Fetch the document
     doc = doc_ref.get()
     if doc.exists:
-        return doc.to_dict().get("content")  
+        encrypted_content = doc.to_dict().get("content")
+        if encrypted_content:
+            return encryption_manager.decrypt(encrypted_content)
     
-    return None  #
+    return None  # Return None if document doesn't exist or no content
 
 
 

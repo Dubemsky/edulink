@@ -72,11 +72,14 @@ urlpatterns = [
 
 
     # Private messaging routes
-    path('start_chat/', start_private_chat, name='start_private_chat'),
-    path('send_message/', send_message, name='send_message'),
-    path('get_chats/', get_chats, name='get_chats'),
-    path('get_chat_history/', get_chat_history, name='get_chat_history'),
-    
+    path('start_direct_chat/', start_direct_chat_api, name='start_direct_chat'),
+    path('send_direct_message/', send_direct_message_api, name='send_direct_message'),
+    path('get_direct_chats/', get_direct_chats_api, name='get_direct_chats'),
+    path('get_direct_chat_history/', get_direct_chat_history_api, name='get_direct_chat_history'),
+    path('mark_chat_read/', mark_chat_read_api, name='mark_chat_read'),
+    path('get_unread_counts/', get_unread_counts_api, name='get_unread_counts'),
+    path('search_users/', search_users_api, name='search_users'),
+    path('get_current_user_info/', get_current_user_info, name='get_current_user_info'),
 
 
 

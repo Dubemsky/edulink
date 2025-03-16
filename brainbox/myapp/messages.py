@@ -5,26 +5,30 @@ from .faiss import *
 import numpy as np
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .encryption import encryption_manager
 
-
-def add_message(role, room_id, sender, content, message_type="text", file_url=None, video_url=None, image_url=None,poll_options=None):
+def add_message(role, room_id, sender, content, message_type="text", file_url=None, video_url=None, image_url=None, poll_options=None):
     try:
         now_utc = datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S')
 
+        # Get embedding from original content before encryption
         embedding = get_remote_embedding(content)
-        print(f"These are teh embeddings {embedding}" )
+        print(f"These are the embeddings {embedding}")
+
+        # Encrypt the content
+        encrypted_content = encryption_manager.encrypt(content)
 
         message_data = {
             'role': role,
             'room_id': room_id,
             'sender': sender,
-            'content': content,
+            'content': encrypted_content,  # Store encrypted content
             "embedding": embedding,
             'message_type': message_type,
             'timestamp': now_utc
         }
 
-
+        # Handle different message types with encryption where needed
         if message_type == "file":
             message_data['file_url'] = file_url
         elif message_type == "video":
@@ -33,12 +37,14 @@ def add_message(role, room_id, sender, content, message_type="text", file_url=No
             message_data['image_url'] = image_url 
         elif message_type == "poll":
             message_data['is_poll'] = True
-            message_data['poll_options'] = [{
-                'option': option,
-                'votes': 0
-            } for option in poll_options]
-
-
+            # Encrypt each poll option
+            encrypted_poll_options = []
+            for option in poll_options:
+                encrypted_poll_options.append({
+                    'option': encryption_manager.encrypt(option),
+                    'votes': 0
+                })
+            message_data['poll_options'] = encrypted_poll_options
 
         message_ref = db.collection('hub_messages').add(message_data)
 
@@ -53,19 +59,18 @@ def add_message(role, room_id, sender, content, message_type="text", file_url=No
         print(f"❌ Error adding message: {e}")
         return None
     
-
-
-
-
 def add_message_reply(role, room_id, sender, reply_content, message_type, upvotes, downvotes, question_id):
     now_utc = datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S')
 
+    # Encrypt the reply content
+    encrypted_reply_content = encryption_manager.encrypt(reply_content)
+
     message_data = {
-        'question_id' : question_id,
+        'question_id': question_id,
         'room_id': room_id,
         'sender': sender,
         'role': role,
-        'reply_content': reply_content,
+        'reply_content': encrypted_reply_content,  # Store encrypted reply content
         'message_type': message_type,
         'upvotes': upvotes,
         'downvotes': downvotes,
@@ -77,11 +82,8 @@ def add_message_reply(role, room_id, sender, reply_content, message_type, upvote
 
     print(f"✅ New {message_type} reply added with ID: {message_id}")
 
-    notifications_for_bookmarked_questions(question_id,room_id,sender)
+    notifications_for_bookmarked_questions(question_id, room_id, sender)
     return message_id
-
-
-from datetime import datetime
 
 def user_name(request):
     current_student = request.session.get("students_name")
@@ -105,7 +107,7 @@ def notifications_for_bookmarked_questions(question_id, room_id, sender):
             if sender != username:  # This is the important change!
                 notification_data = {
                     "question_id": question_id,
-                    "message": f"{sender} replied on your bookmark. Click to view",
+                    "message": encryption_manager.encrypt(f"{sender} replied on your bookmark. Click to view"),
                     "username": username,
                     "room_id": room_id,
                     "timestamp": datetime.utcnow(),
@@ -120,8 +122,6 @@ def notifications_for_bookmarked_questions(question_id, room_id, sender):
             else:
                 print(f"Skipping notification for {username} because it's the sender.")
 
-
-
 def get_notifications_by_username(username):
     """
     Retrieve notifications for a specific user from Firebase.
@@ -135,18 +135,21 @@ def get_notifications_by_username(username):
     for notification in notifications:
         notification_data = notification.to_dict()
 
-        # Append the notification data to the list
+        # Decrypt the message
+        encrypted_message = notification_data.get("message")
+        decrypted_message = encryption_manager.decrypt(encrypted_message)
+
+        # Append the notification data to the list with decrypted message
         notifications_list.append({
             "notification_id": notification.id,
             "question_id": notification_data.get("question_id"),
-            "message": notification_data.get("message"),
+            "message": decrypted_message,
             "username": notification_data.get("username"),
             "room_id": notification_data.get("room_id"),
             "timestamp": notification_data.get("timestamp"),
         })
 
     return notifications_list  # Return the list of notifications
-
 
 @csrf_exempt
 def mark_notification_read(request):
@@ -169,8 +172,6 @@ def mark_notification_read(request):
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
 
-
-
 def get_messages_by_room(room_id):
     try:
         messages_ref = db.collection('hub_messages')
@@ -184,6 +185,22 @@ def get_messages_by_room(room_id):
 
             # Add the document ID to the message dictionary
             message['message_id'] = doc.id
+
+            # Decrypt the content
+            encrypted_content = message.get('content')
+            if encrypted_content:
+                message['content'] = encryption_manager.decrypt(encrypted_content)
+            
+            # Decrypt poll options if present
+            if message.get('is_poll') and message.get('poll_options'):
+                decrypted_poll_options = []
+                for option in message.get('poll_options', []):
+                    decrypted_option = {
+                        'option': encryption_manager.decrypt(option.get('option')),
+                        'votes': option.get('votes', 0)
+                    }
+                    decrypted_poll_options.append(decrypted_option)
+                message['poll_options'] = decrypted_poll_options
 
             timestamp = message.get('timestamp', None)
             if isinstance(timestamp, str):  
@@ -200,7 +217,6 @@ def get_messages_by_room(room_id):
         print(f"Error retrieving messages: {e}")
         return []
     
-
 def get_questions_with_top_replies(room_id):
     try:
         # Step 1: Get all questions for the specified room
@@ -228,6 +244,10 @@ def get_questions_with_top_replies(room_id):
             question_data = question.to_dict()
             question_id = question.id
 
+            # Decrypt the question content
+            encrypted_content = question_data.get('content')
+            decrypted_content = encryption_manager.decrypt(encrypted_content) if encrypted_content else 'No content'
+
             # Step 3: Find the top reply for this question (if any)
             top_reply = None
             if question_id in replies_by_question:
@@ -238,12 +258,17 @@ def get_questions_with_top_replies(room_id):
                 )
 
                 if top_reply:
+                    # Decrypt the reply content
+                    encrypted_reply = top_reply.get('reply_content')
+                    if encrypted_reply:
+                        top_reply['reply_content'] = encryption_manager.decrypt(encrypted_reply)
+                    
                     top_reply['net_votes'] = top_reply.get('upvotes', 0) - top_reply.get('downvotes', 0)
 
             # Step 4: Append question with top reply
             questions_with_replies.append({
                 'question_id': question_id,
-                'question_text': question_data.get('content', 'No content'),
+                'question_text': decrypted_content,
                 'created_at': question_data.get('timestamp'),
                 'top_reply': top_reply  # None if no replies
             })
@@ -253,10 +278,6 @@ def get_questions_with_top_replies(room_id):
     except Exception as e:
         print(f"Error retrieving questions and replies: {e}")
         return []
-
-
-
-
 
 def get_message_reply_room(room_id, question_id, sort_by='recent'):
     """
@@ -283,6 +304,11 @@ def get_message_reply_room(room_id, question_id, sort_by='recent'):
         for reply in results:
             reply_data = reply.to_dict()
             reply_data['message_id'] = reply.id
+            
+            # Decrypt the reply content
+            encrypted_reply = reply_data.get('reply_content')
+            if encrypted_reply:
+                reply_data['reply_content'] = encryption_manager.decrypt(encrypted_reply)
             
             # Ensure upvotes and downvotes are properly initialized
             upvotes = reply_data.get('upvotes', 0)

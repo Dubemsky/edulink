@@ -3048,55 +3048,66 @@ document.addEventListener('DOMContentLoaded', initializeSummarizationFeature);
         
           </script>
 
-
-
-<div class="messaging-container">
-    <!-- Messaging Button -->
-    <div class="messaging-button" id="messagingButton">
-      <i class="bi bi-chat-dots-fill"></i>
-      <span class="unread-badge" id="unreadBadge">0</span>
+<div class="direct-messaging-container">
+    <!-- Direct Messaging Button -->
+    <div class="direct-messaging-button" id="directMessagingButton" aria-label="Open messaging">
+      <i class="bi bi-chat-fill"></i>
+      <span class="dm-unread-badge" id="dmUnreadBadge">0</span>
     </div>
     
-    <!-- Messaging Panel -->
-    <div class="messaging-panel" id="messagingPanel">
-      <div class="messaging-header">
-        <h3>Messages</h3>
-        <button class="close-panel-btn" id="closePanelBtn">
-          <i class="bi bi-x-lg"></i>
+    <!-- Direct Messaging Panel -->
+    <div class="direct-messaging-panel" id="directMessagingPanel">
+      <div class="direct-messaging-header">
+        <h3>Messaging</h3>
+        <div class="dm-header-actions">
+          <button class="dm-action-btn" id="dmNewMessageBtn" aria-label="New message">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          <button class="dm-action-btn" id="dmOptionsBtn" aria-label="Messaging options">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <button class="dm-close-panel-btn" id="dmClosePanelBtn" aria-label="Close messaging">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="direct-messaging-search">
+        <div class="dm-search-wrapper">
+          <i class="bi bi-search"></i>
+          <input type="text" id="dmMessageSearch" placeholder="Search messages">
+        </div>
+        <button class="dm-filter-btn" id="dmFilterBtn" aria-label="Filter messages">
+          <i class="bi bi-sliders"></i>
         </button>
       </div>
       
-      <div class="messaging-tabs">
-        <button class="tab-btn active" id="primaryInboxTab" data-tab="primaryInbox">
-          Primary Inbox
-          <span class="tab-badge" id="primaryInboxBadge">0</span>
+      <div class="direct-messaging-tabs">
+        <button class="dm-tab-btn active" id="dmPrimaryInboxTab" data-tab="primaryInbox">
+          Focused
+          <span class="dm-tab-badge" id="dmPrimaryInboxBadge">0</span>
         </button>
-        <button class="tab-btn" id="messageRequestsTab" data-tab="messageRequests">
-          Message Requests
-          <span class="tab-badge" id="messageRequestsBadge">0</span>
+        <button class="dm-tab-btn" id="dmMessageRequestsTab" data-tab="messageRequests">
+          Other
+          <span class="dm-tab-badge" id="dmMessageRequestsBadge">0</span>
         </button>
       </div>
       
-      <div class="messaging-search">
-        <i class="bi bi-search"></i>
-        <input type="text" id="messageSearch" placeholder="Search messages">
-      </div>
-      
-      <div class="tab-content active" id="primaryInbox">
-        <div class="chat-list" id="primaryInboxList">
+      <div class="dm-tab-content active" id="dmPrimaryInbox">
+        <div class="dm-chat-list" id="dmPrimaryInboxList">
           <!-- Chat items will be added here dynamically -->
-          <div class="loading-chats">
-            <div class="spinner"></div>
+          <div class="dm-loading-chats">
+            <div class="dm-spinner"></div>
             <p>Loading conversations...</p>
           </div>
         </div>
       </div>
       
-      <div class="tab-content" id="messageRequests">
-        <div class="chat-list" id="messageRequestsList">
+      <div class="dm-tab-content" id="dmMessageRequests">
+        <div class="dm-chat-list" id="dmMessageRequestsList">
           <!-- Message requests will be added here dynamically -->
-          <div class="loading-chats">
-            <div class="spinner"></div>
+          <div class="dm-loading-chats">
+            <div class="dm-spinner"></div>
             <p>Loading message requests...</p>
           </div>
         </div>
@@ -3104,55 +3115,117 @@ document.addEventListener('DOMContentLoaded', initializeSummarizationFeature);
     </div>
     
     <!-- Chat Windows Container -->
-    <div class="chat-windows-container" id="chatWindowsContainer">
+    <div class="dm-chat-windows-container" id="dmChatWindowsContainer">
       <!-- Chat windows will be added here dynamically -->
+    </div>
+    
+    <!-- New Message Modal -->
+    <div class="dm-new-message-modal" id="dmNewMessageModal">
+      <div class="dm-modal-header">
+        <h4>New message</h4>
+        <button class="dm-modal-close-btn" id="dmModalCloseBtn">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="dm-modal-body">
+        <div class="dm-recipient-search">
+          <label for="dmRecipientInput">To:</label>
+          <input type="text" id="dmRecipientInput" placeholder="Type a name">
+        </div>
+        <div class="dm-recipients-list" id="dmRecipientsList"></div>
+        <div class="dm-message-compose">
+          <textarea id="dmComposeInput" placeholder="Write a message..."></textarea>
+        </div>
+      </div>
+      <div class="dm-modal-footer">
+        <button class="dm-secondary-btn" id="dmCancelBtn">Cancel</button>
+        <button class="dm-primary-btn" id="dmSendBtn">Send</button>
+      </div>
     </div>
   </div>
   
   <!-- Chat Window Template (hidden, will be cloned for each chat) -->
-  <template id="chatWindowTemplate">
-    <div class="chat-window" data-chat-id="">
-      <div class="chat-header">
-        <div class="chat-user-info">
-          <img src="" alt="" class="chat-user-img">
-          <div class="chat-user-details">
-            <h4 class="chat-user-name"></h4>
-            <span class="chat-user-role"></span>
+  <template id="dmChatWindowTemplate">
+    <div class="dm-chat-window" data-chat-id="">
+      <div class="dm-chat-header">
+        <div class="dm-chat-user-info">
+          <img src="" alt="" class="dm-chat-user-img">
+          <div class="dm-chat-user-details">
+            <h4 class="dm-chat-user-name"></h4>
+            <span class="dm-chat-user-role"></span>
           </div>
         </div>
-        <div class="chat-actions">
-          <button class="minimize-chat-btn">
+        <div class="dm-chat-actions">
+          <button class="dm-action-btn dm-more-options-btn" aria-label="More options">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <button class="dm-action-btn dm-minimize-chat-btn" aria-label="Minimize">
             <i class="bi bi-dash-lg"></i>
           </button>
-          <button class="close-chat-btn">
+          <button class="dm-action-btn dm-close-chat-btn" aria-label="Close">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
       </div>
       
-      <div class="chat-messages">
+      <div class="dm-chat-messages">
         <!-- Messages will be added here dynamically -->
-        <div class="chat-loading">
-          <div class="spinner"></div>
+        <div class="dm-chat-loading">
+          <div class="dm-spinner"></div>
         </div>
       </div>
       
-      <div class="chat-input-container">
-        <textarea class="chat-input" placeholder="Type a message..."></textarea>
-        <button class="send-message-btn">
-          <i class="bi bi-send-fill"></i>
-        </button>
+      <div class="dm-chat-input-container">
+        <div class="dm-chat-tools">
+          <button class="dm-tool-btn" aria-label="Add attachment">
+            <i class="bi bi-paperclip"></i>
+          </button>
+          <button class="dm-tool-btn" aria-label="Add emoji">
+            <i class="bi bi-emoji-smile"></i>
+          </button>
+          <button class="dm-tool-btn" aria-label="Add GIF">
+            <i class="bi bi-filetype-gif"></i>
+          </button>
+        </div>
+        <div class="dm-chat-input-wrapper">
+          <textarea class="dm-chat-input" placeholder="Write a message..."></textarea>
+          <button class="dm-send-message-btn" aria-label="Send message">
+            <i class="bi bi-send-fill"></i>
+          </button>
+        </div>
       </div>
     </div>
   </template>
   
   <!-- Message Template (hidden, will be cloned for each message) -->
-  <template id="messageTemplate">
-    <div class="message">
-      <div class="message-content"></div>
-      <div class="message-time"></div>
+  <template id="dmMessageTemplate">
+    <div class="dm-message">
+      <div class="dm-message-content"></div>
+      <div class="dm-message-footer">
+        <span class="dm-message-time"></span>
+        <div class="dm-message-reactions"></div>
+      </div>
     </div>
   </template>
   
+  <!-- Chat Item Template (for conversation list) -->
+  <template id="dmChatItemTemplate">
+    <div class="dm-chat-item">
+      <div class="dm-chat-item-avatar">
+        <img src="" alt="" class="dm-chat-item-img">
+        <span class="dm-online-indicator"></span>
+      </div>
+      <div class="dm-chat-item-details">
+        <div class="dm-chat-item-header">
+          <h4 class="dm-chat-item-name"></h4>
+          <span class="dm-chat-item-time"></span>
+        </div>
+        <div class="dm-chat-item-preview">
+          <p class="dm-chat-item-last-message"></p>
+          <span class="dm-chat-item-badge"></span>
+        </div>
+      </div>
+    </div>
+  </template>
 </body>
 </html>

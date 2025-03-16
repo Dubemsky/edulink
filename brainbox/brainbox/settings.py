@@ -1,8 +1,29 @@
 from pathlib import Path
 import os
+from cryptography.fernet import Fernet
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+
+# File to store the encryption key
+KEY_FILE = os.path.join(BASE_DIR, 'dev_encryption_key.key')
+
+# Check if the key file exists, if not create one
+if not os.path.exists(KEY_FILE):
+    # Generate a new key and save it
+    key = Fernet.generate_key()
+    with open(KEY_FILE, 'wb') as key_file:
+        key_file.write(key)
+    ENCRYPTION_KEY = key.decode()
+else:
+    # Read the existing key
+    with open(KEY_FILE, 'rb') as key_file:
+        ENCRYPTION_KEY = key_file.read().decode()
+
+
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
