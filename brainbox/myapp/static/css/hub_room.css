@@ -833,6 +833,31 @@ body.index-page {
   margin-bottom: 2px;
 }
 
+.sort-buttons {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.sort-buttona:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.sort-buttona.active {
+  background-color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+
+
 .sort-button {
   background-color: rgba(255, 255, 255, 0.2);
   color: var(--white);

@@ -457,7 +457,7 @@
 
   <!-- Main JS Files -->
   <script src="{% static 'js/main.js' %}"></script>
-  <script src="{% static 'js/private_messaging.js' %}"></script>
+  <script src="{% static 'js/summarize.js' %}"></script>
  
   <script>
 
@@ -493,140 +493,12 @@ document.getElementById("sendInviteBtn").addEventListener("click", function () {
 
 
 
-// Summarization Function for Side Panel
-function initializeSummarizationFeature() {
-    const summarizeButton = document.getElementById('summariseButton');
-    
-    if (!summarizeButton) return;
 
-    // Create summary container
-    const summaryContainer = document.createElement('div');
-    summaryContainer.id = 'side-panel-summary';
-    summaryContainer.classList.add('side-panel-summary');
-    summaryContainer.innerHTML = `
-        <div class="summary-content"></div>
-    `;
 
-    // Add to side panel messages
-    const sidePanelMessages = document.getElementById('sidePanelMessages');
-    if (sidePanelMessages) {
-        sidePanelMessages.appendChild(summaryContainer);
-    }
 
-    // Summarization click handler
-    summarizeButton.addEventListener('click', function() {
-        // Collect reply contents
-        const replyContents = Array.from(
-            document.querySelectorAll('#sidePanelMessages .reply-content')
-        ).map(el => el.textContent.trim());
 
-        // Validate replies
-        if (replyContents.length === 0) {
-            showToast('No replies to summarize', 'info');
-            return;
-        }
 
-        // Collect additional debug information
-        const debugInfo = {
-            replyCount: replyContents.length,
-            replyLengths: replyContents.map(reply => reply.split(' ').length),
-            firstFewReplies: replyContents.slice(0, 3)
-        };
 
-        // Clear previous summary and show loading
-        const summaryContentEl = summaryContainer.querySelector('.summary-content');
-        summaryContentEl.innerHTML = '<div class="summary-loading">Generating summary...</div>';
-        summaryContainer.style.display = 'block';
-
-        // Fetch summary
-        fetch('/summarize-replies/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ 
-                replies: replyContents,
-                debug: debugInfo  // Send debug information to backend
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Word-by-word display
-                wordByWordDisplay(data.summary, summaryContentEl);
-            } else {
-                // Detailed error display
-                summaryContentEl.innerHTML = `
-                    <div class="summary-error">
-                        <strong>Error:</strong> ${data.error || 'Failed to generate summary'}
-                        <details>
-                            <summary>Debug Information</summary>
-                            <pre>${JSON.stringify(debugInfo, null, 2)}</pre>
-                        </details>
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Summary Error:', error);
-            summaryContentEl.innerHTML = `
-                <div class="summary-error">
-                    <strong>Network Error:</strong> ${error.message}
-                    <details>
-                        <summary>Debug Information</summary>
-                        <pre>${JSON.stringify(debugInfo, null, 2)}</pre>
-                    </details>
-                </div>
-            `;
-        });
-    });
-}
-
-// Existing word-by-word display function remains the same
-
-// Update CSS to improve error display
-const summaryStyles = `
-.side-panel-summary {
-    background-color: #f9f9f9;
-    border-top: 1px solid #e0e0e0;
-    padding: 15px;
-    margin-top: 15px;
-    max-height: 300px;  /* Increased height */
-    overflow-y: auto;
-}
-
-.summary-error {
-    color: #d9534f;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    padding: 10px;
-    border-radius: 4px;
-}
-
-.summary-error details {
-    margin-top: 10px;
-    background-color: #fff;
-    padding: 10px;
-    border-radius: 4px;
-}
-
-.summary-error pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-size: 0.8em;
-    max-height: 200px;
-    overflow-y: auto;
-}
-`;
-
-// Add styles to document head
-const styleElement = document.createElement('style');
-styleElement.textContent = summaryStyles;
-document.head.appendChild(styleElement);
-
-// Initialize on DOM load
-document.addEventListener('DOMContentLoaded', initializeSummarizationFeature);
 
 
 
