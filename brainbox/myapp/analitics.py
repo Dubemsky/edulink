@@ -5,6 +5,448 @@ from .firebase import db
 from .hub_functionality import get_members_by_hub_url
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .views_hub_room import *
+
+
+
+
+# Add to analitics.py
+
+@csrf_exempt
+def get_student_analytics(request, room_id):
+    """
+    Enhanced analytics endpoint that provides comprehensive metrics for a student.
+    Returns detailed analytics about the student's engagement, content, social interactions,
+    learning behaviors, and progress over time.
+    """
+    try:
+        # Get student username from the request or session
+        student_username = request.GET.get('username')
+        if not student_username:
+            student_username = request.session.get("students_name")
+            
+        if not student_username:
+            return JsonResponse({
+                "success": False,
+                "error": "No username provided"
+            }, status=400)
+            
+        # Get all messages for this room (all users)
+        messages_ref = db.collection('hub_messages').where('room_id', '==', room_id)
+        messages = list(messages_ref.stream())
+        
+        # Get all replies for this room (all users)
+        replies_ref = db.collection('hub_message_reply').where('room_id', '==', room_id)
+        replies = list(replies_ref.stream())
+        
+        # Transform to dicts
+        message_data = [msg.to_dict() for msg in messages]
+        reply_data = [reply.to_dict() for reply in replies]
+        
+        # Filter for this student only
+        student_messages = [msg for msg in message_data if msg.get('sender') == student_username]
+        student_replies = [reply for reply in reply_data if reply.get('sender') == student_username]
+        
+        # Filter for teacher messages
+        teacher_messages = [msg for msg in message_data if msg.get('role', '').lower() == 'teacher']
+        
+        # ------------------- PERSONAL ENGAGEMENT METRICS -------------------
+        
+        # Basic counts
+        total_messages = len(message_data)
+        total_replies = len(reply_data)
+        student_message_count = len(student_messages)
+        student_reply_count = len(student_replies)
+        
+        # Message/Reply ratio
+        message_reply_ratio = student_message_count / max(student_reply_count, 1)
+        
+        # Calculate participation percentage
+        participation_percentage = 0
+        if (total_messages + total_replies) > 0:
+            participation_percentage = ((student_message_count + student_reply_count) / (total_messages + total_replies)) * 100
+        
+        # Active days calculation
+        active_days = set()
+        for msg in student_messages + student_replies:
+            timestamp = msg.get('timestamp', '')
+            if isinstance(timestamp, str):
+                try:
+                    date_obj = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    active_days.add(date_obj.strftime('%Y-%m-%d'))
+                except (ValueError, TypeError):
+                    pass
+        
+        # Most active times (hour of day)
+        hour_activity = Counter()
+        for msg in student_messages + student_replies:
+            timestamp = msg.get('timestamp', '')
+            if isinstance(timestamp, str):
+                try:
+                    date_obj = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    hour_activity[date_obj.hour] += 1
+                except (ValueError, TypeError):
+                    pass
+                    
+        # Format for chart - hours of day
+        active_times = [
+            {"hour": hour, "count": count}
+            for hour, count in sorted(hour_activity.items())
+        ]
+        
+        # ------------------- CONTENT ANALYTICS -------------------
+        
+        # Message types the student has used
+        message_types = Counter()
+        for msg in student_messages:
+            if msg.get('is_poll'):
+                message_types['poll'] += 1
+            elif msg.get('image_url'):
+                message_types['image'] += 1
+            elif msg.get('file_url'):
+                message_types['file'] += 1
+            elif msg.get('video_url'):
+                message_types['video'] += 1
+            else:
+                message_types['text'] += 1
+        
+        # Average message length
+        total_length = 0
+        message_count = 0
+        for msg in student_messages:
+            content = msg.get('content')
+            if isinstance(content, str):
+                total_length += len(content)
+                message_count += 1
+        
+        avg_message_length = total_length / max(message_count, 1)
+        
+        # Question rate - simple estimation by looking for question marks
+        question_count = 0
+        for msg in student_messages:
+            content = msg.get('content')
+            if isinstance(content, str) and '?' in content:
+                question_count += 1
+                
+        question_rate = (question_count / max(student_message_count, 1)) * 100
+        
+        # ------------------- SOCIAL INTERACTION METRICS -------------------
+        
+        # Response rate - how many of student's messages got replies
+        messages_with_replies = 0
+        for msg in student_messages:
+            msg_id = msg.get('message_id')
+            if any(reply.get('question_id') == msg_id for reply in reply_data):
+                messages_with_replies += 1
+                
+        response_rate = (messages_with_replies / max(student_message_count, 1)) * 100
+        
+        # Get reactions/votes given by this student
+        upvotes_given = 0
+        downvotes_given = 0
+        user_votes_ref = db.collection('user_votes').where('username', '==', student_username)
+        user_votes = list(user_votes_ref.stream())
+        
+        for vote in user_votes:
+            vote_data = vote.to_dict()
+            if vote_data.get('vote_type') == 'up':
+                upvotes_given += 1
+            elif vote_data.get('vote_type') == 'down':
+                downvotes_given += 1
+        
+        # Get reactions received on student's messages and replies
+        upvotes_received = sum(msg.get('upvotes', 0) for msg in student_messages)
+        upvotes_received += sum(reply.get('upvotes', 0) for reply in student_replies)
+        
+        downvotes_received = sum(msg.get('downvotes', 0) for msg in student_messages)
+        downvotes_received += sum(reply.get('downvotes', 0) for reply in student_replies)
+        
+        # Net contribution score
+        net_contribution_score = upvotes_received - downvotes_received
+        
+        # Teacher interaction rate
+        teacher_interactions = 0
+        for reply in student_replies:
+            question_id = reply.get('question_id')
+            if any(msg.get('message_id') == question_id and msg.get('role', '').lower() == 'teacher' for msg in message_data):
+                teacher_interactions += 1
+        
+        # Also count replies to student messages from teachers
+        for msg in student_messages:
+            msg_id = msg.get('message_id')
+            if any(reply.get('question_id') == msg_id and reply.get('role', '').lower() == 'teacher' for reply in reply_data):
+                teacher_interactions += 1
+                
+        teacher_interaction_rate = (teacher_interactions / max(len(teacher_messages), 1)) * 100
+        
+        # ------------------- LEARNING BEHAVIOR METRICS -------------------
+        
+        # Resource engagement - count file interactions
+        resource_engagement = sum(1 for msg in student_messages if msg.get('file_url'))
+        
+        # Bookmark activity
+        bookmarks = get_bookmarked_messages(student_username, room_id)
+        bookmark_count = len(bookmarks)
+        
+        # Poll participation
+        poll_votes_ref = db.collection('poll_votes').where('username', '==', student_username)
+        poll_votes = list(poll_votes_ref.stream())
+        poll_vote_count = len(poll_votes)
+        
+        # Poll participation rate
+        total_polls = sum(1 for msg in message_data if msg.get('is_poll'))
+        poll_participation_rate = (poll_vote_count / max(total_polls, 1)) * 100
+        
+        # Reading vs writing ratio - approximation
+        # We consider "reading" as viewing messages + bookmarking + voting
+        viewing_activity = upvotes_given + downvotes_given + bookmark_count
+        writing_activity = student_message_count + student_reply_count
+        
+        reading_writing_ratio = viewing_activity / max(writing_activity, 1)
+        
+        # ------------------- PROGRESS INDICATORS -------------------
+        
+        # Time-based analysis (student activity per day)
+        message_dates = []
+        for msg in student_messages + student_replies:
+            timestamp = msg.get('timestamp')
+            if isinstance(timestamp, (str, datetime)):
+                try:
+                    # Handle both string and datetime objects
+                    date_str = ""
+                    if isinstance(timestamp, str):
+                        # Parse the timestamp string to datetime object
+                        date_obj = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                        date_str = date_obj.strftime('%Y-%m-%d')
+                    else:
+                        # Already a datetime object
+                        date_str = timestamp.strftime('%Y-%m-%d')
+                    
+                    message_dates.append(date_str)
+                except ValueError:
+                    # Skip invalid timestamps
+                    continue
+        
+        # Count messages per day
+        messages_per_day = Counter(message_dates)
+        
+        # Format for chart
+        activity_timeline = [
+            {"date": date, "count": count}
+            for date, count in sorted(messages_per_day.items())
+        ]
+        
+        # Calculate trend line (simple linear regression)
+        trend_analysis = {}
+        if len(activity_timeline) > 1:
+            dates = [datetime.strptime(d['date'], '%Y-%m-%d').timestamp() for d in activity_timeline]
+            counts = [d['count'] for d in activity_timeline]
+            
+            # Normalize dates for better numerical stability
+            min_date = min(dates)
+            dates_norm = [d - min_date for d in dates]
+            
+            # Simple linear regression
+            n = len(dates_norm)
+            sum_x = sum(dates_norm)
+            sum_y = sum(counts)
+            sum_xy = sum(x * y for x, y in zip(dates_norm, counts))
+            sum_xx = sum(x * x for x in dates_norm)
+            
+            # Slope
+            slope = (n * sum_xy - sum_x * sum_y) / max((n * sum_xx - sum_x * sum_x), 0.001)
+            
+            # Intercept
+            intercept = (sum_y - slope * sum_x) / n
+            
+            trend_analysis = {
+                "slope": slope,
+                "trend": "increasing" if slope > 0.01 else "decreasing" if slope < -0.01 else "stable",
+                "activity_change_rate": slope * 86400  # Approximate daily change rate
+            }
+        
+        # Consistency score - ratio of active days to total days in date range
+        consistency_score = 0
+        if activity_timeline:
+            try:
+                first_date = min(datetime.strptime(d['date'], '%Y-%m-%d') for d in activity_timeline)
+                last_date = max(datetime.strptime(d['date'], '%Y-%m-%d') for d in activity_timeline)
+                total_days = (last_date - first_date).days + 1
+                consistency_score = (len(active_days) / max(total_days, 1)) * 100
+            except ValueError:
+                pass
+        
+        # Find top messages/replies by votes
+        student_messages_with_votes = []
+        for msg in student_messages:
+            content = msg.get('content', '')
+            if isinstance(content, bytes):
+                try:
+                    content = content.decode('utf-8')
+                except:
+                    content = "Encrypted content"
+                    
+            student_messages_with_votes.append({
+                'content': content,
+                'votes': msg.get('upvotes', 0) - msg.get('downvotes', 0),
+                'type': 'message',
+                'timestamp': msg.get('timestamp', '')
+            })
+            
+        student_replies_with_votes = []
+        for reply in student_replies:
+            content = reply.get('reply_content', '')
+            if isinstance(content, bytes):
+                try:
+                    content = content.decode('utf-8')
+                except:
+                    content = "Encrypted content"
+                    
+            student_replies_with_votes.append({
+                'content': content,
+                'votes': reply.get('upvotes', 0) - reply.get('downvotes', 0),
+                'type': 'reply',
+                'timestamp': reply.get('timestamp', '')
+            })
+        
+        # Combine and sort by vote count
+        all_student_content = student_messages_with_votes + student_replies_with_votes
+        all_student_content.sort(key=lambda x: x['votes'], reverse=True)
+        
+        # Get top 5 messages/replies
+        top_content_list = all_student_content[:5]
+        
+        # ------------------- ACTIONABLE INSIGHTS -------------------
+        
+        # Generate engagement insights
+        insights = []
+        
+        # Participation insights
+        if participation_percentage < 5:
+            insights.append({
+                'type': 'participation',
+                'message': 'Your participation is quite low. Consider contributing more to discussions.',
+                'importance': 'high'
+            })
+        elif participation_percentage < 15:
+            insights.append({
+                'type': 'participation',
+                'message': 'Your participation is below average. Try to engage more often.',
+                'importance': 'medium'
+            })
+            
+        # Content type diversity
+        if len(message_types) <= 1 and student_message_count > 5:
+            insights.append({
+                'type': 'content',
+                'message': 'You\'re mostly using one type of content. Try diversifying with images, files, or polls.',
+                'importance': 'medium'
+            })
+            
+        # Poll participation
+        if poll_participation_rate < 50 and total_polls > 0:
+            insights.append({
+                'type': 'polls',
+                'message': 'You\'ve participated in less than half of the polls. Polls are a good way to engage.',
+                'importance': 'low'
+            })
+            
+        # Reading vs writing balance
+        if reading_writing_ratio < 0.5:
+            insights.append({
+                'type': 'engagement',
+                'message': 'You\'re posting content more than engaging with others. Try to read and respond to more messages.',
+                'importance': 'medium'
+            })
+        elif reading_writing_ratio > 5:
+            insights.append({
+                'type': 'engagement',
+                'message': 'You\'re mostly observing rather than contributing. Consider sharing your thoughts more often.',
+                'importance': 'medium'
+            })
+            
+        # Consistency insight
+        if consistency_score < 30 and len(active_days) > 3:
+            insights.append({
+                'type': 'consistency',
+                'message': 'Your participation is inconsistent. Regular engagement helps with learning.',
+                'importance': 'medium'
+            })
+        
+        # Compile analytics data
+        analytics = {
+            "personal_engagement": {
+                "messages_sent": student_message_count,
+                "replies_sent": student_reply_count,
+                "message_reply_ratio": round(message_reply_ratio, 2),
+                "total_contributions": student_message_count + student_reply_count,
+                "participation_percentage": round(participation_percentage, 2),
+                "active_days": len(active_days),
+                "active_times": active_times
+            },
+            "content_analytics": {
+                "message_types": dict(message_types),
+                "avg_message_length": round(avg_message_length, 2),
+                "question_rate": round(question_rate, 2)
+            },
+            "social_interaction": {
+                "response_rate": round(response_rate, 2),
+                "upvotes_given": upvotes_given,
+                "downvotes_given": downvotes_given,
+                "upvotes_received": upvotes_received,
+                "downvotes_received": downvotes_received,
+                "net_contribution_score": net_contribution_score,
+                "teacher_interaction_rate": round(teacher_interaction_rate, 2)
+            },
+            "learning_behavior": {
+                "resource_engagement": resource_engagement,
+                "bookmarks_count": bookmark_count,
+                "poll_votes_count": poll_vote_count,
+                "poll_participation_rate": round(poll_participation_rate, 2),
+                "reading_writing_ratio": round(reading_writing_ratio, 2)
+            },
+            "progress_indicators": {
+                "activity_timeline": activity_timeline,
+                "trend_analysis": trend_analysis,
+                "consistency_score": round(consistency_score, 2),
+                "top_content": top_content_list
+            },
+            "actionable_insights": insights,
+            "room_totals": {
+                "total_messages": total_messages,
+                "total_replies": total_replies,
+                "total_polls": total_polls
+            }
+        }
+        
+        return JsonResponse({
+            "success": True,
+            "analytics": analytics
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error generating student analytics: {e}")
+        print(error_details)
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @csrf_exempt
 def get_room_analytics(request, **kwargs):
