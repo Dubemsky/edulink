@@ -12,3 +12,5 @@ application = ProtocolTypeRouter({
     "http": http_response_app,
     "websocket": URLRouter(wsPattern),
 })
+
+

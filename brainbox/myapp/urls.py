@@ -78,11 +78,10 @@ urlpatterns = [
 
     path('get_messages/',get_messages, name='get_messages'),
     path('send_message/', send_message, name='send_message'),
-    path('mark_messages_read/', mark_messages_read, name='mark_messages_read'),
+    path('mark_messages_read/', mark_messages_read, name='mark_messages_read'),  
     path('get_conversations/', get_conversations, name='get_conversations'),
-
-
-
+    path('start_direct_chat/', start_direct_chat, name='start_direct_chat'),
+  
 
 
 ]

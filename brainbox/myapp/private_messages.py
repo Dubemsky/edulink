@@ -163,71 +163,87 @@ def send_message(request):
             'error': str(e)
         }, status=500)
 
+
 @csrf_exempt
 def mark_messages_read(request):
     """
-    Mark messages as read by the current user
+    Mark messages as read by the current user.
     """
+    print("🔹 Received request to mark messages as read.")  # Debugging
+
     if request.method != 'POST':
+        print("❌ Error: Invalid request method (Only POST allowed).")
         return JsonResponse({'success': False, 'error': 'Only POST method is allowed'}, status=405)
-    
-    # Get the current user's ID
+
+    # Get current user
     current_user_id = get_current_user_id(request)
+    print(f"✅ Current user ID: {current_user_id}")
+
     if not current_user_id:
-        return JsonResponse({
-            'success': False,
-            'error': 'User not authenticated'
-        }, status=401)
-    
+        print("❌ Error: User not authenticated.")
+        return JsonResponse({'success': False, 'error': 'User not authenticated'}, status=401)
+
     try:
-        # Parse the request data
         data = json.loads(request.body)
+        print(f"📩 Received data: {data}")  # Debugging
+
         sender_id = data.get('sender_id')
-        
+
         if not sender_id:
-            return JsonResponse({
-                'success': False,
-                'error': 'Sender ID is required'
-            }, status=400)
-        
-        # Get the conversation ID
+            print("❌ Error: Sender ID is missing.")
+            return JsonResponse({'success': False, 'error': 'Sender ID is required'}, status=400)
+
+        # Generate conversation ID
         conversation_id = create_conversation_id(current_user_id, sender_id)
-        
-        # Get all unread messages sent by the sender to the current user
-        messages_ref = db.collection('private_messages').document(conversation_id).collection('messages')
-        unread_messages = messages_ref.where('sender_id', '==', sender_id).where('recipient_id', '==', current_user_id).where('read', '==', False).stream()
-        
-        # Mark each message as read
-        batch = db.batch()
-        for message in unread_messages:
-            message_ref = messages_ref.document(message.id)
-            batch.update(message_ref, {'read': True})
-        
-        # Execute the batch
-        batch.commit()
-        
-        # Reset unread count for this conversation
+        print(f"🔹 Generated conversation_id: {conversation_id}")
+
+        # Check if conversation exists
         conversation_ref = db.collection('private_messages').document(conversation_id)
-        conversation_ref.update({
-            f'unread_count_{current_user_id}': 0
-        })
-        
-        return JsonResponse({
-            'success': True
-        })
-    
+        conversation = conversation_ref.get()
+
+        if not conversation.exists:
+            print(f"❌ Error: Conversation {conversation_id} does not exist.")
+            return JsonResponse({'success': True, 'message': 'No messages to update'})
+
+        print("✅ Conversation found, proceeding to check unread messages.")
+
+        # Get all unread messages
+        messages_ref = db.collection('private_messages').document(conversation_id).collection('messages')
+        unread_messages = messages_ref.where('sender_id', '==', sender_id) \
+                                      .where('recipient_id', '==', current_user_id) \
+                                      .where('read', '==', False) \
+                                      .stream()
+
+        messages_list = list(unread_messages)
+        print(f"📌 Found {len(messages_list)} unread messages.")
+
+        # Batch update unread messages in chunks of 500
+        for i in range(0, len(messages_list), 500):
+            batch = db.batch()
+            for message in messages_list[i : i + 500]:
+                message_ref = messages_ref.document(message.id)
+                batch.update(message_ref, {'read': True})
+            batch.commit()
+            print(f"✅ Batch {i // 500 + 1} committed.")
+
+        # Reset unread count
+        conversation_ref.set({f'unread_count_{current_user_id}': 0}, merge=True)
+        print(f"✅ Unread count reset for user {current_user_id}.")
+
+        print("🎉 Successfully marked messages as read!")
+        return JsonResponse({'success': True})
+
     except json.JSONDecodeError:
-        return JsonResponse({
-            'success': False,
-            'error': 'Invalid JSON'
-        }, status=400)
-        
+        print("❌ Error: Invalid JSON format in request body.")
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
     except Exception as e:
-        print(f"Error marking messages as read: {str(e)}")
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
+        print(f"🚨 Unexpected Error: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+
+
 
 @csrf_exempt
 def get_conversations(request):
@@ -287,6 +303,110 @@ def get_conversations(request):
     
     except Exception as e:
         print(f"Error getting conversations: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+
+
+
+
+
+# Add this to your private_messages.py file
+
+@csrf_exempt
+def start_direct_chat(request):
+    """
+    Create or get a chat room between the current user and another user
+    """
+    print("Received request to start direct chat")
+    if request.method != 'POST':
+        print("Error: Only POST method is allowed")
+        return JsonResponse({'success': False, 'error': 'Only POST method is allowed'}, status=405)
+    
+    # Get the current user's ID
+    current_user_id = get_current_user_id(request)
+    print(f"Current user ID: {current_user_id}")
+    
+    if not current_user_id:
+        print("Error: User not authenticated")
+        return JsonResponse({
+            'success': False,
+            'error': 'User not authenticated'
+        }, status=401)
+    
+    try:
+        # Parse the request data
+        data = json.loads(request.body)
+        print(f"Received data: {data}")
+        
+        recipient_id = data.get('recipient_id')
+        print(f"Recipient ID: {recipient_id}")
+        
+        if not recipient_id:
+            print("Error: Recipient ID is required")
+            return JsonResponse({
+                'success': False,
+                'error': 'Recipient ID is required'
+            }, status=400)
+        
+        # Create a unique conversation ID
+        conversation_id = create_conversation_id(current_user_id, recipient_id)
+        print(f"Generated conversation ID: {conversation_id}")
+        
+        # Check if the conversation already exists
+        conversation_ref = db.collection('private_messages').document(conversation_id)
+        conversation = conversation_ref.get()
+        print(f"Conversation exists: {conversation.exists}")
+        
+        # If the conversation doesn't exist, create it
+        if not conversation.exists:
+            print("Creating new conversation")
+            
+            # Get user details
+            current_user_ref = db.collection('users_profile').document(current_user_id)
+            recipient_ref = db.collection('users_profile').document(recipient_id)
+            
+            current_user = current_user_ref.get()
+            recipient = recipient_ref.get()
+            
+            print(f"Current user exists: {current_user.exists}")
+            print(f"Recipient exists: {recipient.exists}")
+            
+            if not current_user.exists or not recipient.exists:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'User not found'
+                }, status=404)
+            
+            # Create the conversation
+            conversation_ref.set({
+                'participants': [current_user_id, recipient_id],
+                'created_at': firestore.SERVER_TIMESTAMP,
+                'last_message': None,
+                'last_message_time': firestore.SERVER_TIMESTAMP,
+                'unread_count_' + current_user_id: 0,
+                'unread_count_' + recipient_id: 0
+            })
+            print("Conversation successfully created")
+        
+        print("Returning chat ID response")
+        return JsonResponse({
+            'success': True,
+            'chat_id': conversation_id
+        })
+    
+    
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON in request body")
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON'
+        }, status=400)
+        
+    except Exception as e:
+        print(f"Error starting direct chat: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)

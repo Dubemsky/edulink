@@ -335,29 +335,33 @@ def unfollow_user(follower_id, user_to_unfollow_id):
             'message': f"Error unfollowing user: {str(e)}"
         }
 
-# Enhancement 3: Improved user ID lookup function
-def get_user_id_by_name(name):
-    if not name:
-        return None
-        
-    db = firestore.client()
-    user_collection = db.collection("users_profile")
-    
-    # Try exact match first (most efficient)
-    query = user_collection.where("name", "==", name).stream()
-    
-    for user in query:
-        return user.id  # Return the first match
-    all_users = user_collection.stream()
-    name_lower = name.lower()
-    
-    for user in all_users:
-        user_data = user.to_dict()
-        if user_data.get("name", "").lower() == name_lower:
-            return user.id
-    
-    return None
 
+def get_user_id_by_name(username):
+    """
+    Get a user's ID from their display name (username)
+    """
+    try:
+        # First try to find the user in Firebase Auth by display name
+        users = auth.list_users().users
+        
+        for user in users:
+            if user.display_name == username:
+                return user.uid
+        
+        # If not found in Auth, try looking in Firestore
+        users_ref = db.collection('users_profile')
+        query = users_ref.where('name', '==', username).limit(1)
+        results = query.stream()
+        
+        for doc in results:
+            return doc.id
+        
+        # If still not found, return None
+        return None
+    
+    except Exception as e:
+        print(f"Error getting user ID for {username}: {e}")
+        return None
 
 
 
