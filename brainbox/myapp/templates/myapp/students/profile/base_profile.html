@@ -55,7 +55,7 @@
     <section class="profile-container">
       <div class="profile-header" data-aos="fade-up">
         <div class="profile-avatar">
-          <img src="{{ profile_pic_url|default:'https://via.placeholder.com/150' }}" alt="{{ student.name|default:'Student' }}" id="profilePic">
+          <img src="{{ profile_picture|default:'https://via.placeholder.com/150' }}" alt="{{ student.name|default:'Student' }}" id="profilePic">
           <div class="profile-avatar-overlay">
             <button type="button" class="avatar-edit-btn" id="changeProfileBtn">
               <i class="bi bi-camera"></i> Change
@@ -68,16 +68,16 @@
         
         <div class="profile-stats">
           <div class="stat-item">
+            <div class="stat-value">{{ student.followers|default:"0" }}</div>
+            <div class="stat-label">Followers</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ student.followings|default:"0" }}</div>
+            <div class="stat-label">Following</div>
+          </div>
+          <div class="stat-item">
             <div class="stat-value">{{ student.hubs_count|default:"0" }}</div>
             <div class="stat-label">Hubs</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ student.questions_count|default:"0" }}</div>
-            <div class="stat-label">Questions</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ student.contributions_count|default:"0" }}</div>
-            <div class="stat-label">Contributions</div>
           </div>
         </div>
       </div>
@@ -122,10 +122,11 @@
     </section>
   </main>
 
-  <!-- File upload form (hidden) -->
-  <form id="profilePicForm" method="POST" action="{% url 'student_profile_page_my_profile' %}" enctype="multipart/form-data" style="display: none;">
+  <!-- File upload form -->
+  <form id="profilePicForm" method="POST" action="{% url 'students_profile_update' %}" enctype="multipart/form-data" style="display: none;">
     {% csrf_token %}
-    <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
+    <input type="hidden" name="type" value="profile_pic">
+    <input type="file" name="profile_picture" id="profilePicInput" accept="image/*">
   </form>
 
   <!-- Vendor JS Files -->
@@ -168,7 +169,8 @@
             reader.readAsDataURL(this.files[0]);
             
             // Submit form
-            document.getElementById('profilePicForm').submit();
+            const form = document.getElementById('profilePicForm');
+            form.submit();
           }
         });
       }

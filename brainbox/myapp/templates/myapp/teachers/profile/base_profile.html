@@ -42,7 +42,7 @@
         <ul>
           <li><a href="{% url 'teachers_homepage' %}" {% if request.resolver_match.url_name == 'teachers_homepage' %}class="active"{% endif %}>Home</a></li>
           <li><a href="{% url 'teachers_community_page' %}" {% if request.resolver_match.url_name == 'teachers_community_page' %}class="active"{% endif %}>Community</a></li>
-          <li><a href="{% url 'teachers_profile_page' %}" {% if 'profile' in request.resolver_match.url_name %}class="active"{% endif %}>My Profile</a></li>
+          <li><a href="{% url 'teacher_profile_page_my_profile' %}" {% if 'profile' in request.resolver_match.url_name %}class="active"{% endif %}>My Profile</a></li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
@@ -54,7 +54,7 @@
     <section class="profile-container">
       <div class="profile-header" data-aos="fade-up">
         <div class="profile-avatar">
-          <img src="{{ profile_pic_url|default:'https://via.placeholder.com/150' }}" alt="{{ teacher.name|default:'Teacher' }}" id="profilePic">
+          <img src="{{ profile_picture|default:'https://via.placeholder.com/150' }}" alt="{{ name|default:'Teacher' }}" id="profilePic">
           <div class="profile-avatar-overlay">
             <button type="button" class="avatar-edit-btn" id="changeProfileBtn">
               <i class="bi bi-camera"></i> Change
@@ -62,21 +62,21 @@
           </div>
         </div>
         
-        <h2 class="profile-name">{{ teacher.name|default:"Teacher Name" }}</h2>
+        <h2 class="profile-name">{{ name|default:"Teacher Name" }}</h2>
         <div class="profile-role">Teacher</div>
         
         <div class="profile-stats">
           <div class="stat-item">
-            <div class="stat-value">{{ teacher.hubs_count|default:"0" }}</div>
+            <div class="stat-value">{{ followers|default:"0" }}</div>
+            <div class="stat-label">Followers</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ followings|default:"0" }}</div>
+            <div class="stat-label">Following</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ hub_count|default:"0" }}</div>
             <div class="stat-label">Hubs</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ teacher.students_count|default:"0" }}</div>
-            <div class="stat-label">Students</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ teacher.years_experience|default:"0" }}</div>
-            <div class="stat-label">Years</div>
           </div>
         </div>
       </div>
@@ -122,8 +122,9 @@
   </main>
 
   <!-- File upload form (hidden) -->
-  <form id="profilePicForm" method="POST" action="{% url 'teacher_profile_page_my_profile' %}" enctype="multipart/form-data" style="display: none;">
+  <form id="profilePicForm" method="POST" action="{% url 'teachers_profile_update' %}" enctype="multipart/form-data" style="display: none;">
     {% csrf_token %}
+    <input type="hidden" name="type" value="pic">
     <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
   </form>
 

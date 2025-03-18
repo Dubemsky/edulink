@@ -3,8 +3,14 @@ from .firebase import *
 from django.db.models import Q
 from .hub_functionality import *
 from django.shortcuts import render
-from .profile_page_updates import *
+from .profile_page_updates import (
+    get_user_by_name,
+    store_image_in_firebase
+)
+from .user_activity import *
 from django.http import JsonResponse
+from django.shortcuts import redirect
+from urllib.parse import urlparse
 from django.views.decorators.csrf import csrf_exempt
 from .models import *
 from .messages import *
@@ -38,8 +44,6 @@ def students_homepage(request):
             }
             students_hubs.append(hub_data)
 
-       
-
             
         notifications = get_notifications_by_username(current_student)
         number_of_nofications = len(notifications)
@@ -51,7 +55,6 @@ def students_homepage(request):
         "number_of_nofications": number_of_nofications,
         "username": current_student
     })
-
 
 
 def students_join_hub_page(request):
@@ -90,7 +93,6 @@ def students_join_hub_page(request):
         })
 
 
-
 """
     @csrf_exempt is a Django decorator used to mark a view to exempt 
     it from CSRF (Cross-Site Request Forgery) protection
@@ -101,19 +103,17 @@ def students_join_hub_page(request):
 def join_hub(request):
     if request.method == 'POST':
         try:
-        
             # Parse JSON body from the request
             data = json.loads(request.body)
             hub_name = data.get('hub_name')
             hub_owner = data.get('hub_owner')
             current_student_name = request.session.get("students_name")
 
-
             # Check if the student is logged in
             if not current_student_name:
                 return JsonResponse({'success': False, 'error': 'Student not logged in.'})
 
-            logger.debug(f"Student Name: {current_student_name} joining {hub_name}")  # Debugging
+            logger.debug(f"Student Name: {current_student_name} joining {hub_name}")
 
             # Get the hub from Teachers_created_hub table 
             try:
@@ -121,7 +121,7 @@ def join_hub(request):
             except Teachers_created_hub.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Hub not found.'})
 
-            # Check if the student is already in the hub with the same teacher (hub_owner)
+            # Check if the student is already in the hub
             existing_join = Students_joined_hub.objects.filter(
                 student=current_student_name, 
                 hub=hub, 
@@ -131,81 +131,55 @@ def join_hub(request):
             if existing_join:
                 return JsonResponse({'success': False, 'error': f'You are a member of {hub_name} room '})
 
-
-            # Create and save the relationship if the student is not already in the hub
-            Students_joined_hub.objects.create(student=current_student_name, hub=hub, hub_owner=hub_owner)
+            # Create and save the relationship
+            hub_join = Students_joined_hub.objects.create(student=current_student_name, hub=hub, hub_owner=hub_owner)
+            
+            # Track the activity
+            try:
+                # Simple way to track activity
+                track_hub_join(current_student_name, hub_name, hub.id)
+            except Exception as activity_error:
+                # Log error but continue - activity tracking is non-critical
+                logger.error(f"Error tracking hub join activity: {activity_error}")
 
             # Return success response
             return JsonResponse({'success': True, 'message': f'You successfully joined {hub_name}'})
 
         except Exception as e:
-            logger.debug(f"Error: {str(e)}")  # Debugging
+            logger.error(f"Error joining hub: {str(e)}")
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Invalid method'})
 
 
-
-
-""" STUDENTS PROFILE PAGES"""
+""" STUDENTS PROFILE PAGES """
 
 def student_profile_page(request):
     return render(request,"myapp/students/students_profile.html")
 
 
-
-
 def student_profile_page_my_profile(request):
     """
-    View for student profile page that doesn't rely on base_profile.html
+    View for student profile page with improved followers/followings support
     """
-    from django.shortcuts import redirect
-    from urllib.parse import urlparse
-    
     student_name = get_student_user_id(request)
     details = get_user_by_name(student_name)
-    user_id = details.get('uid')
     
-    if not user_id:
+    if not student_name or not details:
         # Handle case where user is not found
         return render(request, 'myapp/students/profile/student_profile_my_profile.html', {
             'error': 'User not found. Please log in again.',
-            'student': {'name': ''}
+            'student': {'name': ''},
+            'active_tab': 'my_profile'
         })
     
-    # Handle profile form updates
-    if request.method == 'POST':
-        if 'profile_pic' in request.FILES:
-            # Handle profile picture upload
-            profile_pic = request.FILES['profile_pic']
-            store_image_in_firebase(profile_pic, student_name, user_id)
-            return redirect('student_profile_page_my_profile')
-        
-        elif request.POST.get('type') == 'profile':
-            # Handle profile data updates
-            bio = request.POST.get('bio')
-            grade = request.POST.get('grade')
-            
-            # Process websites
-            website_urls = request.POST.getlist('website_url[]')
-            websites = [url for url in website_urls if url]
-            
-            # Update user profile in Firebase
-            updates = {}
-            if bio is not None:
-                updates['bio'] = bio
-            if grade:
-                updates['grade'] = grade
-            
-            # Apply updates
-            if updates:
-                update_user_profile(user_id, updates)
-            
-            # Update websites
-            if websites:
-                update_user_websites(user_id, websites)
-                
-            return redirect('student_profile_page_my_profile')
+    user_id = details.get('uid')
+    
+    # Handle profile picture upload
+    if request.method == 'POST' and 'profile_pic' in request.FILES:
+        profile_pic = request.FILES['profile_pic']
+        store_image_in_firebase(profile_pic, student_name, user_id)
+        return redirect('student_profile_page_my_profile')
     
     # GET request - fetch and display profile data
     try:
@@ -216,7 +190,7 @@ def student_profile_page_my_profile(request):
         if user_doc.exists:
             user_data = user_doc.to_dict()
             
-            # Get hub count if needed
+            # Get hub count
             try:
                 hub_count = Students_joined_hub.objects.filter(student=student_name).count()
             except:
@@ -242,6 +216,10 @@ def student_profile_page_my_profile(request):
                                 'url': website
                             })
             
+            # Get followers and followings count
+            followers = user_data.get('followers', 0)
+            followings = user_data.get('followings', 0)
+            
             # Prepare context data
             context = {
                 'student': {
@@ -249,31 +227,45 @@ def student_profile_page_my_profile(request):
                     'email': details.get('email', ''),
                     'student_id': user_id,
                     'grade': user_data.get('grade', ''),
-                    'followers': user_data.get('followers', 0),
-                    'followings': user_data.get('followings', 0),
+                    'followers': followers,
+                    'followings': followings,
                     'bio': user_data.get('bio', ''),
                     'websites': websites_data,
                     'joined_date': user_data.get('created_at', "None"),
                     'hubs_count': hub_count,
                 },
                 'profile_picture': user_data.get('profile_picture', 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'),
+                'active_tab': 'my_profile'
             }
             
             return render(request, 'myapp/students/profile/student_profile_my_profile.html', context)
         else:
             # Handle case where user profile doesn't exist in Firestore
+            # Initialize with default values including followers/followings
             context = {
                 'student': {
                     'name': student_name,
                     'email': details.get('email', ''),
                     'student_id': user_id,
                     'grade': '',
+                    'followers': 0,
+                    'followings': 0,
                     'bio': '',
                     'websites': [],
                     'joined_date': "None",
+                    'hubs_count': 0,
                 },
                 'profile_picture': 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+                'active_tab': 'my_profile'
             }
+            
+            # Create the user profile document with default values
+            users_ref.document(user_id).set({
+                'name': student_name,
+                'followers': 0,
+                'followings': 0,
+                'created_at': details.get('created_at', None)
+            }, merge=True)
             
             return render(request, 'myapp/students/profile/student_profile_my_profile.html', context)
             
@@ -287,202 +279,195 @@ def student_profile_page_my_profile(request):
                 'email': '',
                 'student_id': '',
                 'grade': '',
+                'followers': 0,
+                'followings': 0,
                 'bio': '',
                 'websites': [],
                 'joined_date': "",
+                'hubs_count': 0,
             },
             'profile_picture': 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+            'active_tab': 'my_profile'
         }
         
         return render(request, 'myapp/students/profile/student_profile_my_profile.html', context)
 
 
-    
-def get_user_by_name(display_name):
-    """
-    Fetches user details by display name from Firebase Authentication.
-    Returns a dictionary with user details or an empty dictionary if user not found.
-    """
-    try:
-        # Get all users
-        users = auth.list_users().users
-        
-        # Find the user with the matching display name
-        for user in users:
-            if user.display_name == display_name:
-                # Create a dictionary with user details
-                user_details = {
-                    'uid': user.uid,
-                    'email': user.email,
-                    'display_name': user.display_name,
-                    'created_at': format_timestamp(user.user_metadata.creation_timestamp) if hasattr(user.user_metadata, 'creation_timestamp') else None
-                }
-                
-                # Get user's role from custom claims
-                if hasattr(user, '_data') and 'customAttributes' in user._data:
-                    custom_attributes_str = user._data['customAttributes']
-                    custom_attributes = json.loads(custom_attributes_str)
-                    user_details['role'] = custom_attributes.get('role')
-                
-                return user_details
-        
-        # Return empty dictionary if user not found
-        return {}
-    
-    except Exception as e:
-        print(f"Error retrieving user by name: {e}")
-        return {}
-
-
-def update_user_profile(user_id, profile_data):
-    """
-    Updates multiple fields in the user's profile in Firestore.
-
-    Args:
-        user_id: The unique ID of the user.
-        profile_data: Dictionary containing fields to update.
-
-    Returns:
-        True if the update is successful, False otherwise.
-    """
-    try:
-        users_ref = db.collection('users_profile')
-        users_ref.document(user_id).update(profile_data)
-        print(f"Profile for user {user_id} updated successfully.")
-        return True
-    except Exception as e:
-        print(f"Error updating profile: {e}")
-        return False
-
-
-def update_user_websites(user_id, websites):
-    """
-    Replaces the user's 'websites' list in Firestore with a new list.
-
-    Args:
-        user_id: The unique ID of the user.
-        websites: List of website URLs to set.
-
-    Returns:
-        True if the update is successful, False otherwise.
-    """
-    try:
-        # Filter out empty website entries
-        valid_websites = [website for website in websites if website]
-        
-        users_ref = db.collection('users_profile')
-        users_ref.document(user_id).update({'websites': valid_websites})
-        print(f"Websites for user {user_id} updated successfully with {len(valid_websites)} sites.")
-        return True
-    except Exception as e:
-        print(f"Error updating websites: {e}")
-        return False
-        
-    
-def update_user_profile(user_id, profile_data):
-    """
-    Updates multiple fields in the user's profile in Firestore.
-
-    Args:
-        user_id: The unique ID of the user.
-        profile_data: Dictionary containing fields to update.
-
-    Returns:
-        True if the update is successful, False otherwise.
-    """
-    try:
-        users_ref = db.collection('users_profile')
-        users_ref.document(user_id).update(profile_data)
-        print(f"Profile for user {user_id} updated successfully.")
-        return True
-    except Exception as e:
-        print(f"Error updating profile: {e}")
-        return False
-
-
-def update_user_websites(user_id, websites):
-    """
-    Replaces the user's 'websites' list in Firestore with a new list.
-
-    Args:
-        user_id: The unique ID of the user.
-        websites: List of website URLs to set.
-
-    Returns:
-        True if the update is successful, False otherwise.
-    """
-    try:
-        # Filter out empty website entries
-        valid_websites = [website for website in websites if website]
-        
-        users_ref = db.collection('users_profile')
-        users_ref.document(user_id).update({'websites': valid_websites})
-        print(f"Websites for user {user_id} updated successfully.")
-        return True
-    except Exception as e:
-        print(f"Error updating websites: {e}")
-        return False
-
-
-def update_profile_picture_view(request):
-    """
-    View function to handle profile picture uploads
-    """
-    if request.method == 'POST' and request.FILES.get('profile_picture'):
-        try:
-            # Get current user info
-            student_name = get_student_user_id(request)
-            details = get_user_by_name(student_name)
-            user_id = details.get('uid')
-            
-            if not user_id:
-                return JsonResponse({'success': False, 'error': 'User not found'})
-                
-            # Get the uploaded image
-            profile_picture = request.FILES['profile_picture']
-            
-            # Upload to Firebase Storage
-            result = store_image_in_firebase(profile_picture, student_name, user_id)
-            
-            if result:
-                return JsonResponse({'success': True, 'message': 'Profile picture updated successfully'})
-            else:
-                return JsonResponse({'success': False, 'error': 'Failed to update profile picture'})
-                
-        except Exception as e:
-            print(f"Error updating profile picture: {e}")
-            return JsonResponse({'success': False, 'error': str(e)})
-            
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def student_profile_page_securty_settings(request):
-    return render(request,"myapp/students/profile/student_profile_securty_settings.html")
+    return render(request, "myapp/students/profile/student_profile_securty_settings.html", {'active_tab': 'security'})
+
+
+
+
 
 def student_profile_page_activity_contribution(request):
-    return render(request,"myapp/students/profile/student_profile_activity_contribution.html")
+    """
+    View function to display the student's activity and contributions
+    
+    Shows:
+    - Activity overview stats
+    - Recent activity timeline
+    - Followers/following stats
+    """
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    import datetime
+    
+    student_name = get_student_user_id(request)
+    
+    if not student_name:
+        # Handle case where user is not logged in
+        return redirect('first_page')
+    
+    # Get the filter parameter, default to 'all'
+    activity_filter = request.GET.get('filter', 'all')
+    
+    # Get user details
+    details = get_user_by_name(student_name)
+    if not details or not details.get('uid'):
+        return render(request, 'myapp/students/profile/student_profile_activity_contribution.html', {
+            'error': 'User not found',
+            'activities': [],
+            'stats': {},
+            'filter': activity_filter,
+            'active_tab': 'activity'
+        })
+    
+    user_id = details.get('uid')
+    
+    # Get user profile data including followers/following
+    try:
+        users_ref = db.collection('users_profile')
+        user_doc = users_ref.document(user_id).get()
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            followers = user_data.get('followers', 0)
+            followings = user_data.get('followings', 0)
+        else:
+            followers = 0
+            followings = 0
+    except Exception as e:
+        print(f"Error fetching user profile: {e}")
+        followers = 0
+        followings = 0
+    
+    # Get hub count
+    try:
+        hub_count = Students_joined_hub.objects.filter(student=student_name).count()
+    except Exception as e:
+        print(f"Error fetching hub count: {e}")
+        hub_count = 0
+    
+    # Initialize empty list for activities
+    activities = []
+    
+    # Dummy counts for now - you'll need to connect these to your actual models
+    questions_count = 0
+    answers_count = 0
+    posts_count = 0
+    
+    # Build stats dictionary
+    stats = {
+        'questions_count': questions_count,
+        'answers_count': answers_count,
+        'posts_count': posts_count,
+        'hubs_count': hub_count
+    }
+    
+    # Get activities from Firestore if available
+    try:
+        activities_ref = db.collection('user_activities')
+        query = activities_ref.where('user_id', '==', user_id).order_by('created_at', direction='DESCENDING')
+        
+        # Apply filter if not 'all'
+        if activity_filter == 'questions':
+            query = query.where('type', '==', 'question')
+        elif activity_filter == 'answers':
+            query = query.where('type', '==', 'answer')
+        elif activity_filter == 'posts':
+            query = query.where('type', '==', 'post')
+        elif activity_filter == 'hubs':
+            query = query.where('type', '==', 'hub_joined')
+        
+        activity_docs = query.stream()  # Use stream() instead of get() for more efficient iteration
+        
+        # Process activity documents
+        for doc in activity_docs:
+            activity_data = doc.to_dict()
+            # Add document ID to the data
+            activity_data['id'] = doc.id
+            
+            # Format timestamps for display
+            if 'created_at' in activity_data and activity_data['created_at']:
+                if isinstance(activity_data['created_at'], (int, float)):
+                    # Convert timestamp to datetime if stored as timestamp
+                    activity_data['created_at'] = datetime.datetime.fromtimestamp(activity_data['created_at'])
+            
+            activities.append(activity_data)
+    except Exception as e:
+        print(f"Error fetching activities from Firestore: {e}")
+    
+    # If no activities found in Firestore, add recent hub joins from Django model
+    if not activities and (activity_filter == 'all' or activity_filter == 'hubs'):
+        try:
+            hub_joins = Students_joined_hub.objects.filter(student=student_name).order_by('-id')[:10]
+            
+            for join in hub_joins:
+                # For safety, check if the join has all needed attributes before adding
+                try:
+                    activities.append({
+                        'id': f"hub_{join.id}",
+                        'type': 'hub_joined',
+                        'user_id': user_id,
+                        'hub_id': join.hub.id if hasattr(join.hub, 'id') else '',
+                        'hub_name': join.hub.hub_name if hasattr(join.hub, 'hub_name') else 'Unknown Hub',
+                        'created_at': datetime.datetime.now(),  # Fallback to current time if no timestamp
+                        'content': f"Joined a hub"
+                    })
+                except Exception as inner_e:
+                    print(f"Error processing hub join: {inner_e}")
+                    continue
+        except Exception as e:
+            print(f"Error fetching hub joins from database: {e}")
+    
+    # Paginate the activities
+    page = request.GET.get('page', 1)
+    paginator = Paginator(activities, 10)  # 10 activities per page
+    
+    try:
+        paginated_activities = paginator.page(page)
+    except PageNotAnInteger:
+        paginated_activities = paginator.page(1)
+    except EmptyPage:
+        paginated_activities = paginator.page(paginator.num_pages)
+    
+    # Prepare context with student data
+    context = {
+        'student': {
+            'name': student_name,
+            'followers': followers,
+            'followings': followings,
+            'hubs_count': hub_count,
+        },
+        'activities': paginated_activities,
+        'stats': stats,
+        'filter': activity_filter,
+        'active_tab': 'activity'
+    }
+    
+    return render(request, 'myapp/students/profile/student_profile_activity_contribution.html', context)
+
+
+
+
+
+
+
+
+
+
+
+def get_student_user_id(request):
+    """
+    Helper function to get the student name from the session
+    """
+    return request.session.get("students_name")

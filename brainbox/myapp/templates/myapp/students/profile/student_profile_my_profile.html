@@ -69,9 +69,9 @@
     <h3 class="profile-detail-title">Edit Profile</h3>
   </div>
 
-  <form id="profileEditForm" method="POST" action="{% url 'student_profile_page_my_profile' %}">
+  <form id="profileEditForm" method="POST" action="{% url 'students_profile_update' %}">
     {% csrf_token %}
-    <input type="hidden" name="type" value="profile">
+    <input type="hidden" name="type" value="bio">
     
     <div class="profile-section">
       <h4 class="section-title"><i class="bi bi-person"></i> Basic Details</h4>
@@ -112,9 +112,8 @@
       <div id="websitesContainer">
         {% if student.websites %}
           {% for website in student.websites %}
-            <div class="website-input-group mb-2">
+            <div class="website-input-group mb-2" data-index="{{ forloop.counter0 }}">
               <div class="input-group">
-                <input type="text" class="form-control" name="website_name[]" value="{{ website.name|default:'' }}" placeholder="Website Name">
                 <input type="url" class="form-control" name="website_url[]" value="{{ website.url }}" placeholder="https://example.com">
                 <button type="button" class="btn btn-danger remove-website">
                   <i class="bi bi-trash"></i>
@@ -123,9 +122,8 @@
             </div>
           {% endfor %}
         {% else %}
-          <div class="website-input-group mb-2">
+          <div class="website-input-group mb-2" data-index="0">
             <div class="input-group">
-              <input type="text" class="form-control" name="website_name[]" placeholder="Website Name">
               <input type="url" class="form-control" name="website_url[]" placeholder="https://example.com">
               <button type="button" class="btn btn-danger remove-website">
                 <i class="bi bi-trash"></i>
@@ -177,11 +175,12 @@
     if (addWebsiteBtn && websitesContainer) {
       // Add new website field
       addWebsiteBtn.addEventListener('click', function() {
+        const newIndex = document.querySelectorAll('.website-input-group').length;
         const newWebsiteField = document.createElement('div');
         newWebsiteField.className = 'website-input-group mb-2';
+        newWebsiteField.dataset.index = newIndex;
         newWebsiteField.innerHTML = `
           <div class="input-group">
-            <input type="text" class="form-control" name="website_name[]" placeholder="Website Name">
             <input type="url" class="form-control" name="website_url[]" placeholder="https://example.com">
             <button type="button" class="btn btn-danger remove-website">
               <i class="bi bi-trash"></i>
@@ -191,28 +190,37 @@
         websitesContainer.appendChild(newWebsiteField);
       });
       
-      // Remove website field
+      // Remove website field - use event delegation for dynamically added elements
       websitesContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-website') || e.target.parentElement.classList.contains('remove-website')) {
-          const button = e.target.closest('.remove-website');
-          const fieldGroup = button.closest('.website-input-group');
+        const removeButton = e.target.closest('.remove-website');
+        if (removeButton) {
+          const websiteGroup = removeButton.closest('.website-input-group');
           
-          if (websitesContainer.children.length > 1) {
-            fieldGroup.remove();
-          } else {
-            // Clear the inputs if it's the last one
-            const inputs = fieldGroup.querySelectorAll('input');
-            inputs.forEach(input => input.value = '');
+          // Remove the field group
+          websitesContainer.removeChild(websiteGroup);
+          
+          // If no websites left, add an empty one
+          if (websitesContainer.children.length === 0) {
+            addWebsiteBtn.click();
           }
+          
+          // Update indices for all remaining website groups
+          const groups = websitesContainer.querySelectorAll('.website-input-group');
+          groups.forEach((group, index) => {
+            group.dataset.index = index;
+          });
         }
       });
     }
     
-    // Form validation for website URLs
+    // Form validation and submission
     const profileEditForm = document.getElementById('profileEditForm');
     if (profileEditForm) {
       profileEditForm.addEventListener('submit', function(e) {
-        const urlInputs = document.querySelectorAll('input[type="url"]');
+        e.preventDefault();
+        
+        // Validate URLs
+        const urlInputs = document.querySelectorAll('input[name="website_url[]"]');
         let hasInvalidUrl = false;
         
         urlInputs.forEach(input => {
@@ -224,24 +232,55 @@
           }
         });
         
+        if (hasInvalidUrl) {
+          window.showNotification('Please enter valid website URLs', 'error');
+          return;
+        }
+        
+        // Create a FormData object for the form
+        const formData = new FormData(this);
+        
+        // Submit the form
+        fetch(profileEditForm.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            window.showNotification('Profile updated successfully', 'success');
+            // Reload page to show updated information
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            window.showNotification(data.error || 'Failed to update profile', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          window.showNotification('An error occurred. Please try again.', 'error');
+        });
       });
     }
     
     // URL validation helper function
     function isValidUrl(string) {
+      if (!string) return true; // Empty is considered valid for optional fields
+      
+      // Add protocol if missing
+      let url = string;
+      if (!string.match(/^https?:\/\//i)) {
+        url = 'https://' + string;
+      }
+      
       try {
-        new URL(string);
+        new URL(url);
         return true;
       } catch (_) {
-        // If string doesn't have protocol, add it and try again
-        if (!string.startsWith('http://') && !string.startsWith('https://')) {
-          try {
-            new URL('https://' + string);
-            return true;
-          } catch (_) {
-            return false;
-          }
-        }
         return false;
       }
     }

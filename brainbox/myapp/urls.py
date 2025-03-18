@@ -34,13 +34,14 @@ urlpatterns = [
     path('students-dashboard/student-profile/activity-contribution',student_profile_page_activity_contribution,name='student_profile_page_activity_contribution'),
 
 
+
+
     # Teachers section paths
     path('teachers-dashboard/', teachers_homepage, name='teachers_homepage'),
     path('teachers-create-hub/', teachers_create_hub, name='teachers_create_hub'),
     path('send_invite',send_invite,name='send_invite'),
-    path('teacher/profile/update/', teacher_profile_update, name='teacher_profile_update'),
+    path('teacher/profile/update/', teachers_profile_update, name='teacher_profile_update'),
     path('teachers-dashboard/teachers-profile', teachers_profile_page,name='teachers_profile_page'),
-    path('teacher/profile/update-pic/', teacher_profile_update_pic, name='teacher_profile_update_pic'),
     path('teachers-dashboard/hub-room/<str:id>/', current_teacher_hub_room, name='current_teacher_hub_room'),
     path('teachers-dashboard/teachers-community-page',teachers_community_page, name='teachers_community_page'),
     path('teachers-dashboard/teachers-profile/my_profile',teacher_profile_page_my_profile,name='teacher_profile_page_my_profile'),

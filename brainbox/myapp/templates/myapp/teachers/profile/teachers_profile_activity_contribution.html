@@ -5,22 +5,38 @@
 {% block profile_content %}
 <div class="profile-detail-header">
   <h3 class="profile-detail-title">Activity & Analytics</h3>
-  <div class="filter-dropdown">
-    <select class="form-control" id="activityFilter">
-      <option value="all" {% if filter == 'all' %}selected{% endif %}>All Activity</option>
-      <option value="hubs" {% if filter == 'hubs' %}selected{% endif %}>Hub Activity</option>
-      <option value="responses" {% if filter == 'responses' %}selected{% endif %}>Responses</option>
-      <option value="content" {% if filter == 'content' %}selected{% endif %}>Content Creation</option>
-      <option value="moderation" {% if filter == 'moderation' %}selected{% endif %}>Moderation</option>
-    </select>
-  </div>
 </div>
 
 <!-- Analytics Summary Section -->
 <div class="profile-section">
-  <h4 class="section-title"><i class="bi bi-pie-chart"></i> Hub Analytics Overview</h4>
+  <h4 class="section-title"><i class="bi bi-pie-chart"></i> Social Analytics Overview</h4>
   
-  <div class="analytics-overview">
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="bi bi-person-plus"></i>
+        </div>
+        <div class="stat-info">
+          <h5>{{ followers|default:"0" }}</h5>
+          <p>Followers</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 mb-3">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-info">
+          <h5>{{ followings|default:"0" }}</h5>
+          <p>Following</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="analytics-overview mt-4">
     <div class="row">
       <div class="col-md-4 mb-4">
         <div class="analytics-card">
@@ -31,7 +47,7 @@
             <h5>{{ stats.total_students|default:"0" }}</h5>
             <p>Total Students</p>
             <div class="progress-small">
-              <div class="progress-bar" ></div>
+              <div class="progress-bar" style="width: {{ stats.student_growth_pct|default:"50" }}%"></div>
             </div>
             <span class="progress-info">
               {% if stats.student_growth > 0 %}
@@ -54,7 +70,7 @@
             <h5>{{ stats.engagement_score|default:"0" }}</h5>
             <p>Engagement Score</p>
             <div class="progress-small">
-              <div class="progress-bar" ></div>
+              <div class="progress-bar" style="width: {{ stats.engagement_score_pct|default:"75" }}%"></div>
             </div>
             <span class="progress-info">
               {% if stats.engagement_change > 0 %}
@@ -77,141 +93,11 @@
             <h5>{{ stats.response_time|default:"0" }}h</h5>
             <p>Avg. Response Time</p>
             <div class="progress-small">
-              <div class="progress-bar" ></div>
+              <div class="progress-bar" style="width: {{ stats.response_time_pct|default:"60" }}%"></div>
             </div>
             <span class="progress-info">
               <i class="bi bi-info-circle"></i> Target: 24h response
             </span>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="view-details-link">
-      <a href="#" class="btn btn-outline-primary">
-        <i class="bi bi-graph-up"></i> View Detailed Hub Analytics
-      </a>
-    </div>
-  </div>
-</div>
-
-<!-- Engagement Metrics -->
-<div class="profile-section">
-  <h4 class="section-title"><i class="bi bi-bar-chart"></i> Engagement Metrics</h4>
-  
-  <div class="metrics-container">
-    <div class="row">
-      <div class="col-md-6 mb-4">
-        <div class="metrics-card">
-          <h5 class="metrics-title">Most Active Hub</h5>
-          <div class="metrics-content">
-            {% if stats.most_active_hub %}
-              <div class="metrics-highlight">{{ stats.most_active_hub.name }}</div>
-              <ul class="metrics-details">
-                <li><strong>{{ stats.most_active_hub.messages_count|default:"0" }}</strong> messages</li>
-                <li><strong>{{ stats.most_active_hub.questions_count|default:"0" }}</strong> questions</li>
-                <li><strong>{{ stats.most_active_hub.active_students|default:"0" }}</strong> active students</li>
-              </ul>
-              <a href="#" class="metrics-link">View Hub</a>
-            {% else %}
-              <div class="empty-metrics">
-                <i class="bi bi-people"></i>
-                <p>No hub activity data yet</p>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 mb-4">
-        <div class="metrics-card">
-          <h5 class="metrics-title">Student Engagement</h5>
-          <div class="metrics-content">
-            <div class="engagement-chart">
-              <div class="chart-bar" >
-                <span class="chart-value">{{ stats.high_engagement_count|default:"0" }}</span>
-                <span class="chart-label">High</span>
-              </div>
-              <div class="chart-bar">
-                <span class="chart-value">{{ stats.medium_engagement_count|default:"0" }}</span>
-                <span class="chart-label">Medium</span>
-              </div>
-              <div class="chart-bar" >
-                <span class="chart-value">{{ stats.low_engagement_count|default:"0" }}</span>
-                <span class="chart-label">Low</span>
-              </div>
-              <div class="chart-bar" >
-                <span class="chart-value">{{ stats.inactive_count|default:"0" }}</span>
-                <span class="chart-label">Inactive</span>
-              </div>
-            </div>
-            <p class="chart-explanation">Student engagement is calculated based on participation, views, and interaction frequency.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="row">
-      <div class="col-md-6 mb-4">
-        <div class="metrics-card">
-          <h5 class="metrics-title">Top Performing Content</h5>
-          <div class="metrics-content">
-            {% if stats.top_content %}
-              <div class="top-content-list">
-                {% for content in stats.top_content %}
-                  <div class="top-content-item">
-                    <div class="content-type">
-                      <i class="bi {% if content.type == 'question' %}bi-question-circle{% elif content.type == 'resource' %}bi-file-earmark-text{% elif content.type == 'poll' %}bi-clipboard-data{% else %}bi-card-text{% endif %}"></i>
-                    </div>
-                    <div class="content-info">
-                      <h6>{{ content.title }}</h6>
-                      <p>{{ content.views }} views • {{ content.interactions }} interactions</p>
-                    </div>
-                    <a href="#" class="content-link">
-                      <i class="bi bi-arrow-right"></i>
-                    </a>
-                  </div>
-                {% endfor %}
-              </div>
-            {% else %}
-              <div class="empty-metrics">
-                <i class="bi bi-journal-text"></i>
-                <p>No content performance data available</p>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 mb-4">
-        <div class="metrics-card">
-          <h5 class="metrics-title">Response Rate</h5>
-          <div class="metrics-content">
-            <div class="response-rate-chart">
-              <div class="donut-chart">
-                <svg width="120" height="120" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="#e9ecef" stroke-width="10" />
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="#3a7bd5" stroke-width="10" 
-                      stroke-dasharray="{{ percentage }} "
-                      stroke-dashoffset="25" />
-                  <text x="60" y="60" text-anchor="middle" dominant-baseline="middle" font-size="1.5rem" font-weight="bold">
-                    {{ stats.response_rate_percentage|default:"75" }}%
-                  </text>
-                </svg>
-              </div>
-              <div class="response-details">
-                <div class="response-stat">
-                  <span class="response-label">Questions</span>
-                  <span class="response-value">{{ stats.total_questions|default:"0" }}</span>
-                </div>
-                <div class="response-stat">
-                  <span class="response-label">Responses</span>
-                  <span class="response-value">{{ stats.total_responses|default:"0" }}</span>
-                </div>
-                <div class="response-stat">
-                  <span class="response-label">Unanswered</span>
-                  <span class="response-value">{{ stats.unanswered_questions|default:"0" }}</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -225,7 +111,7 @@
   
   <div class="activity-timeline">
     {% for activity in activities %}
-      <div class="activity-item {% if activity.type == 'response' %}activity-response{% elif activity.type == 'content_creation' %}activity-content{% elif activity.type == 'hub_activity' %}activity-hub{% elif activity.type == 'moderation' %}activity-moderation{% endif %}">
+      <div class="activity-item {% if activity.type == 'response' %}activity-response{% elif activity.type == 'content_creation' %}activity-content{% elif activity.type == 'hub_activity' %}activity-hub{% elif activity.type == 'follow' %}activity-follow{% elif activity.type == 'followed' %}activity-followed{% endif %}">
         <span class="activity-date">{{ activity.created_at|date:"F d, Y \a\t h:i A" }}</span>
         <div class="activity-content">
           <h5 class="activity-title">
@@ -235,8 +121,10 @@
               <i class="bi bi-file-earmark-plus"></i> Created new content
             {% elif activity.type == 'hub_activity' %}
               <i class="bi bi-people"></i> Hub activity
-            {% elif activity.type == 'moderation' %}
-              <i class="bi bi-shield-check"></i> Moderation action
+            {% elif activity.type == 'follow' %}
+              <i class="bi bi-person-plus"></i> Started following someone
+            {% elif activity.type == 'followed' %}
+              <i class="bi bi-person-check"></i> Someone followed you
             {% else %}
               <i class="bi bi-activity"></i> Activity
             {% endif %}
@@ -252,11 +140,13 @@
               <a href="#" class="activity-link">View Content</a>
             {% elif activity.type == 'hub_activity' %}
               <p><strong>{{ activity.hub_name }}</strong> - {{ activity.action }}</p>
-              <a href="#" class="activity-link">View Hub</a>
-            {% elif activity.type == 'moderation' %}
-              <p><strong>Action:</strong> {{ activity.action_type }}</p>
-              <p>{{ activity.content|truncatechars:150 }}</p>
-              <a href="#" class="activity-link">View Moderation Log</a>
+              <a href="{% url 'teachers_homepage' %}" class="activity-link">View Hubs</a>
+            {% elif activity.type == 'follow' %}
+              <p>You started following <strong>{{ activity.target_name }}</strong></p>
+              <a href="#" class="activity-link">View Profile</a>
+            {% elif activity.type == 'followed' %}
+              <p><strong>{{ activity.actor_name }}</strong> started following you</p>
+              <a href="#" class="activity-link">View Profile</a>
             {% else %}
               <p>{{ activity.content }}</p>
             {% endif %}
@@ -410,258 +300,6 @@
     font-size: 1rem;
   }
   
-  .view-details-link {
-    text-align: center;
-    margin-top: 1rem;
-  }
-  
-  /* Metrics Cards */
-  .metrics-container {
-    margin-bottom: 1rem;
-  }
-  
-  .metrics-card {
-    background-color: white;
-    border-radius: 0.5rem;
-    padding: 1.25rem;
-    height: 100%;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-  }
-  
-  .metrics-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  .metrics-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #343a40;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #e9ecef;
-  }
-  
-  .metrics-content {
-    padding: 0.5rem 0;
-  }
-  
-  .metrics-highlight {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #3a7bd5;
-    margin-bottom: 0.75rem;
-  }
-  
-  .metrics-details {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 1rem 0;
-  }
-  
-  .metrics-details li {
-    padding: 0.4rem 0;
-    font-size: 0.875rem;
-    color: #343a40;
-    border-bottom: 1px dashed #e9ecef;
-  }
-  
-  .metrics-details li:last-child {
-    border-bottom: none;
-  }
-  
-  .metrics-link {
-    display: inline-block;
-    color: #3a7bd5;
-    font-weight: 500;
-    font-size: 0.875rem;
-    text-decoration: none;
-  }
-  
-  .metrics-link:hover {
-    text-decoration: underline;
-  }
-  
-  .empty-metrics {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: #6c757d;
-  }
-  
-  .empty-metrics i {
-    font-size: 2rem;
-    margin-bottom: 0.75rem;
-    opacity: 0.5;
-  }
-  
-  /* Engagement Chart */
-  .engagement-chart {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    height: 150px;
-    padding: 0 1rem;
-    margin-bottom: 1rem;
-  }
-  
-  .chart-bar {
-    position: relative;
-    width: 22%;
-    background-color: #3a7bd5;
-    border-radius: 4px 4px 0 0;
-    min-height: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .chart-bar:nth-child(1) {
-    background-color: #28a745;
-  }
-  
-  .chart-bar:nth-child(2) {
-    background-color: #17a2b8;
-  }
-  
-  .chart-bar:nth-child(3) {
-    background-color: #ffc107;
-  }
-  
-  .chart-bar:nth-child(4) {
-    background-color: #dc3545;
-  }
-  
-  .chart-value {
-    position: absolute;
-    top: -25px;
-    font-weight: 600;
-    font-size: 0.875rem;
-  }
-  
-  .chart-label {
-    position: absolute;
-    bottom: -25px;
-    font-size: 0.75rem;
-    color: #6c757d;
-  }
-  
-  .chart-explanation {
-    font-size: 0.75rem;
-    color: #6c757d;
-    text-align: center;
-    margin-top: 2rem;
-  }
-  
-  /* Top Content List */
-  .top-content-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .top-content-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    background-color: #f8f9fa;
-    border-radius: 0.5rem;
-    transition: all 0.3s ease;
-  }
-  
-  .top-content-item:hover {
-    background-color: #f1f3f5;
-    transform: translateX(5px);
-  }
-  
-  .content-type {
-    width: 36px;
-    height: 36px;
-    background-color: rgba(58, 123, 213, 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    color: #3a7bd5;
-    flex-shrink: 0;
-  }
-  
-  .content-info {
-    flex: 1;
-  }
-  
-  .content-info h6 {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-    color: #343a40;
-  }
-  
-  .content-info p {
-    font-size: 0.75rem;
-    color: #6c757d;
-    margin: 0;
-  }
-  
-  .content-link {
-    width: 28px;
-    height: 28px;
-    background-color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #3a7bd5;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-  }
-  
-  .content-link:hover {
-    transform: scale(1.1);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-  }
-  
-  /* Response Rate Chart */
-  .response-rate-chart {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  
-  .donut-chart {
-    flex-shrink: 0;
-  }
-  
-  .response-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding-left: 1rem;
-  }
-  
-  .response-stat {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.5rem 0;
-    border-bottom: 1px dashed #e9ecef;
-  }
-  
-  .response-stat:last-child {
-    border-bottom: none;
-  }
-  
-  .response-label {
-    font-size: 0.875rem;
-    color: #6c757d;
-  }
-  
-  .response-value {
-    font-weight: 600;
-    color: #343a40;
-  }
-  
   /* Activity Timeline */
   .activity-timeline {
     position: relative;
@@ -759,8 +397,12 @@
     background-color: #3a7bd5;
   }
   
-  .activity-moderation::before {
-    background-color: #6c757d;
+  .activity-follow::before {
+    background-color: #6f42c1;
+  }
+  
+  .activity-followed::before {
+    background-color: #fd7e14;
   }
   
   /* Filter dropdown */
@@ -791,6 +433,50 @@
   .empty-state p {
     color: #6c757d;
     margin-bottom: 1.5rem;
+  }
+  
+  /* Stat cards */
+  .stat-card {
+    display: flex;
+    align-items: center;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    height: 100%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    background-color: rgba(58, 123, 213, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    color: #3a7bd5;
+    font-size: 1.5rem;
+  }
+  
+  .stat-info h5 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #343a40;
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-info p {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0;
   }
 </style>
 {% endblock %}

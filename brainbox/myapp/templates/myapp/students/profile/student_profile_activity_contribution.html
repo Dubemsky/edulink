@@ -10,7 +10,7 @@
       <option value="all" {% if filter == 'all' %}selected{% endif %}>All Activity</option>
       <option value="questions" {% if filter == 'questions' %}selected{% endif %}>Questions</option>
       <option value="answers" {% if filter == 'answers' %}selected{% endif %}>Answers</option>
-      <option value="comments" {% if filter == 'comments' %}selected{% endif %}>Comments</option>
+      <option value="posts" {% if filter == 'posts' %}selected{% endif %}>Posts</option>
       <option value="hubs" {% if filter == 'hubs' %}selected{% endif %}>Hub Activity</option>
     </select>
   </div>
@@ -59,8 +59,33 @@
           <i class="bi bi-hand-thumbs-up"></i>
         </div>
         <div class="stat-info">
-          <h5>{{ stats.upvotes_received|default:"0" }}</h5>
-          <p>Upvotes</p>
+          <h5>{{ stats.posts_count|default:"0" }}</h5>
+          <p>Posts</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-md-6 mb-3">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="bi bi-person-plus"></i>
+        </div>
+        <div class="stat-info">
+          <h5>{{ student.followers|default:"0" }}</h5>
+          <p>Followers</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 mb-3">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-info">
+          <h5>{{ student.followings|default:"0" }}</h5>
+          <p>Following</p>
         </div>
       </div>
     </div>
@@ -81,12 +106,14 @@
               <i class="bi bi-question-circle"></i> Asked a question
             {% elif activity.type == 'answer' %}
               <i class="bi bi-chat-dots"></i> Posted an answer
-            {% elif activity.type == 'comment' %}
-              <i class="bi bi-chat-text"></i> Posted a comment
+            {% elif activity.type == 'post' %}
+              <i class="bi bi-file-text"></i> Created a post
             {% elif activity.type == 'hub_joined' %}
               <i class="bi bi-people"></i> Joined a hub
-            {% elif activity.type == 'upvote_received' %}
-              <i class="bi bi-hand-thumbs-up"></i> Received an upvote
+            {% elif activity.type == 'follow' %}
+              <i class="bi bi-person-plus"></i> Started following someone
+            {% elif activity.type == 'followed' %}
+              <i class="bi bi-person-check"></i> Someone followed you
             {% else %}
               <i class="bi bi-activity"></i> Activity
             {% endif %}
@@ -94,19 +121,30 @@
           <div class="activity-detail">
             {% if activity.type == 'question' %}
               <p>{{ activity.content }}</p>
-              <a href="{% url 'question_detail' activity.id %}" class="activity-link">View Question</a>
+              {% if activity.question_id %}
+              <a href="#" class="activity-link">View Question</a>
+              {% endif %}
             {% elif activity.type == 'answer' %}
               <p>{{ activity.content|truncatechars:150 }}</p>
-              <a href="{% url 'question_detail' activity.question_id %}#answer-{{ activity.id }}" class="activity-link">View Answer</a>
-            {% elif activity.type == 'comment' %}
-              <p>{{ activity.content }}</p>
-              <a href="{% url 'question_detail' activity.question_id %}#comment-{{ activity.id }}" class="activity-link">View Comment</a>
+              {% if activity.question_id %}
+              <a href="#" class="activity-link">View Answer</a>
+              {% endif %}
+            {% elif activity.type == 'post' %}
+              <p>{{ activity.content|truncatechars:150 }}</p>
+              {% if activity.post_id %}
+              <a href="#" class="activity-link">View Post</a>
+              {% endif %}
             {% elif activity.type == 'hub_joined' %}
               <p>You joined the <strong>{{ activity.hub_name }}</strong> hub</p>
-              <a href="{% url 'hub_detail' activity.hub_id %}" class="activity-link">View Hub</a>
-            {% elif activity.type == 'upvote_received' %}
-              <p>Your {{ activity.content_type }} received an upvote</p>
-              <a href="{% url 'question_detail' activity.question_id %}" class="activity-link">View Content</a>
+              {% if activity.hub_id %}
+              <a href="{% url 'students_homepage' %}" class="activity-link">View Hubs</a>
+              {% endif %}
+            {% elif activity.type == 'follow' %}
+              <p>You started following <strong>{{ activity.target_name }}</strong></p>
+              <a href="#" class="activity-link">View Profile</a>
+            {% elif activity.type == 'followed' %}
+              <p><strong>{{ activity.actor_name }}</strong> started following you</p>
+              <a href="#" class="activity-link">View Profile</a>
             {% else %}
               <p>{{ activity.content }}</p>
             {% endif %}
@@ -191,12 +229,13 @@
           item.classList.add('activity-question');
         } else if (icon.classList.contains('bi-chat-dots')) {
           item.classList.add('activity-answer');
-        } else if (icon.classList.contains('bi-chat-text')) {
-          item.classList.add('activity-comment');
+        } else if (icon.classList.contains('bi-file-text')) {
+          item.classList.add('activity-post');
         } else if (icon.classList.contains('bi-people')) {
           item.classList.add('activity-hub');
-        } else if (icon.classList.contains('bi-hand-thumbs-up')) {
-          item.classList.add('activity-upvote');
+        } else if (icon.classList.contains('bi-person-plus') || 
+                  icon.classList.contains('bi-person-check')) {
+          item.classList.add('activity-follow');
         }
       }
     });
@@ -254,6 +293,64 @@
     width: 150px;
   }
   
+  .activity-timeline {
+    position: relative;
+    margin-top: 1.5rem;
+    padding-left: 2rem;
+  }
+  
+  .activity-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+  }
+  
+  .activity-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+    padding-left: 1rem;
+  }
+  
+  .activity-item::before {
+    content: '';
+    position: absolute;
+    left: -2rem;
+    top: 0.5rem;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    border: 2px solid #fff;
+  }
+  
+  .activity-date {
+    display: block;
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+  }
+  
+  .activity-content {
+    background-color: #fff;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  
+  .activity-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
   .activity-question::before {
     background-color: #3a7bd5;
   }
@@ -262,7 +359,7 @@
     background-color: #28a745;
   }
   
-  .activity-comment::before {
+  .activity-post::before {
     background-color: #6c757d;
   }
   
@@ -270,7 +367,7 @@
     background-color: #17a2b8;
   }
   
-  .activity-upvote::before {
+  .activity-follow::before {
     background-color: #dc3545;
   }
   

@@ -25,19 +25,19 @@
       </div>
       <div class="col-md-6 mb-3">
         <strong class="form-label">Subject Area</strong>
-        <p>{{ subject|default:"Mathematics" }}</p>
+        <p>{{ subject|default:"Not specified" }}</p>
       </div>
       <div class="col-md-6 mb-3">
         <strong class="form-label">Experience</strong>
-        <p>{{ years_experience|default:"5" }} years</p>
+        <p>{{ years_experience|default:"Not specified" }} years</p>
       </div>
       <div class="col-md-6 mb-3">
         <strong class="form-label">School/Institution</strong>
-        <p>{{ school|default:"Edison High School" }}</p>
+        <p>{{ school|default:"Not specified" }}</p>
       </div>
       <div class="col-md-6 mb-3">
         <strong class="form-label">Joined On</strong>
-        <p>{{ created_at|default:"January 1, 2023" }}</p>
+        <p>{{ created_at|default:"Not specified" }}</p>
       </div>
     </div>
   </div>
@@ -65,15 +65,19 @@
   <div class="profile-section">
     <h4 class="section-title"><i class="bi bi-link-45deg"></i> Professional Websites</h4>
     <ul class="website-list">
-      {% for website in websites %}
-        <li class="website-item">
-          <a href="{{ website.url }}" target="_blank">{{ website.name|default:website.url }}</a>
-        </li>
-      {% empty %}
+      {% if websites %}
+        {% for website in websites %}
+          <li class="website-item">
+            <a href="{{ website.url }}" target="_blank" rel="noopener noreferrer">
+              {{ website.name|default:website.url }}
+            </a>
+          </li>
+        {% endfor %}
+      {% else %}
         <li class="website-item">
           <span>No websites have been added yet.</span>
         </li>
-      {% endfor %}
+      {% endif %}
     </ul>
   </div>
 </div>
@@ -84,31 +88,31 @@
     <h3 class="profile-detail-title">Edit Profile</h3>
   </div>
 
-  <form id="profileEditForm" method="POST" action="{% url 'teacher_profile_update' %}">
+  <form id="profileEditForm" method="POST" action="{% url 'teachers_profile_update' %}">
     {% csrf_token %}
     <input type="hidden" name="type" value="profile">
     
     <div class="profile-section">
       <h4 class="section-title"><i class="bi bi-person"></i> Basic Details</h4>
       <div class="row">
-        <div class="col-md-6 form-row">
+        <div class="col-md-6 form-row mb-3">
           <label class="form-label">Full Name</label>
           <input type="text" class="form-control" name="name" value="{{ name|default:'' }}" required>
         </div>
-        <div class="col-md-6 form-row">
+        <div class="col-md-6 form-row mb-3">
           <label class="form-label">Email</label>
           <input type="email" class="form-control" name="email" value="{{ email|default:'' }}" readonly>
           <small class="form-text">Email cannot be changed. Contact support for assistance.</small>
         </div>
-        <div class="col-md-6 form-row">
+        <div class="col-md-6 form-row mb-3">
           <label class="form-label">Subject Area</label>
           <input type="text" class="form-control" name="subject" value="{{ subject|default:'' }}">
         </div>
-        <div class="col-md-6 form-row">
+        <div class="col-md-6 form-row mb-3">
           <label class="form-label">Years of Experience</label>
           <input type="number" class="form-control" name="years_experience" value="{{ years_experience|default:'' }}" min="0" max="50">
         </div>
-        <div class="col-md-6 form-row">
+        <div class="col-md-6 form-row mb-3">
           <label class="form-label">School/Institution</label>
           <input type="text" class="form-control" name="school" value="{{ school|default:'' }}">
         </div>
@@ -117,7 +121,7 @@
     
     <div class="profile-section">
       <h4 class="section-title"><i class="bi bi-journal-text"></i> Professional Bio</h4>
-      <div class="form-row">
+      <div class="form-row mb-3">
         <textarea class="form-control" name="bio" rows="4" placeholder="Share your professional background, teaching philosophy, and expertise.">{{ bio|default:'' }}</textarea>
         <small class="form-text">Your bio will be visible to students and other teachers on the platform.</small>
       </div>
@@ -126,35 +130,37 @@
     <div class="profile-section">
       <h4 class="section-title"><i class="bi bi-mortarboard"></i> Education & Qualifications</h4>
       <div id="qualificationsContainer">
-        {% for qualification in qualifications %}
-          <div class="qualification-input-group">
-            <div class="row">
-              <div class="col-md-5 form-row">
-                <input type="text" class="form-control" name="qualification_degree[]" value="{{ qualification.degree }}" placeholder="Degree/Qualification">
-              </div>
-              <div class="col-md-5 form-row">
-                <input type="text" class="form-control" name="qualification_institution[]" value="{{ qualification.institution }}" placeholder="Institution">
-              </div>
-              <div class="col-md-2 form-row">
-                <div class="input-group">
-                  <input type="number" class="form-control" name="qualification_year[]" value="{{ qualification.year }}" placeholder="Year">
-                  <button type="button" class="btn btn-danger remove-qualification">
-                    <i class="bi bi-trash"></i>
-                  </button>
+        {% if qualifications %}
+          {% for qualification in qualifications %}
+            <div class="qualification-input-group mb-3">
+              <div class="row">
+                <div class="col-md-5 form-row mb-2">
+                  <input type="text" class="form-control" name="qualification_degree[]" value="{{ qualification.degree }}" placeholder="Degree/Qualification">
+                </div>
+                <div class="col-md-5 form-row mb-2">
+                  <input type="text" class="form-control" name="qualification_institution[]" value="{{ qualification.institution }}" placeholder="Institution">
+                </div>
+                <div class="col-md-2 form-row mb-2">
+                  <div class="input-group">
+                    <input type="number" class="form-control" name="qualification_year[]" value="{{ qualification.year }}" placeholder="Year">
+                    <button type="button" class="btn btn-danger remove-qualification">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        {% empty %}
-          <div class="qualification-input-group">
+          {% endfor %}
+        {% else %}
+          <div class="qualification-input-group mb-3">
             <div class="row">
-              <div class="col-md-5 form-row">
+              <div class="col-md-5 form-row mb-2">
                 <input type="text" class="form-control" name="qualification_degree[]" placeholder="Degree/Qualification">
               </div>
-              <div class="col-md-5 form-row">
+              <div class="col-md-5 form-row mb-2">
                 <input type="text" class="form-control" name="qualification_institution[]" placeholder="Institution">
               </div>
-              <div class="col-md-2 form-row">
+              <div class="col-md-2 form-row mb-2">
                 <div class="input-group">
                   <input type="number" class="form-control" name="qualification_year[]" placeholder="Year">
                   <button type="button" class="btn btn-danger remove-qualification">
@@ -164,7 +170,7 @@
               </div>
             </div>
           </div>
-        {% endfor %}
+        {% endif %}
       </div>
       <button type="button" class="btn btn-secondary mt-3" id="addQualificationBtn">
         <i class="bi bi-plus-circle"></i> Add Qualification
@@ -174,23 +180,29 @@
     <div class="profile-section">
       <h4 class="section-title"><i class="bi bi-link-45deg"></i> Professional Websites</h4>
       <div id="websitesContainer">
-        {% for website in websites %}
-          <div class="website-input-group">
-            <input type="text" class="form-control" name="website_name[]" value="{{ website.name|default:'' }}" placeholder="Website Name">
-            <input type="url" class="form-control" name="website_url[]" value="{{ website.url }}" placeholder="https://example.com">
-            <button type="button" class="btn btn-danger remove-website">
-              <i class="bi bi-trash"></i>
-            </button>
+        {% if websites %}
+          {% for website in websites %}
+            <div class="website-input-group mb-2" data-index="{{ forloop.counter0 }}">
+              <div class="input-group">
+                <input type="text" class="form-control" name="website_name[]" value="{{ website.name|default:'' }}" placeholder="Website Name">
+                <input type="url" class="form-control" name="website_url[]" value="{{ website.url }}" placeholder="https://example.com">
+                <button type="button" class="btn btn-danger remove-website">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="website-input-group mb-2" data-index="0">
+            <div class="input-group">
+              <input type="text" class="form-control" name="website_name[]" placeholder="Website Name">
+              <input type="url" class="form-control" name="website_url[]" placeholder="https://example.com">
+              <button type="button" class="btn btn-danger remove-website">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
           </div>
-        {% empty %}
-          <div class="website-input-group">
-            <input type="text" class="form-control" name="website_name[]" placeholder="Website Name">
-            <input type="url" class="form-control" name="website_url[]" placeholder="https://example.com">
-            <button type="button" class="btn btn-danger remove-website">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        {% endfor %}
+        {% endif %}
       </div>
       <button type="button" class="btn btn-secondary mt-3" id="addWebsiteBtn">
         <i class="bi bi-plus-circle"></i> Add Website
@@ -275,31 +287,41 @@
     if (addWebsiteBtn && websitesContainer) {
       // Add new website field
       addWebsiteBtn.addEventListener('click', function() {
+        const newIndex = document.querySelectorAll('.website-input-group').length;
         const newWebsiteField = document.createElement('div');
-        newWebsiteField.className = 'website-input-group';
+        newWebsiteField.className = 'website-input-group mb-2';
+        newWebsiteField.dataset.index = newIndex;
         newWebsiteField.innerHTML = `
-          <input type="text" class="form-control" name="website_name[]" placeholder="Website Name">
-          <input type="url" class="form-control" name="website_url[]" placeholder="https://example.com">
-          <button type="button" class="btn btn-danger remove-website">
-            <i class="bi bi-trash"></i>
-          </button>
+          <div class="input-group">
+            <input type="text" class="form-control" name="website_name[]" placeholder="Website Name">
+            <input type="url" class="form-control" name="website_url[]" placeholder="https://example.com">
+            <button type="button" class="btn btn-danger remove-website">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
         `;
         websitesContainer.appendChild(newWebsiteField);
       });
       
-      // Remove website field
+      // Remove website field - use event delegation for dynamically added elements
       websitesContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-website') || e.target.parentElement.classList.contains('remove-website')) {
-          const button = e.target.closest('.remove-website');
-          const fieldGroup = button.closest('.website-input-group');
+        const removeButton = e.target.closest('.remove-website');
+        if (removeButton) {
+          const websiteGroup = removeButton.closest('.website-input-group');
           
-          if (websitesContainer.children.length > 1) {
-            fieldGroup.remove();
-          } else {
-            // Clear the inputs if it's the last one
-            const inputs = fieldGroup.querySelectorAll('input');
-            inputs.forEach(input => input.value = '');
+          // Remove the field group
+          websitesContainer.removeChild(websiteGroup);
+          
+          // If no websites left, add an empty one
+          if (websitesContainer.children.length === 0) {
+            addWebsiteBtn.click();
           }
+          
+          // Update indices for all remaining website groups
+          const groups = websitesContainer.querySelectorAll('.website-input-group');
+          groups.forEach((group, index) => {
+            group.dataset.index = index;
+          });
         }
       });
     }
@@ -312,16 +334,16 @@
       // Add new qualification field
       addQualificationBtn.addEventListener('click', function() {
         const newQualificationField = document.createElement('div');
-        newQualificationField.className = 'qualification-input-group';
+        newQualificationField.className = 'qualification-input-group mb-3';
         newQualificationField.innerHTML = `
           <div class="row">
-            <div class="col-md-5 form-row">
+            <div class="col-md-5 form-row mb-2">
               <input type="text" class="form-control" name="qualification_degree[]" placeholder="Degree/Qualification">
             </div>
-            <div class="col-md-5 form-row">
+            <div class="col-md-5 form-row mb-2">
               <input type="text" class="form-control" name="qualification_institution[]" placeholder="Institution">
             </div>
-            <div class="col-md-2 form-row">
+            <div class="col-md-2 form-row mb-2">
               <div class="input-group">
                 <input type="number" class="form-control" name="qualification_year[]" placeholder="Year">
                 <button type="button" class="btn btn-danger remove-qualification">
@@ -336,9 +358,9 @@
       
       // Remove qualification field
       qualificationsContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-qualification') || e.target.parentElement.classList.contains('remove-qualification')) {
-          const button = e.target.closest('.remove-qualification');
-          const fieldGroup = button.closest('.qualification-input-group');
+        const removeButton = e.target.closest('.remove-qualification');
+        if (removeButton) {
+          const fieldGroup = removeButton.closest('.qualification-input-group');
           
           if (qualificationsContainer.children.length > 1) {
             fieldGroup.remove();
@@ -350,9 +372,46 @@
         }
       });
     }
+    
+    // Form validation for website URLs
+    const profileEditForm = document.getElementById('profileEditForm');
+    if (profileEditForm) {
+      profileEditForm.addEventListener('submit', function(e) {
+        const urlInputs = document.querySelectorAll('input[name="website_url[]"]');
+        let hasInvalidUrl = false;
+        
+        urlInputs.forEach(input => {
+          if (input.value && !isValidUrl(input.value)) {
+            e.preventDefault();
+            hasInvalidUrl = true;
+            input.classList.add('is-invalid');
+          } else {
+            input.classList.remove('is-invalid');
+          }
+        });
+        
+        if (hasInvalidUrl) {
+          window.showNotification('Please enter valid website URLs', 'error');
+        }
+      });
+    }
+    
+    // URL validation helper function
+    function isValidUrl(string) {
+      try {
+        // Add protocol if missing
+        if (!string.match(/^https?:\/\//i)) {
+          string = 'https://' + string;
+        }
+        new URL(string);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
   });
 </script>
-
+{% endblock %}
 <style>
   /* Profile-specific styles */
   .qualification-item {
@@ -458,5 +517,32 @@
   .website-input-group .btn {
     flex-shrink: 0;
   }
-</style>
-{% endblock %}
+  
+  .website-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .website-item {
+    padding: 0.75rem 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .website-item:hover {
+    background-color: #f1f3f5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  
+  .website-item a {
+    color: #3a7bd5;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .website-item a:hover {
+    text-decoration: underline;
+  }
