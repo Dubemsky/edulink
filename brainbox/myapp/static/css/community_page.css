@@ -1,4 +1,3 @@
-
 .community-section {
   padding: 80px 0 40px;
 }
@@ -375,27 +374,95 @@
   text-align: center;
 }
 
-.follow-btn {
-  background: white;
-  color: var(--primary-color);
-  border: 2px solid var(--primary-color);
-  padding: 10px 25px;
-  border-radius: 30px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+/* Modal Action Buttons Container */
+.modal-action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
   margin-top: 20px;
+}
+
+/* Enhanced Connect Button Styles - replaces follow-btn */
+.connect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 25px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  background-color: var(--primary-color, #3498db);
+  color: white;
+  box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);
+}
+
+.connect-btn:hover {
+  background-color: #2980b9;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 15px rgba(52, 152, 219, 0.3);
+}
+
+.connect-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 5px rgba(52, 152, 219, 0.2);
+}
+
+/* State for when connecting */
+.connect-btn.connecting {
+  background-color: #f39c12;
+  pointer-events: none;
+}
+
+/* State for when connected */
+.connect-btn.connected {
+  background-color: #2ecc71;
+}
+
+.connect-btn.connected:hover {
+  background-color: #27ae60;
+}
+
+.connect-btn i {
+  margin-right: 8px;
+  font-size: 1.1rem;
+}
+
+/* Message Button Styles */
+.message-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 25px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  outline: none;
+  border: 2px solid var(--primary-color, #3498db);
+  background-color: transparent;
+  color: var(--primary-color, #3498db);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
-.follow-btn:hover {
+.message-btn:hover {
+  background-color: rgba(52, 152, 219, 0.1);
   transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
-.follow-btn.following {
-  background-color: var(--primary-color);
-  color: white;
+.message-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.message-btn i {
+  margin-right: 8px;
+  font-size: 1.1rem;
 }
 
 /* Toast Notifications */
@@ -413,8 +480,13 @@
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
-  animation: slideInRight 0.3s forwards, fadeOut 0.5s 2.5s forwards;
   max-width: 350px;
+  animation: slideInRight 0.3s forwards;
+  opacity: 1;
+}
+
+.toast.fade-out {
+  animation: fadeOut 0.3s forwards;
 }
 
 .toast.success {
@@ -432,6 +504,11 @@
   color: white;
 }
 
+.toast.warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
 .toast i {
   margin-right: 10px;
   font-size: 1.2rem;
@@ -443,8 +520,8 @@
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; visibility: hidden; }
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-20px); visibility: hidden; }
 }
 
 /* Responsive Adjustments */
@@ -500,6 +577,16 @@
   .modal-bio, .modal-detail-section {
     padding: 20px;
   }
+  
+  .modal-action-buttons {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .connect-btn, .message-btn {
+    width: 80%;
+  }
 }
 
 @media (max-width: 576px) {
@@ -509,5 +596,10 @@
   
   .filter-button {
     width: calc(50% - 10px);
+  }
+  
+  .connect-btn, .message-btn {
+    width: 100%;
+    padding: 10px 20px;
   }
 }

@@ -1,7 +1,6 @@
 
 
 
-
 // Enhanced Student Analytics Module with Tabs
 const StudentAnalytics = (function() {
     // Private properties
@@ -47,7 +46,6 @@ const StudentAnalytics = (function() {
         showLoading();
         
         const url = `/student-analytics/${roomId}/?username=${encodeURIComponent(username)}`;
-        console.log("Fetching from URL:", url);
         
         fetch(url)
             .then(response => {

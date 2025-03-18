@@ -86,6 +86,104 @@
         padding: 0.6rem 1rem;
     }
 }
+
+/* Enhanced Connect Button Styles */
+.connect-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    outline: none;
+    border: none;
+    background-color: #3498db;
+    color: white;
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.25);
+    margin-right: 8px;
+}
+
+.connect-btn:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
+}
+
+.connect-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+}
+
+.connect-btn.connecting {
+    background-color: #f39c12;
+    pointer-events: none;
+}
+
+.connect-btn.connected {
+    background-color: #2ecc71;
+}
+
+.connect-btn.connected:hover {
+    background-color: #27ae60;
+}
+
+/* Enhanced Message Button Styles */
+.message-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    outline: none;
+    border: 2px solid #3498db;
+    background-color: white;
+    color: #3498db;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.message-btn:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    color: #2980b9;
+    border-color: #2980b9;
+}
+
+.message-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message-btn i {
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+/* Action Button Container */
+.modal-action-buttons {
+    display: flex;
+    margin-top: 15px;
+    gap: 10px;
+}
+
+@media (max-width: 576px) {
+    .modal-action-buttons {
+        flex-direction: column;
+    }
+    
+    .connect-btn, .message-btn {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+}
   </style>
 </head>
 
@@ -346,24 +444,6 @@
       top: 50px;
     }
   }
-
-  .message-btn {
-    background-color: #f1f1f1;
-    color: #333;
-    border: none;
-    border-radius: 50px;
-    padding: 8px 16px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .message-btn:hover {
-    background-color: #e1e1e1;
-  }
 </style>
 
       <div class="filter-container" data-aos="fade-up" data-aos-delay="100">
@@ -410,12 +490,14 @@
               </div>
             </div>
             
-            <button id="followButton" class="follow-btn">
-              <i class="bi bi-person-plus me-2"></i>Connect
-            </button>
-            <button id="messageButton" class="message-btn">
-              <i class="bi bi-chat-text me-2"></i>Message
-            </button>
+            <div class="modal-action-buttons">
+              <button id="connectButton" class="connect-btn">
+                <i class="bi bi-person-plus me-2"></i>Connect
+              </button>
+              <button id="messageButton" class="message-btn">
+                <i class="bi bi-chat-text me-2"></i>Message
+              </button>
+            </div>
           </div>
           
           
@@ -448,22 +530,23 @@
   <script src="{% static 'vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
   <script src="{% static 'vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
 
-  <!-- Main JS File -->
+  <!-- Main JS Files -->
   <script src="{% static 'js/main.js' %}"></script>
   <script src="{% static 'js/private_messaging.js' %}"></script>
   <script src="{% static 'js/private_messaging_connection.js' %}"></script>
 
 
-<script>
 
-// Connect the message button in the user profile modal to direct messaging system
+  <script>
+
+    // Connect the message button in the user profile modal to direct messaging system
 document.addEventListener('DOMContentLoaded', function() {
   const messageButton = document.getElementById('messageButton');
   
   if (messageButton) {
     messageButton.addEventListener('click', function() {
       // Get user details from the modal
-      const userId = document.getElementById('followButton').dataset.userId;
+      const userId = document.getElementById('connectButton').dataset.userId;
       const userName = document.getElementById('modalProfileName').textContent;
       const userRole = document.getElementById('modalRoleBadge').textContent;
       const userImg = document.getElementById('modalProfileImg').src;
@@ -603,29 +686,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize enhanced search functionality
   initEnhancedSearchFunctionality();
@@ -752,8 +812,8 @@ function initEnhancedSearchFunctionality() {
         // Show search stats
         showSearchStats(data.search_term, data.count, data.filter_type);
         
-        // Fetch following status for the users
-        fetchFollowingStatus();
+        // Fetch connection status for the users
+        fetchConnectionStatus();
       } else {
         showToast(data.error || 'Failed to search users', 'error');
       }
@@ -827,706 +887,484 @@ function initEnhancedSearchFunctionality() {
   });
 }
 
-// Add this CSS for the search stats
-document.head.insertAdjacentHTML('beforeend', `
-  <style>
-    .search-stats {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto 20px;
-      padding: 0 20px;
-      text-align: center;
-    }
-    
-    .search-results-info {
-      background-color: #e3f2fd;
-      padding: 10px 15px;
-      border-radius: 8px;
-      display: inline-block;
-      color: #0d47a1;
-      font-size: 0.95rem;
-    }
-    
-    .search-results-info.empty {
-      background-color: #fff3e0;
-      color: #e65100;
-    }
-    
-    .search-count {
-      font-weight: 700;
-      color: #1565c0;
-    }
-    
-    .search-term {
-      font-weight: 700;
-      color: #0d47a1;
-    }
-    
-    .filter-type {
-      font-style: italic;
-    }
-    
-    .reset-search-btn {
-      margin-top: 10px;
-      background-color: #ff7043;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: all 0.3s ease;
-    }
-    
-    .reset-search-btn:hover {
-      background-color: #f4511e;
-    }
-  </style>
-`);
-
-
-    document.addEventListener('DOMContentLoaded', function() {
-      // Initialize AOS animations
-      AOS.init({
-        duration: 800,
-        easing: 'ease-in-out',
-        once: true,
-        mirror: false
-      });
-      
-      const userGrid = document.getElementById('user-grid');
-      const loadingSpinner = document.getElementById('loading-spinner');
-      const filterButtons = document.querySelectorAll('.filter-button');
-      const currentUsername = "{{ current_student_name }}";
-      
-      // Track which users we're following
-      const followingUsers = new Set();
-      
-      // Initially load all users
-      loadUsers('all');
-      
-      // Set up the filter buttons
-      filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          const filterType = this.getAttribute('data-filter');
-          
-          // Update active button
-          filterButtons.forEach(btn => btn.classList.remove('active'));
-          this.classList.add('active');
-          
-          // Load users based on filter
-          loadUsers(filterType);
-        });
-      });
-      
-      // Function to load users based on filter
-      function loadUsers(filterType) {
-        // Show loading spinner
-        userGrid.innerHTML = '';
-        loadingSpinner.style.display = 'flex';
-        
-        // Fetch users from the server
-        fetch("{% url 'community_page' %}", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-          },
-          body: JSON.stringify({ type: filterType })
-        })
-        .then(response => response.json())
-        .then(data => {
-          // Hide loading spinner
-          loadingSpinner.style.display = 'none';
-          
-          if (data.success && Array.isArray(data.users)) {
-            renderUsers(data.users);
-            
-            // Fetch following status for the current user
-            fetchFollowingStatus();
-          } else {
-            showToast('Failed to load users', 'error');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          loadingSpinner.style.display = 'none';
-          showToast('Error connecting to server', 'error');
-        });
-      }
-      
-      // Function to render user cards
-      function renderUsers(users) {
-        userGrid.innerHTML = '';
-        
-        if (users.length === 0) {
-          const noUsersMessage = document.createElement('div');
-          noUsersMessage.className = 'no-users-message';
-          noUsersMessage.innerHTML = `
-            <i class="bi bi-search"></i>
-            <p>No users found for this filter</p>
-          `;
-          userGrid.appendChild(noUsersMessage);
-          return;
-        }
-        
-        users.forEach((user, index) => {
-          // Skip rendering the current user
-          if (user.name === currentUsername) return;
-          
-          const card = document.createElement('div');
-          card.className = 'user-card';
-          card.dataset.userId = user.id;
-          card.setAttribute('data-aos', 'fade-up');
-          card.setAttribute('data-aos-delay', (index * 50 + 200).toString());
-          
-          const roleBadgeClass = user.role.toLowerCase() === 'teacher' || 
-                                user.role.toLowerCase() === 'lecturer' ? 
-                                'teacher' : 'student';
-          
-          card.innerHTML = `
-            <div class="user-card-header">
-              <img src="${user.profile_picture || '{% static "images/default_profile.jpg" %}'}" 
-                   alt="${user.name}" class="user-card-img">
-              <h3>${user.name}</h3>
-              <span class="role-badge ${roleBadgeClass}">${user.role}</span>
-            </div>
-            <div class="user-card-body">
-              <div class="user-bio">${user.bio || 'No bio available'}</div>
-              <div class="user-stats">
-                <div class="stat-item">
-                  <div class="stat-value">${user.followers || 0}</div>
-                  <div class="stat-label">Followers</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">${user.followings || 0}</div>
-                  <div class="stat-label">Following</div>
-                </div>
-              </div>
-            </div>
-          `;
-          
-          // Add click event to show modal
-          card.addEventListener('click', () => {
-            showUserProfileModal(user);
-          });
-          
-          userGrid.appendChild(card);
-        });
-      }
-      
-      // Function to show user profile modal
-      function showUserProfileModal(user) {
-        // Set modal content
-        document.getElementById('modalProfileImg').src = user.profile_picture || '{% static "images/default_profile.jpg" %}';
-        document.getElementById('modalProfileName').textContent = user.name;
-        
-        const roleBadge = document.getElementById('modalRoleBadge');
-        roleBadge.textContent = user.role;
-        roleBadge.className = 'role-badge modal-role-badge ' + 
-                           (user.role.toLowerCase() === 'teacher' || 
-                            user.role.toLowerCase() === 'lecturer' ? 
-                            'teacher' : 'student');
-        
-        document.getElementById('modalFollowers').textContent = user.followers || 0;
-        document.getElementById('modalFollowing').textContent = user.followings || 0;
-        document.getElementById('modalBio').textContent = user.bio || 'No bio available';
-        document.getElementById('modalCreatedAt').textContent = user.created_at || 'Unknown';
-        
-        // Handle websites
-        const websitesList = document.getElementById('websitesList');
-        websitesList.innerHTML = '';
-        const websitesSection = document.getElementById('websitesSection');
-        
-        if (user.websites && user.websites.length > 0) {
-          websitesSection.style.display = 'block';
-          user.websites.forEach(website => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.href = website.startsWith('http') ? website : 'https://' + website;
-            a.textContent = website;
-            a.target = '_blank';
-            li.appendChild(a);
-            websitesList.appendChild(li);
-          });
-        } else {
-          websitesSection.style.display = 'none';
-        }
-        
-        // Set up follow button
-        const followButton = document.getElementById('followButton');
-        followButton.dataset.userId = user.id;
-        
-        if (followingUsers.has(user.id)) {
-          followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
-          followButton.classList.add('following');
-        } else {
-          followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
-          followButton.classList.remove('following');
-        }
-        
-        // Show modal
-        const userProfileModal = new bootstrap.Modal(document.getElementById('userProfileModal'));
-        userProfileModal.show();
-      }
-      
-      // Follow button click handler
-      document.getElementById('followButton').addEventListener('click', function() {
-        const userId = this.dataset.userId;
-        const isFollowing = this.classList.contains('following');
-        
-        // Toggle follow state
-        if (isFollowing) {
-          unfollowUser(userId);
-        } else {
-          followUser(userId);
-        }
-      });
-      
-
-
-      
-
-      // Enhanced functions for frontend follow/unfollow logic
-
-// 1. Function to follow a user with improved error handling
-function followUser(userId) {
-  // Show loading state
-  const followButton = document.getElementById('followButton');
-  followButton.disabled = true;
-  followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Connected...';
+// Main functionality for community page
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize AOS animations
+  AOS.init({
+    duration: 800,
+    easing: 'ease-in-out',
+    once: true,
+    mirror: false
+  });
   
-  // Send follow request to server
-  fetch("/follow_user/", {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken()
-    },
-    body: JSON.stringify({ 
-      userId: userId
+  const userGrid = document.getElementById('user-grid');
+  const loadingSpinner = document.getElementById('loading-spinner');
+  const filterButtons = document.querySelectorAll('.filter-button');
+  const currentUsername = "{{ current_student_name }}";
+  
+  // Track which users we're connected with
+  const connectedUsers = new Set();
+  
+  // Make loadUsers function available globally
+  window.loadUsers = loadUsers;
+  
+  // Initially load all users
+  loadUsers('all');
+  
+  // Set up the filter buttons
+  filterButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const filterType = this.getAttribute('data-filter');
+      
+      // Update active button
+      filterButtons.forEach(btn => btn.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Load users based on filter
+      loadUsers(filterType);
+    });
+  });
+  
+  // Function to load users based on filter
+  function loadUsers(filterType) {
+    // Show loading spinner
+    userGrid.innerHTML = '';
+    loadingSpinner.style.display = 'flex';
+    
+    // Fetch users from the server
+    fetch("{% url 'community_page' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ type: filterType })
     })
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`Server responded with status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    followButton.disabled = false;
-    
-    if (data.success) {
-      // Update button state
-      followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
-      followButton.classList.add('following');
+    .then(response => response.json())
+    .then(data => {
+      // Hide loading spinner
+      loadingSpinner.style.display = 'none';
       
-      // Add to our following set
-      followingUsers.add(userId);
-      
-      // Update follower count in modal
-      const followersElement = document.getElementById('modalFollowers');
-      followersElement.textContent = (parseInt(followersElement.textContent) + 1).toString();
-      
-      // Update card if visible
-      const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
-      if (userCard) {
-        const followersStat = userCard.querySelector('.stat-value');
-        if (followersStat) {
-          followersStat.textContent = (parseInt(followersStat.textContent) + 1).toString();
-        }
-      }
-      
-      // Show success message
-      showToast(data.message || 'You are now following this user', 'success');
-    } else {
-      followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
-      showToast(data.error || 'Failed to follow user', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    followButton.disabled = false;
-    followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
-    showToast('Error connecting to server', 'error');
-  });
-}
-
-// 2. Function to unfollow a user with improved error handling
-function unfollowUser(userId) {
-  // Show loading state
-  const followButton = document.getElementById('followButton');
-  followButton.disabled = true;
-  followButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Unfollowing...';
-  
-  // Send unfollow request to server
-  fetch("/unfollow_user/", {  // Note: Corrected endpoint URL
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken()
-    },
-    body: JSON.stringify({ 
-      userId: userId
-    })
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`Server responded with status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    followButton.disabled = false;
-    
-    if (data.success) {
-      // Update button state
-      followButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
-      followButton.classList.remove('following');
-      
-      // Remove from our following set
-      followingUsers.delete(userId);
-      
-      // Update follower count in modal
-      const followersElement = document.getElementById('modalFollowers');
-      const currentFollowers = parseInt(followersElement.textContent);
-      followersElement.textContent = Math.max(0, currentFollowers - 1).toString();
-      
-      // Update card if visible
-      const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
-      if (userCard) {
-        const followersStat = userCard.querySelector('.stat-value');
-        if (followersStat) {
-          const currentCardFollowers = parseInt(followersStat.textContent);
-          followersStat.textContent = Math.max(0, currentCardFollowers - 1).toString();
-        }
-      }
-      
-      // Show success message
-      showToast(data.message || 'You unfollowed this user', 'success');
-    } else {
-      followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
-      followButton.classList.add('following');
-      showToast(data.error || 'Failed to unfollow user', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    followButton.disabled = false;
-    followButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
-    showToast('Error connecting to server', 'error');
-  });
-}
-
-// 3. Function to fetch user's following list with improved error handling
-function fetchFollowingStatus() {
-  fetch("/get_following/")
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    if (data.success && Array.isArray(data.following)) {
-      // Clear the set and add all following users
-      followingUsers.clear();
-      data.following.forEach(userId => followingUsers.add(userId));
-      
-      // Update UI for any visible users
-      document.querySelectorAll('.user-card').forEach(card => {
-        const userId = card.dataset.userId;
-        if (followingUsers.has(userId)) {
-          // Mark as following in the UI if needed
-          // This could be expanded if we want to show following status in the cards
-        }
-      });
-    } else {
-      console.warn('Failed to fetch following status or no data returned');
-    }
-  })
-  .catch(error => {
-    console.error('Error fetching following status:', error);
-    // Continue without following data, but log the error
-  });
-}
-
-// 4. Enhanced toggle follow button handler
-function setupFollowButton() {
-  const followButton = document.getElementById('followButton');
-  
-  if (followButton) {
-    followButton.addEventListener('click', function() {
-      if (this.disabled) return; // Don't process if button is disabled
-      
-      const userId = this.dataset.userId;
-      if (!userId) {
-        console.error('No user ID found for follow button');
-        return;
-      }
-      
-      const isFollowing = this.classList.contains('following');
-      
-      // Toggle follow state
-      if (isFollowing) {
-        unfollowUser(userId);
+      if (data.success && Array.isArray(data.users)) {
+        renderUsers(data.users);
+        
+        // Fetch connection status for the current user
+        fetchConnectionStatus();
       } else {
-        followUser(userId);
+        showToast('Failed to load users', 'error');
       }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      loadingSpinner.style.display = 'none';
+      showToast('Error connecting to server', 'error');
     });
   }
-}
+  
+  // Function to render user cards
+  window.renderUsers = function(users) {
+    userGrid.innerHTML = '';
+    
+    if (users.length === 0) {
+      const noUsersMessage = document.createElement('div');
+      noUsersMessage.className = 'no-users-message';
+      noUsersMessage.innerHTML = `
+        <i class="bi bi-search"></i>
+        <p>No users found for this filter</p>
+      `;
+      userGrid.appendChild(noUsersMessage);
+      return;
+    }
+    
+    users.forEach((user, index) => {
+      // Skip rendering the current user
+      if (user.name === currentUsername) return;
+      
+      const card = document.createElement('div');
+      card.className = 'user-card';
+      card.dataset.userId = user.id;
+      card.setAttribute('data-aos', 'fade-up');
+      card.setAttribute('data-aos-delay', (index * 50 + 200).toString());
+      
+      const roleBadgeClass = user.role.toLowerCase() === 'teacher' || 
+                            user.role.toLowerCase() === 'lecturer' ? 
+                            'teacher' : 'student';
+      
+      card.innerHTML = `
+        <div class="user-card-header">
+          <img src="${user.profile_picture || '{% static "images/default_profile.jpg" %}'}" 
+               alt="${user.name}" class="user-card-img">
+          <h3>${user.name}</h3>
+          <span class="role-badge ${roleBadgeClass}">${user.role}</span>
+        </div>
+        <div class="user-card-body">
+          <div class="user-bio">${user.bio || 'No bio available'}</div>
+          <div class="user-stats">
+            <div class="stat-item">
+              <div class="stat-value">${user.followers || 0}</div>
+              <div class="stat-label">Connections</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">${user.followings || 0}</div>
+              <div class="stat-label">Connected</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Add click event to show modal
+      card.addEventListener('click', () => {
+        showUserProfileModal(user);
+      });
+      
+      userGrid.appendChild(card);
+    });
+  };
+  
+  // Function to show user profile modal
+  function showUserProfileModal(user) {
+    // Set modal content
+    document.getElementById('modalProfileImg').src = user.profile_picture || '{% static "images/default_profile.jpg" %}';
+    document.getElementById('modalProfileName').textContent = user.name;
+    
+    const roleBadge = document.getElementById('modalRoleBadge');
+    roleBadge.textContent = user.role;
+    roleBadge.className = 'role-badge modal-role-badge ' + 
+                       (user.role.toLowerCase() === 'teacher' || 
+                        user.role.toLowerCase() === 'lecturer' ? 
+                        'teacher' : 'student');
+    
+    document.getElementById('modalFollowers').textContent = user.followers || 0;
+    document.getElementById('modalFollowing').textContent = user.followings || 0;
+    document.getElementById('modalBio').textContent = user.bio || 'No bio available';
+    document.getElementById('modalCreatedAt').textContent = user.created_at || 'Unknown';
+    
+    // Handle websites
+    const websitesList = document.getElementById('websitesList');
+    websitesList.innerHTML = '';
+    const websitesSection = document.getElementById('websitesSection');
+    
+    if (user.websites && user.websites.length > 0) {
+      websitesSection.style.display = 'block';
+      user.websites.forEach(website => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = website.startsWith('http') ? website : 'https://' + website;
+        a.textContent = website;
+        a.target = '_blank';
+        li.appendChild(a);
+        websitesList.appendChild(li);
+      });
+    } else {
+      websitesSection.style.display = 'none';
+    }
+    
+    // Set up connect button
+    const connectButton = document.getElementById('connectButton');
+    connectButton.dataset.userId = user.id;
+    
+    if (connectedUsers.has(user.id)) {
+      connectButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
+      connectButton.classList.add('connected');
+    } else {
+      connectButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
+      connectButton.classList.remove('connected');
+    }
+    
+    // Show modal
+    const userProfileModal = new bootstrap.Modal(document.getElementById('userProfileModal'));
+    userProfileModal.show();
+  }
+  
+  // Connect button click handler
+  document.getElementById('connectButton').addEventListener('click', function() {
+    const userId = this.dataset.userId;
+    const isConnected = this.classList.contains('connected');
+    
+    // Toggle connection state
+    if (isConnected) {
+      disconnectUser(userId);
+    } else {
+      connectWithUser(userId);
+    }
+  });
+  
+  // Enhanced functions for frontend connection logic
 
-// 5. Enhanced toast notification function
-function showToast(message, type = 'default', duration = 3000) {
-  const toastContainer = document.getElementById('toastContainer');
-  
-  if (!toastContainer) {
-    console.error('Toast container not found');
-    return;
+  // 1. Function to connect with a user
+  function connectWithUser(userId) {
+    // Show loading state
+    const connectButton = document.getElementById('connectButton');
+    connectButton.disabled = true;
+    connectButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Connecting...';
+    connectButton.classList.add('connecting');
+    
+    // Send follow request to server (keeping endpoint the same)
+    fetch("/follow_user/", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ 
+        userId: userId
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      connectButton.disabled = false;
+      connectButton.classList.remove('connecting');
+      
+      if (data.success) {
+        // Update button state
+        connectButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
+        connectButton.classList.add('connected');
+        
+        // Add to our connected set
+        connectedUsers.add(userId);
+        
+        // Update connections count in modal
+        const connectionsElement = document.getElementById('modalFollowers');
+        connectionsElement.textContent = (parseInt(connectionsElement.textContent) + 1).toString();
+        
+        // Update card if visible
+        const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+        if (userCard) {
+          const connectionsStat = userCard.querySelector('.stat-value');
+          if (connectionsStat) {
+            connectionsStat.textContent = (parseInt(connectionsStat.textContent) + 1).toString();
+          }
+        }
+        
+        // Show success message
+        showToast(data.message || 'You are now connected with this user', 'success');
+      } else {
+        connectButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
+        showToast(data.error || 'Failed to connect with user', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      connectButton.disabled = false;
+      connectButton.classList.remove('connecting');
+      connectButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
+      showToast('Error connecting to server', 'error');
+    });
   }
-  
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  
-  let icon = '';
-  if (type === 'success') {
-    icon = '<i class="bi bi-check-circle-fill"></i>';
-  } else if (type === 'error') {
-    icon = '<i class="bi bi-exclamation-circle-fill"></i>';
-  } else if (type === 'info') {
-    icon = '<i class="bi bi-info-circle-fill"></i>';
+
+  // 2. Function to disconnect from a user
+  function disconnectUser(userId) {
+    // Show loading state
+    const connectButton = document.getElementById('connectButton');
+    connectButton.disabled = true;
+    connectButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Disconnecting...';
+    
+    // Send unfollow request to server (keeping endpoint the same)
+    fetch("/unfollow_user/", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ 
+        userId: userId
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      connectButton.disabled = false;
+      
+      if (data.success) {
+        // Update button state
+        connectButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
+        connectButton.classList.remove('connected');
+        
+        // Remove from our connected set
+        connectedUsers.delete(userId);
+        
+        // Update connections count in modal
+        const connectionsElement = document.getElementById('modalFollowers');
+        const currentConnections = parseInt(connectionsElement.textContent);
+        connectionsElement.textContent = Math.max(0, currentConnections - 1).toString();
+        
+        // Update card if visible
+        const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+        if (userCard) {
+          const connectionsStat = userCard.querySelector('.stat-value');
+          if (connectionsStat) {
+            const currentCardConnections = parseInt(connectionsStat.textContent);
+            connectionsStat.textContent = Math.max(0, currentCardConnections - 1).toString();
+          }
+        }
+        
+        // Show success message
+        showToast(data.message || 'You disconnected from this user', 'success');
+      } else {
+        connectButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
+        connectButton.classList.add('connected');
+        showToast(data.error || 'Failed to disconnect from user', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      connectButton.disabled = false;
+      connectButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
+      showToast('Error connecting to server', 'error');
+    });
   }
-  
-  toast.innerHTML = `${icon} <span class="ms-2">${message}</span>`;
-  toastContainer.appendChild(toast);
-  
-  // Remove toast after animation completes
-  setTimeout(() => {
-    toast.classList.add('fade-out');
+
+  // 3. Function to fetch user's connection list
+  window.fetchConnectionStatus = function() {
+    fetch("/get_following/")
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success && Array.isArray(data.following)) {
+        // Clear the set and add all connected users
+        connectedUsers.clear();
+        data.following.forEach(userId => connectedUsers.add(userId));
+        
+        // Update UI for any visible users
+        document.querySelectorAll('.user-card').forEach(card => {
+          const userId = card.dataset.userId;
+          if (connectedUsers.has(userId)) {
+            // Mark as connected in the UI if needed
+            // This could be expanded if we want to show connection status in the cards
+          }
+        });
+      } else {
+        console.warn('Failed to fetch connection status or no data returned');
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching connection status:', error);
+      // Continue without connection data, but log the error
+    });
+  };
+
+  // 4. Enhanced toast notification function
+  window.showToast = function(message, type = 'default', duration = 3000) {
+    const toastContainer = document.getElementById('toastContainer');
+    
+    if (!toastContainer) {
+      console.error('Toast container not found');
+      return;
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    let icon = '';
+    if (type === 'success') {
+      icon = '<i class="bi bi-check-circle-fill"></i>';
+    } else if (type === 'error') {
+      icon = '<i class="bi bi-exclamation-circle-fill"></i>';
+    } else if (type === 'info') {
+      icon = '<i class="bi bi-info-circle-fill"></i>';
+    }
+    
+    toast.innerHTML = `${icon} <span class="ms-2">${message}</span>`;
+    toastContainer.appendChild(toast);
+    
+    // Remove toast after animation completes
     setTimeout(() => {
-      toast.remove();
-    }, 300); // Allow time for fade-out animation
-  }, duration);
-}
+      toast.classList.add('fade-out');
+      setTimeout(() => {
+        toast.remove();
+      }, 300); // Allow time for fade-out animation
+    }, duration);
+  };
 
-// 6. Helper function to get CSRF token
-function getCsrfToken() {
-  const cookieValue = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('csrftoken='))
-    ?.split('=')[1];
-  return cookieValue || '';
-}
+  // Add CSS to document head for toast styling
+  document.head.insertAdjacentHTML('beforeend', `
+    <style>
+      .toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+      }
+      
+      .toast {
+        min-width: 250px;
+        margin-bottom: 10px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        background-color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        color: #333;
+        display: flex;
+        align-items: center;
+        animation: toast-in 0.3s ease forwards;
+        opacity: 1;
+      }
+      
+      .toast.fade-out {
+        animation: toast-out 0.3s ease forwards;
+      }
+      
+      .toast.success {
+        background-color: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+      }
+      
+      .toast.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+      }
+      
+      .toast.info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border-left: 4px solid #17a2b8;
+      }
+      
+      .toast i {
+        margin-right: 8px;
+        font-size: 1.2rem;
+      }
+      
+      @keyframes toast-in {
+        from {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes toast-out {
+        from {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateY(-20px);
+          opacity: 0;
+        }
+      }
+    </style>
+  `);
+});
 
-// 7. Initialize follow functionality
-function initFollowSystem() {
-  // Create a Set to track which users we're following
-  window.followingUsers = new Set();
-  
-  // Fetch initial following status
-  fetchFollowingStatus();
-  
-  // Set up the follow button
-  setupFollowButton();
-  
-  // Set up follow buttons in user profile modal
-  const userProfileModal = document.getElementById('userProfileModal');
-  if (userProfileModal) {
-    userProfileModal.addEventListener('show.bs.modal', function (event) {
-      // This will run when the modal is about to be shown
-      setupFollowButton();
-    });
-  }
-}
-
-
-
-    });
 
 
   </script>
-
-<div class="direct-messaging-container">
-  <!-- Direct Messaging Button -->
-  <div class="direct-messaging-button" id="directMessagingButton" aria-label="Open messaging">
-    <i class="bi bi-chat-fill"></i>
-    <span class="dm-unread-badge" id="dmUnreadBadge">0</span>
-  </div>
-  
-  <!-- Direct Messaging Panel -->
-  <div class="direct-messaging-panel" id="directMessagingPanel">
-    <div class="direct-messaging-header">
-      <h3>Messaging</h3>
-      <div class="dm-header-actions">
-        <button class="dm-action-btn" id="dmNewMessageBtn" aria-label="New message">
-          <i class="bi bi-pencil-square"></i>
-        </button>
-        <button class="dm-action-btn" id="dmOptionsBtn" aria-label="Messaging options">
-          <i class="bi bi-three-dots"></i>
-        </button>
-        <button class="dm-close-panel-btn" id="dmClosePanelBtn" aria-label="Close messaging">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-    </div>
-    
-    <div class="direct-messaging-search">
-      <div class="dm-search-wrapper">
-        <i class="bi bi-search"></i>
-        <input type="text" id="dmMessageSearch" placeholder="Search messages">
-      </div>
-      <button class="dm-filter-btn" id="dmFilterBtn" aria-label="Filter messages">
-        <i class="bi bi-sliders"></i>
-      </button>
-    </div>
-    
-    <div class="direct-messaging-tabs">
-      <button class="dm-tab-btn active" id="dmPrimaryInboxTab" data-tab="primaryInbox">
-        Connections
-        <span class="dm-tab-badge" id="dmPrimaryInboxBadge">0</span>
-      </button>
-      <button class="dm-tab-btn" id="dmMessageRequestsTab" data-tab="messageRequests">
-        Pending
-        <span class="dm-tab-badge" id="dmMessageRequestsBadge">0</span>
-      </button>
-    </div>
-    
-    <div class="dm-tab-content active" id="dmPrimaryInbox">
-      <div class="dm-chat-list" id="dmPrimaryInboxList">
-        <!-- Chat items will be added here dynamically -->
-        <div class="dm-loading-chats">
-          <div class="dm-spinner"></div>
-          <p>Loading conversations...</p>
-        </div>
-      </div>
-    </div>
-    
-    <div class="dm-tab-content" id="dmMessageRequests">
-      <div class="dm-chat-list" id="dmMessageRequestsList">
-        <!-- Message requests will be added here dynamically -->
-        <div class="dm-loading-chats">
-          <div class="dm-spinner"></div>
-          <p>Loading message requests...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Chat Windows Container -->
-  <div class="dm-chat-windows-container" id="dmChatWindowsContainer">
-    <!-- Chat windows will be added here dynamically -->
-  </div>
-  
-  <!-- New Message Modal -->
-  <div class="dm-new-message-modal" id="dmNewMessageModal">
-    <div class="dm-modal-header">
-      <h4>New message</h4>
-      <button class="dm-modal-close-btn" id="dmModalCloseBtn">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-    <div class="dm-modal-body">
-      <div class="dm-recipient-search">
-        <label for="dmRecipientInput">To:</label>
-        <input type="text" id="dmRecipientInput" placeholder="Type a name">
-      </div>
-      <div class="dm-recipients-list" id="dmRecipientsList"></div>
-      <div class="dm-message-compose">
-        <textarea id="dmComposeInput" placeholder="Write a message..."></textarea>
-      </div>
-    </div>
-    <div class="dm-modal-footer">
-      <button class="dm-secondary-btn" id="dmCancelBtn">Cancel</button>
-      <button class="dm-primary-btn" id="dmSendBtn">Send</button>
-    </div>
-  </div>
-</div>
-
-<!-- Chat Window Template (hidden, will be cloned for each chat) -->
-<template id="dmChatWindowTemplate">
-  <div class="dm-chat-window" data-chat-id="">
-    <div class="dm-chat-header">
-      <div class="dm-chat-user-info">
-        <img src="" alt="" class="dm-chat-user-img">
-        <div class="dm-chat-user-details">
-          <h4 class="dm-chat-user-name"></h4>
-          <span class="dm-chat-user-role"></span>
-        </div>
-      </div>
-      <div class="dm-chat-actions">
-        <button class="dm-action-btn dm-more-options-btn" aria-label="More options">
-          <i class="bi bi-three-dots"></i>
-        </button>
-        <button class="dm-action-btn dm-minimize-chat-btn" aria-label="Minimize">
-          <i class="bi bi-dash-lg"></i>
-        </button>
-        <button class="dm-action-btn dm-close-chat-btn" aria-label="Close">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-    </div>
-    
-    <div class="dm-chat-messages">
-      <!-- Messages will be added here dynamically -->
-      <div class="dm-chat-loading">
-        <div class="dm-spinner"></div>
-      </div>
-    </div>
-    
-    <div class="dm-chat-input-container">
-      <div class="dm-chat-tools">
-        <button class="dm-tool-btn" aria-label="Add attachment">
-          <i class="bi bi-paperclip"></i>
-        </button>
-        <button class="dm-tool-btn" aria-label="Add emoji">
-          <i class="bi bi-emoji-smile"></i>
-        </button>
-        <button class="dm-tool-btn" aria-label="Add GIF">
-          <i class="bi bi-filetype-gif"></i>
-        </button>
-      </div>
-      <div class="dm-chat-input-wrapper">
-        <textarea class="dm-chat-input" placeholder="Write a message..."></textarea>
-        <button class="dm-send-message-btn" aria-label="Send message">
-          <i class="bi bi-send-fill"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
-
-<!-- Message Template (hidden, will be cloned for each message) -->
-<template id="dmMessageTemplate">
-  <div class="dm-message">
-    <div class="dm-message-content"></div>
-    <div class="dm-message-footer">
-      <span class="dm-message-time"></span>
-      <div class="dm-message-reactions"></div>
-    </div>
-  </div>
-</template>
-
-<!-- Chat Item Template (for conversation list) -->
-<template id="dmChatItemTemplate">
-  <div class="dm-chat-item">
-    <div class="dm-chat-item-avatar">
-      <img src="" alt="" class="dm-chat-item-img">
-      <span class="dm-online-indicator"></span>
-    </div>
-    <div class="dm-chat-item-details">
-      <div class="dm-chat-item-header">
-        <h4 class="dm-chat-item-name"></h4>
-        <span class="dm-chat-item-time"></span>
-      </div>
-      <div class="dm-chat-item-preview">
-        <p class="dm-chat-item-last-message"></p>
-        <span class="dm-chat-item-badge"></span>
-      </div>
-    </div>
-  </div>
-</template>
-
-
-</body>
-</html>
