@@ -69,7 +69,7 @@ def teachers_create_hub(request):
             hub_name = request.POST.get('hubName', '').upper()
             description = request.POST.get('description', '')
             privacy_setting = request.POST.get('privacySetting', 'public')
-            hub_image = request.FILES.get('hubImage')
+            hub_image = request.FILES.get('hubImage',"none")
 
             # Debugging 
             logger.debug(f"""Owner: {current_teacher}

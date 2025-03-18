@@ -418,6 +418,7 @@ def get_student_analytics(request, room_id):
                 "total_polls": total_polls
             }
         }
+        print(f"\n\nThese is what i am passing still {analytics}\n\n")
         
         return JsonResponse({
             "success": True,
