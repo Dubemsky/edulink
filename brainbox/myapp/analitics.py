@@ -14,14 +14,11 @@ from .views_hub_room import *
 
 @csrf_exempt
 def get_student_analytics(request, room_id):
-    """
-    Enhanced analytics endpoint that provides comprehensive metrics for a student.
-    Returns detailed analytics about the student's engagement, content, social interactions,
-    learning behaviors, and progress over time.
-    """
     try:
         # Get student username from the request or session
-        student_username = request.GET.get('username')
+        student_username = request.session.get("students_name")
+
+        print(f" this is for {student_username} in room {room_id}")
         if not student_username:
             student_username = request.session.get("students_name")
             

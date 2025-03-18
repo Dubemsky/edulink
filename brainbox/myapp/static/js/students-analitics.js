@@ -43,16 +43,22 @@ const StudentAnalytics = (function() {
     
     // Fetch student analytics data from the server
     function fetchStudentAnalytics(roomId, username) {
+        console.log("Fetching analytics for:", username, "in room:", roomId);
         showLoading();
         
-        fetch(`/student-analytics/${roomId}/?username=${encodeURIComponent(username)}`)
+        const url = `/student-analytics/${roomId}/?username=${encodeURIComponent(username)}`;
+        console.log("Fetching from URL:", url);
+        
+        fetch(url)
             .then(response => {
+                console.log("Response status:", response.status);
                 if (!response.ok) {
                     throw new Error(`Server responded with status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
+                console.log("Data received:", data);
                 if (data.success) {
                     analyticsData = data.analytics;
                     setupTabsAndRender();
@@ -95,27 +101,44 @@ const StudentAnalytics = (function() {
     }
     
     // Setup tabs and render content
-    function setupTabsAndRender() {
-        if (!analyticsData) return;
-        
-        try {
-            // Set up the tabbed interface
-            setupTabbedInterface();
-            
-            // Render each section in its appropriate tab
-            renderBasicMetrics(); // New section for basic student metrics
-            renderActivityOverTime(); // New section for activity over time
-            renderEngagementInteraction(); // New section for engagement & interaction
-            renderVisualizationReporting(); // New section for visualization & reporting
-            
-            // Set up tab switching
-            setupTabSwitching();
-        } catch (error) {
-            console.error('Error setting up tabs and rendering analytics:', error);
-            showError('Error rendering analytics data');
-        }
+    // Add this at the beginning of setupTabsAndRender function
+function setupTabsAndRender() {
+    if (!analyticsData) {
+        console.error("No analytics data available");
+        return;
     }
     
+    if (!$content) {
+        console.error("Content element not found");
+        return;
+    }
+    
+    try {
+        // Set up the tabbed interface
+        setupTabbedInterface();
+        
+        // Render each section
+        renderBasicMetrics();
+        
+        renderActivityOverTime();
+        
+        renderEngagementInteraction();
+        
+        renderVisualizationReporting();
+        
+        // Set up tab switching
+        console.log("Setting up tab switching");
+        setupTabSwitching();
+    } catch (error) {
+        console.error("Error in setupTabsAndRender:", error);
+        showError('Error rendering analytics data: ' + error.message);
+    }
+}
+    
+
+
+
+
     // Set up the tabbed interface
     function setupTabbedInterface() {
         if (!$content) return;

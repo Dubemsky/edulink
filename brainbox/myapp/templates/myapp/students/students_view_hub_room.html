@@ -337,69 +337,7 @@
   <script src="{% static 'js/main.js' %}"></script>
   <script src="{% static 'js/summarize.js' %}"></script>
 
-  <script>
-
-
-
-// Initialize the student analytics when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Get room ID and username from the page
-    const roomId = "{{ room_id|escapejs }}";
-    const username = "{{ current_student_name|escapejs }}";
-   console.log("I am here")
-
-    
-    if (roomId && username) {
-
-        console.log("This is me here with ", currentUserName)
-        // Initialize the student analytics module
-        StudentAnalytics.init(roomId, username);
-        
-        // Add some basic styles to ensure proper display
-        const style = document.createElement('style');
-        style.textContent = `
-            .student-analytics-container .nav-tabs {
-                border-bottom: 1px solid #dee2e6;
-            }
-            .student-analytics-container .nav-link {
-                margin-bottom: -1px;
-                border: 1px solid transparent;
-                border-top-left-radius: 0.25rem;
-                border-top-right-radius: 0.25rem;
-            }
-            .student-analytics-container .nav-link:hover, 
-            .student-analytics-container .nav-link:focus {
-                border-color: #e9ecef #e9ecef #dee2e6;
-            }
-            .student-analytics-container .nav-link.active {
-                color: #495057;
-                background-color: #fff;
-                border-color: #dee2e6 #dee2e6 #fff;
-            }
-            .student-analytics-container .tab-content {
-                padding-top: 20px;
-            }
-            .student-analytics-container .tab-pane {
-                display: none;
-            }
-            .student-analytics-container .tab-pane.active {
-                display: block;
-            }
-            .student-analytics-container .tab-pane.show {
-                opacity: 1;
-            }
-            .student-analytics-container .card {
-                box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            }
-        `;
-        document.head.appendChild(style);
-    } else {
-        console.error('Room ID or username not found. Student analytics cannot be initialized.');
-    }
-});
-    
-    
-    
+  <script> 
     
         
     const currentRoomId = "{{ room_id|escapejs }}";
