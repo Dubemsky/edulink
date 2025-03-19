@@ -1,7 +1,4 @@
 // private_messaging_connections.js
-// This script enhances the private messaging system with WebSocket support
-
-// Track active chat windows and their WebSocket connections
 const activeChatConnections = {};
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -158,6 +155,8 @@ function createConnectionItem(connection) {
   item.addEventListener('click', function() {
     openChatWithUser(connection);
   });
+
+
   
   return item;
 }
@@ -493,8 +492,10 @@ function loadConversationHistory(chatWindow, otherUserId) {
  * 
  * @param {string} chatId - The ID of the chat window
  * @param {string} recipientId - The ID of the message recipient
+ * 
  * @param {string} messageText - The message text to send
  */
+
 function sendMessage(chatId, recipientId, messageText) {
   const chatWindow = document.querySelector(`.dm-chat-window[data-chat-id="${chatId}"]`);
   if (!chatWindow) {
@@ -771,29 +772,29 @@ function addMessageToChat(chatWindow, messageText, isOutgoing = false, timestamp
  * 
  * @returns {string} The current user's ID
  */
+
+
+
 function getCurrentUserId() {
-  // This function should be implemented to return the current user's ID
-  // For now, we'll use a placeholder or try to extract from the page
+
+  console.log("This is the current userid", window.currentUserId)
+  if (window.currentUserId) {
+    return window.currentUserId;
+  }
   
-  // Option 1: Look for a hidden input with user_id
+  // Fallback options if the variable isn't set
   const userIdInput = document.getElementById('current_user_id');
   if (userIdInput && userIdInput.value) {
     return userIdInput.value;
   }
   
-  // Option 2: Try to get from data attribute on the body
   const userIdFromBody = document.body.getAttribute('data-user-id');
   if (userIdFromBody) {
     return userIdFromBody;
   }
   
-  // Option 3: Try to extract from a variable in the page
-  if (window.currentUserId) {
-    return window.currentUserId;
-  }
-  
-  // Option 4: For demo purposes, create a temporary ID based on a random number
-  // In production, this should be replaced with a proper user ID
+  // Last resort fallback
+  console.warn('Could not find user ID, using temporary ID');
   return 'user_' + Math.floor(Math.random() * 10000);
 }
 

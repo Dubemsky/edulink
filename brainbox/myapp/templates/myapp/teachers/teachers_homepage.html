@@ -174,6 +174,11 @@
   <script src="{% static 'js/private_messaging_connection.js' %}"></script>
 
   <script>
+    // Define a global variable with the user ID
+    window.currentUserId = "{{ user_id }}";
+  </script>
+
+  <script>
     // messaging-system.js - LinkedIn-style messaging system for EduLink
 
     function createHub() {

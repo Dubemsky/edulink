@@ -9,6 +9,8 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
         # Get the user IDs from the URL route
         self.user_id = self.scope['url_route']['kwargs']['user_id']
         self.recipient_id = self.scope['url_route']['kwargs']['recipient_id']
+        print(f"\n\nThis is the user_id {self.user_id}\nOther id {self.recipient_id}\n" )
+
         
         # Create a unique conversation ID (always in the same order for consistency)
         user_ids = sorted([self.user_id, self.recipient_id])

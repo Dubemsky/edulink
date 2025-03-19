@@ -26,6 +26,9 @@ def get_teacher_user_id(request):
 
 def teachers_homepage(request):
     current_teacher = request.session.get("teachers_name")
+    teacher_name = get_teacher_user_id(request)
+    details = get_user_by_name(teacher_name)
+    user_id = details.get('uid') 
     
     if current_teacher:
         # Retrieve all hubs where teachers name is the current teacher
@@ -51,7 +54,8 @@ def teachers_homepage(request):
         "number_of_hubs" : len(teachers_hubs),
         "notifications": notifications,
         "number_of_notifications": number_of_nofications,
-        "username": current_teacher
+        "username": current_teacher,
+        "user_id":user_id
     })
 
 
@@ -144,6 +148,7 @@ def teachers_profile_page(request):
 def teacher_profile_page_my_profile(request):
     teacher_name = get_teacher_user_id(request)
     details = get_user_by_name(teacher_name)
+    
     
     if not teacher_name or not details:
         return redirect('first_page')

@@ -9,7 +9,10 @@ from .profile_page_updates import get_user_by_name
 # Main community page views
 def community_page(request):
     current_student_name = request.session.get("students_name")
-    
+    student_name = get_student_user_id(request)
+    details = get_user_by_name(student_name)
+    user_id = details.get('uid')
+    print(f"This is for {student_name} {user_id}")
     if request.method == 'GET':
         # When loading the page, fetch all users for initial display
         users_ref = db.collection('users_profile')
@@ -34,7 +37,8 @@ def community_page(request):
             
         return render(request, "myapp/students/community_page.html", {
             "initial_users": users_list,
-            "current_student_name": current_student_name
+            "current_student_name": current_student_name,
+            "user_id": user_id,
         })
 
     elif request.method == 'POST':
@@ -71,7 +75,7 @@ def community_page(request):
                     "websites": user_data.get('websites'),
                 })
 
-            return JsonResponse({"success": True, "users": users_list})
+            return JsonResponse({"success": True, "users": users_list, "user_id":user_id})
 
         except Exception as e:
             print(f"Error: {e}")
@@ -81,6 +85,9 @@ def community_page(request):
 
 def teachers_community_page(request):
     current_teacher_name = request.session.get("teachers_name")
+    teacher_name = get_teacher_user_id(request)
+    details = get_user_by_name(teacher_name)
+    user_id = details.get('uid') 
     
     if request.method == 'GET':
         # When loading the page, fetch all users for initial display
@@ -106,7 +113,8 @@ def teachers_community_page(request):
             
         return render(request, "myapp/teachers/teachers_community_page.html", {
             "initial_users": users_list,
-            "current_teacher_name": current_teacher_name
+            "current_teacher_name": current_teacher_name,
+            "user_id":user_id
         })
 
     elif request.method == 'POST':
@@ -143,7 +151,7 @@ def teachers_community_page(request):
                     "websites": user_data.get('websites'),
                 })
 
-            return JsonResponse({"success": True, "users": users_list})
+            return JsonResponse({"success": True, "users": users_list,"user_id":user_id})
 
         except Exception as e:
             print(f"Error: {e}")

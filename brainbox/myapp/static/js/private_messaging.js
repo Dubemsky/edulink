@@ -18,7 +18,7 @@ function initializeDirectMessageWebSocket(userId, recipientId, chatWindow) {
     // Extract the actual user ID from the conversation string
     const parts = recipientId.replace('conversation_', '').split('_');
     recipientId = parts.find(id => id !== userId) || recipientId;
-    console.log(`Extracted recipient ID: ${recipientId} from conversation string`);
+    console.log(`Extracted recipient ID: ${userId} from conversation string`);
   }
   
   // Create a unique conversation ID based on the two user IDs (sorted for consistency)
@@ -30,11 +30,9 @@ function initializeDirectMessageWebSocket(userId, recipientId, chatWindow) {
     return activeConnections[conversationId];
   }
   
-  // Determine WebSocket protocol (wss for HTTPS, ws for HTTP)
-  const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
   
   // Create WebSocket URL with the correct format
-  const wsUrl = `${protocol}${window.location.host}/ws/direct-chat/${userId}/${recipientId}/`;
+  const wsUrl = `ws://${window.location.host}/ws/direct-chat/${userId}/${recipientId}/`;
   
   console.log(`Establishing WebSocket connection to: ${wsUrl}`);
   
@@ -67,6 +65,8 @@ function initializeDirectMessageWebSocket(userId, recipientId, chatWindow) {
     console.log('Message received:', event.data);
     try {
       const data = JSON.parse(event.data);
+
+      console.log("I am here and this is the data ", data)
       
       // Handle different message types
       if (data.type === 'message') {
@@ -97,11 +97,6 @@ function initializeDirectMessageWebSocket(userId, recipientId, chatWindow) {
         // Display welcome message
         const welcomeMessage = document.createElement('div');
         welcomeMessage.className = 'dm-message system-message';
-        welcomeMessage.innerHTML = `
-          <div class="dm-message-content">
-            Your conversation is private and secure.
-          </div>
-        `;
         messagesContainer.appendChild(welcomeMessage);
         
         // Add all messages from history

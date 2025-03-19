@@ -532,12 +532,16 @@
   <script src="{% static 'js/private_messaging.js' %}"></script>
   <script src="{% static 'js/private_messaging_connection.js' %}"></script>
 
+  <script>
+    // Define a global variable with the user ID
+    window.currentUserId = "{{ user_id }}";
+  </script>
 
+  
 <script>
 
 
 
-window.currentUserId = "{{ current_teachers_name|escapejs }}";
   
   // Connect message button in user profile modal to direct messaging system
   document.addEventListener('DOMContentLoaded', function() {

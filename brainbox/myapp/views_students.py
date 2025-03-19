@@ -18,6 +18,8 @@ from .messages import *
 logger = logging.getLogger(__name__)
 
 
+
+
 """
 -----------------------------------------------------------------------
 ---------------------- STUDENTS SECTIONS ------------------------------
@@ -26,8 +28,14 @@ logger = logging.getLogger(__name__)
 """
 
 
+
+
+
 def students_homepage(request):
     current_student = request.session.get("students_name")
+    student_name = get_student_user_id(request)
+    details = get_user_by_name(student_name)
+    user_id = details.get('uid')
     
     if current_student:
         # Get the hubs students joined based on their name.
@@ -53,12 +61,15 @@ def students_homepage(request):
         "number_of_hubs":len(students_hubs),
         "notifications": notifications,
         "number_of_nofications": number_of_nofications,
-        "username": current_student
+        "username": current_student,
+        "user_id": user_id
     })
 
 
 def students_join_hub_page(request):
-
+    student_name = get_student_user_id(request)
+    details = get_user_by_name(student_name)
+    user_id = details.get('uid')
     if request.method == 'POST':
         print("This is me")
         search_query = request.POST.get('room_name', '').strip()
@@ -77,18 +88,20 @@ def students_join_hub_page(request):
         # Find the number of available hubs
         number_of_hubs = len(hubs)
 
-        print(f"\n\n\n{hubs}")
         
         return render(request, "myapp/students/join_hub_page.html", {
             "teachers_hubs":hubs,
-            "number_of_hubs":number_of_hubs
+            "number_of_hubs":number_of_hubs,
+            "user_id":user_id,
+
         })
 
     teachers_hubs = Teachers_created_hub.objects.filter(hub_privacy_setting='public')
     number_of_hubs=len(teachers_hubs)
     return render(request, "myapp/students/join_hub_page.html", {
         "teachers_hubs":teachers_hubs,
-        "number_of_hubs":number_of_hubs
+        "number_of_hubs":number_of_hubs,
+        "user_id":user_id,
 
         })
 
@@ -108,6 +121,9 @@ def join_hub(request):
             hub_name = data.get('hub_name')
             hub_owner = data.get('hub_owner')
             current_student_name = request.session.get("students_name")
+            student_name = get_student_user_id(request)
+            details = get_user_by_name(student_name)
+            user_id = details.get('uid')
 
             # Check if the student is logged in
             if not current_student_name:
@@ -143,7 +159,7 @@ def join_hub(request):
                 logger.error(f"Error tracking hub join activity: {activity_error}")
 
             # Return success response
-            return JsonResponse({'success': True, 'message': f'You successfully joined {hub_name}'})
+            return JsonResponse({'success': True, 'message': f'You successfully joined {hub_name}',"user_id":user_id,})
 
         except Exception as e:
             logger.error(f"Error joining hub: {str(e)}")
@@ -164,7 +180,7 @@ def student_profile_page_my_profile(request):
     """
     student_name = get_student_user_id(request)
     details = get_user_by_name(student_name)
-    
+    user_id = details.get('uid')
     if not student_name or not details:
         # Handle case where user is not found
         return render(request, 'myapp/students/profile/student_profile_my_profile.html', {

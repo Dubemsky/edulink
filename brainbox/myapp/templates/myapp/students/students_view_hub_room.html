@@ -1146,7 +1146,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error("Missing required variables.");
             return;
         }
-    
+        
         const socketURL = `ws://${window.location.host}/ws/${userRole}s-dashboard/hub-room/${roomId}/`;
     
         if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
@@ -1560,6 +1560,7 @@ function openSidePanel(messageContent, messageId) {
     function loadReplies(messageId, sortMethod) {
         // Construct the URL with the sort parameter
         const newUrl = `/students-dashboard/hub-room/${currentRoomId}/${messageId}/?sort=${sortMethod}`;
+        
         
         // Update browser URL without the query parameter
         const displayUrl = `/students-dashboard/hub-room/${currentRoomId}/${messageId}/`;
