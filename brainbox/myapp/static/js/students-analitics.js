@@ -1,6 +1,3 @@
-
-
-
 // Enhanced Student Analytics Module with Tabs
 const StudentAnalytics = (function() {
     // Private properties
@@ -14,6 +11,7 @@ const StudentAnalytics = (function() {
     
     // Initialize the module
     function init(roomId, username) {
+        console.log("Initializing analytics with:", roomId, username);
         // Add event listener to modal
         if ($modal) {
             $modal.addEventListener('shown.bs.modal', function() {
@@ -37,6 +35,8 @@ const StudentAnalytics = (function() {
                 });
                 charts = {};
             });
+        } else {
+            console.error("Modal element not found!");
         }
     }
     
@@ -45,7 +45,8 @@ const StudentAnalytics = (function() {
         console.log("Fetching analytics for:", username, "in room:", roomId);
         showLoading();
         
-        const url = `/student-analytics/${roomId}/?username=${encodeURIComponent(username)}`;
+        // Use a direct URL to avoid potential parameter issues
+        const url = `/student-analytics/${roomId}/`;
         
         fetch(url)
             .then(response => {
@@ -75,9 +76,17 @@ const StudentAnalytics = (function() {
     
     // Show loading spinner
     function showLoading() {
-        if ($spinner) $spinner.style.display = 'flex';
-        if ($content) $content.style.display = 'none';
-      
+        if ($spinner) {
+            $spinner.style.display = 'flex';
+        } else {
+            console.error("Spinner element not found");
+        }
+        
+        if ($content) {
+            $content.style.display = 'none';
+        } else {
+            console.error("Content element not found");
+        }
     }
     
     // Hide loading spinner
@@ -95,53 +104,53 @@ const StudentAnalytics = (function() {
                 </div>
             `;
             $content.style.display = 'block';
+        } else {
+            console.error("Content element not found for error display");
         }
     }
     
     // Setup tabs and render content
-    // Add this at the beginning of setupTabsAndRender function
-function setupTabsAndRender() {
-    if (!analyticsData) {
-        console.error("No analytics data available");
-        return;
+    function setupTabsAndRender() {
+        console.log("Setting up tabs and rendering content");
+        if (!analyticsData) {
+            console.error("No analytics data available");
+            showError("No analytics data available");
+            return;
+        }
+        
+        if (!$content) {
+            console.error("Content element not found");
+            return;
+        }
+        
+        try {
+            // Set up the tabbed interface
+            setupTabbedInterface();
+            
+            // Render each section
+            renderBasicMetrics();
+            renderActivityOverTime();
+            renderEngagementInteraction();
+            renderVisualizationReporting();
+            
+            // Set up tab switching
+            console.log("Setting up tab switching");
+            setupTabSwitching();
+        } catch (error) {
+            console.error("Error in setupTabsAndRender:", error);
+            showError('Error rendering analytics data: ' + error.message);
+        }
     }
     
-    if (!$content) {
-        console.error("Content element not found");
-        return;
-    }
-    
-    try {
-        // Set up the tabbed interface
-        setupTabbedInterface();
-        
-        // Render each section
-        renderBasicMetrics();
-        
-        renderActivityOverTime();
-        
-        renderEngagementInteraction();
-        
-        renderVisualizationReporting();
-        
-        // Set up tab switching
-        console.log("Setting up tab switching");
-        setupTabSwitching();
-    } catch (error) {
-        console.error("Error in setupTabsAndRender:", error);
-        showError('Error rendering analytics data: ' + error.message);
-    }
-}
-    
-
-
-
-
     // Set up the tabbed interface
     function setupTabbedInterface() {
-        if (!$content) return;
+        if (!$content) {
+            console.error("Content element not found in setupTabbedInterface");
+            return;
+        }
     
-    
+        console.log("Setting up tabbed interface");
+        
         // Define the tabs - updated to match requirements
         const tabs = [
             { id: 'basic-metrics', label: 'Basic Metrics', icon: 'fa-tachometer-alt' },
@@ -205,16 +214,21 @@ function setupTabsAndRender() {
         // Replace the content with the tabbed interface
         $content.innerHTML = '';
         $content.appendChild(tabsContainer);
+        
+        console.log("Tabbed interface set up successfully");
     }
     
     // Set up tab switching
     function setupTabSwitching() {
+        console.log("Setting up tab switching");
         // Use Bootstrap's tab functionality if available
         if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            console.log("Using Bootstrap tab functionality");
             document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(button => {
                 new bootstrap.Tab(button);
             });
         } else {
+            console.log("Using manual tab switching");
             // Manual tab switching if Bootstrap is not available
             document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(button => {
                 button.addEventListener('click', function(e) {
@@ -222,6 +236,7 @@ function setupTabsAndRender() {
                     
                     // Get the target tab
                     const target = this.getAttribute('data-bs-target');
+                    console.log("Switching to tab:", target);
                     
                     // Deactivate all tabs
                     document.querySelectorAll('.nav-link').forEach(tab => {
@@ -242,6 +257,8 @@ function setupTabsAndRender() {
                     const targetPane = document.querySelector(target);
                     if (targetPane) {
                         targetPane.classList.add('show', 'active');
+                    } else {
+                        console.error("Target pane not found:", target);
                     }
                 });
             });
@@ -250,11 +267,17 @@ function setupTabsAndRender() {
     
     // 1. Basic Student Metrics
     function renderBasicMetrics() {
-    
+        console.log("Rendering basic metrics");
         const metricsPane = document.getElementById('basic-metrics-pane');
-        if (!metricsPane || !analyticsData) return;
-    
-    
+        if (!metricsPane) {
+            console.error("Metrics pane element not found");
+            return;
+        }
+        
+        if (!analyticsData) {
+            console.error("Analytics data not available for basic metrics");
+            return;
+        }
         
         const personal = analyticsData.personal_engagement || {};
         const social = analyticsData.social_interaction || {};
@@ -307,6 +330,7 @@ function setupTabsAndRender() {
                 color: 'secondary'
             }
         ];
+        
         // Add each metric card
         metrics.forEach(metric => {
             const metricCard = document.createElement('div');
@@ -365,12 +389,23 @@ function setupTabsAndRender() {
         
         // Add the container to the metrics pane
         metricsPane.appendChild(container);
+        
+        console.log("Basic metrics rendered successfully");
     }
     
     // 2. Activity Over Time
     function renderActivityOverTime() {
+        console.log("Rendering activity over time");
         const activityPane = document.getElementById('activity-pane');
-        if (!activityPane || !analyticsData) return;
+        if (!activityPane) {
+            console.error("Activity pane element not found");
+            return;
+        }
+        
+        if (!analyticsData) {
+            console.error("Analytics data not available for activity");
+            return;
+        }
         
         const progress = analyticsData.progress_indicators || {};
         const personal = analyticsData.personal_engagement || {};
@@ -426,9 +461,6 @@ function setupTabsAndRender() {
             </div>
         `;
         container.appendChild(timeSpentCard);
-    
-       
-    
         
         // Average response time card
         const responseTimeCard = document.createElement('div');
@@ -464,14 +496,22 @@ function setupTabsAndRender() {
         activityPane.appendChild(container);
         
         // Render charts once the DOM elements are available
-        renderParticipationTrendsChart(progress.activity_timeline || []);
-        renderActiveHoursChart(personal.active_times || []);
+        setTimeout(() => {
+            renderParticipationTrendsChart(progress.activity_timeline || []);
+            renderActiveHoursChart(personal.active_times || []);
+        }, 100);
+        
+        console.log("Activity over time rendered successfully");
     }
     
     // Helper function to render participation trends chart
     function renderParticipationTrendsChart(timelineData) {
+        console.log("Rendering participation trends chart");
         const canvas = document.getElementById('participationTrendsChart');
-        if (!canvas) return;
+        if (!canvas) {
+            console.error("Participation trends chart canvas not found");
+            return;
+        }
         
         const ctx = canvas.getContext('2d');
         
@@ -501,6 +541,10 @@ function setupTabsAndRender() {
             }
             
             // Create the chart
+            if (charts.participationTrends) {
+                charts.participationTrends.destroy();
+            }
+            
             charts.participationTrends = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -573,8 +617,12 @@ function setupTabsAndRender() {
     
     // Helper function to render active hours chart
     function renderActiveHoursChart(activeTimes) {
+        console.log("Rendering active hours chart");
         const canvas = document.getElementById('activeHoursChart');
-        if (!canvas) return;
+        if (!canvas) {
+            console.error("Active hours chart canvas not found");
+            return;
+        }
         
         const ctx = canvas.getContext('2d');
         
@@ -597,6 +645,10 @@ function setupTabsAndRender() {
             });
             
             // Create the chart
+            if (charts.activeHours) {
+                charts.activeHours.destroy();
+            }
+            
             charts.activeHours = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -644,8 +696,17 @@ function setupTabsAndRender() {
     
     // 3. Engagement & Interaction
     function renderEngagementInteraction() {
+        console.log("Rendering engagement & interaction");
         const engagementPane = document.getElementById('engagement-pane');
-        if (!engagementPane || !analyticsData) return;
+        if (!engagementPane) {
+            console.error("Engagement pane element not found");
+            return;
+        }
+        
+        if (!analyticsData) {
+            console.error("Analytics data not available for engagement");
+            return;
+        }
         
         const content = analyticsData.content_analytics || {};
         const social = analyticsData.social_interaction || {};
@@ -800,12 +861,23 @@ function setupTabsAndRender() {
         
         // Add the container to the engagement pane
         engagementPane.appendChild(container);
+        
+        console.log("Engagement and interaction rendered successfully");
     }
     
     // 4. Visualization & Reporting
     function renderVisualizationReporting() {
+        console.log("Rendering visualization & reporting");
         const visualizationPane = document.getElementById('visualization-pane');
-        if (!visualizationPane || !analyticsData) return;
+        if (!visualizationPane) {
+            console.error("Visualization pane element not found");
+            return;
+        }
+        
+        if (!analyticsData) {
+            console.error("Analytics data not available for visualization");
+            return;
+        }
         
         const personal = analyticsData.personal_engagement || {};
         const social = analyticsData.social_interaction || {};
@@ -830,8 +902,7 @@ function setupTabsAndRender() {
         `;
         container.appendChild(engagementCard);
         
-    
-    const performanceCard = document.createElement('div');
+        const performanceCard = document.createElement('div');
         performanceCard.className = 'card mb-4';
         
         // Create progress bars for key metrics
@@ -907,7 +978,7 @@ function setupTabsAndRender() {
             replyComparison = ((personal.replies_sent || 0) / (roomTotals.total_replies / totalParticipants) - 1) * 100;
         }
         
-        if (roomTotals.total_reactions && totalParticipants) {
+        if (roomTotals.total_reactions && roomTotals.total_reactions.upvotes !== undefined) {
             const userReactions = (social.upvotes_received || 0) + (social.downvotes_received || 0);
             const avgReactions = (roomTotals.total_reactions.upvotes + roomTotals.total_reactions.downvotes) / totalParticipants;
             if (avgReactions > 0) {
@@ -952,13 +1023,21 @@ function setupTabsAndRender() {
         visualizationPane.appendChild(container);
         
         // Render the engagement distribution chart
-        renderEngagementDistributionChart();
+        setTimeout(() => {
+            renderEngagementDistributionChart();
+        }, 100);
+        
+        console.log("Visualization and reporting rendered successfully");
     }
     
     // Render engagement distribution pie chart
     function renderEngagementDistributionChart() {
+        console.log("Rendering engagement distribution chart");
         const canvas = document.getElementById('engagementDistributionChart');
-        if (!canvas) return;
+        if (!canvas) {
+            console.error("Engagement distribution chart canvas not found");
+            return;
+        }
         
         const ctx = canvas.getContext('2d');
         
@@ -981,6 +1060,10 @@ function setupTabsAndRender() {
         
         if (filteredData.length > 0) {
             // Create the chart
+            if (charts.engagementDistribution) {
+                charts.engagementDistribution.destroy();
+            }
+            
             charts.engagementDistribution = new Chart(ctx, {
                 type: 'pie',
                 data: {
@@ -1038,91 +1121,91 @@ function setupTabsAndRender() {
     // Public API
     return {
         init: init,
-        fetchStudentAnalytics: fetchStudentAnalytics
+        fetchStudentAnalytics: fetchStudentAnalytics,
+        setupTabsAndRender: setupTabsAndRender
     };
-    })();
+})();
+
+// Initialize the student analytics when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Get room ID and username from the page
+    const roomId = document.querySelector('[data-room-id]')?.dataset.roomId || 
+                "{{ room_id|escapejs }}";
+    const username = document.querySelector('[data-username]')?.dataset.username || 
+                    "{{ current_student_name|escapejs }}";
     
-    // Initialize the student analytics when the page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get room ID and username from the page
-        const roomId = document.querySelector('[data-room-id]')?.dataset.roomId || 
-                    "{{ room_id|escapejs }}";
-        const username = document.querySelector('[data-username]')?.dataset.username || 
-                        "{{ current_student_name|escapejs }}";
+    if (roomId && username) {
+        console.log("Initializing student analytics for:", username, "in room:", roomId);
         
-        if (roomId && username) {
-            console.log("Initializing student analytics for:", username, "in room:", roomId);
+        // Initialize the student analytics module
+        StudentAnalytics.init(roomId, username);
+        
+        // Add some basic styles to ensure proper display
+        const style = document.createElement('style');
+        style.textContent = `
+            .student-analytics-container .nav-tabs {
+                border-bottom: 1px solid #dee2e6;
+            }
+            .student-analytics-container .nav-link {
+                margin-bottom: -1px;
+                border: 1px solid transparent;
+                border-top-left-radius: 0.25rem;
+                border-top-right-radius: 0.25rem;
+            }
+            .student-analytics-container .nav-link:hover, 
+            .student-analytics-container .nav-link:focus {
+                border-color: #e9ecef #e9ecef #dee2e6;
+            }
+            .student-analytics-container .nav-link.active {
+                color: #495057;
+                background-color: #fff;
+                border-color: #dee2e6 #dee2e6 #fff;
+            }
+            .student-analytics-container .tab-content {
+                padding-top: 20px;
+            }
+            .student-analytics-container .tab-pane {
+                display: none;
+            }
+            .student-analytics-container .tab-pane.active {
+                display: block;
+            }
+            .student-analytics-container .tab-pane.show {
+                opacity: 1;
+            }
+            .student-analytics-container .card {
+                box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+                margin-bottom: 1.5rem;
+            }
             
-            // Initialize the student analytics module
-            StudentAnalytics.init(roomId, username);
+            /* Analytics modal styling */
+            .analytics-modal {
+                max-width: 90%;
+            }
             
-            // Add some basic styles to ensure proper display
-            const style = document.createElement('style');
-            style.textContent = `
-                .student-analytics-container .nav-tabs {
-                    border-bottom: 1px solid #dee2e6;
-                }
-                .student-analytics-container .nav-link {
-                    margin-bottom: -1px;
-                    border: 1px solid transparent;
-                    border-top-left-radius: 0.25rem;
-                    border-top-right-radius: 0.25rem;
-                }
-                .student-analytics-container .nav-link:hover, 
-                .student-analytics-container .nav-link:focus {
-                    border-color: #e9ecef #e9ecef #dee2e6;
-                }
-                .student-analytics-container .nav-link.active {
-                    color: #495057;
-                    background-color: #fff;
-                    border-color: #dee2e6 #dee2e6 #fff;
-                }
-                .student-analytics-container .tab-content {
-                    padding-top: 20px;
-                }
-                .student-analytics-container .tab-pane {
-                    display: none;
-                }
-                .student-analytics-container .tab-pane.active {
-                    display: block;
-                }
-                .student-analytics-container .tab-pane.show {
-                    opacity: 1;
-                }
-                .student-analytics-container .card {
-                    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-                    margin-bottom: 1.5rem;
-                }
-                
-                /* Analytics modal styling */
-                .analytics-modal {
-                    max-width: 90%;
-                }
-                
-                .analytics-spinner {
-                    border: 4px solid rgba(0, 0, 0, 0.1);
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 50%;
-                    border-left-color: #007bff;
-                    animation: spin 1s linear infinite;
-                }
-                
-                .spinner-container {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 200px;
-                }
-                
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            `;
-            document.head.appendChild(style);
-        } else {
-            console.error('Room ID or username not found. Student analytics cannot be initialized.');
-        }
-    });
-    
+            .analytics-spinner {
+                border: 4px solid rgba(0, 0, 0, 0.1);
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                border-left-color: #007bff;
+                animation: spin 1s linear infinite;
+            }
+            
+            .spinner-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 200px;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    } else {
+        console.error('Room ID or username not found. Student analytics cannot be initialized.');
+    }
+});

@@ -534,6 +534,178 @@
 
 
 <script>
+
+
+
+window.currentUserId = "{{ current_teachers_name|escapejs }}";
+  
+  // Connect message button in user profile modal to direct messaging system
+  document.addEventListener('DOMContentLoaded', function() {
+    const messageButton = document.getElementById('messageButton');
+    
+    if (messageButton) {
+      messageButton.addEventListener('click', function() {
+        // Get user details from the modal
+        const userId = document.getElementById('connectButton').dataset.userId;
+        const userName = document.getElementById('modalProfileName').textContent;
+        const userRole = document.getElementById('modalRoleBadge').textContent;
+        const userImg = document.getElementById('modalProfileImg').src;
+        
+        // Close the modal
+        const userProfileModal = bootstrap.Modal.getInstance(document.getElementById('userProfileModal'));
+        userProfileModal.hide();
+        
+        // Start direct messaging with this user
+        startDirectChat(userId, userName, userRole, userImg);
+      });
+    }
+    
+    // Function to start or open a direct chat
+    function startDirectChat(userId, userName, userRole, userImg) {
+      // Show loading state
+      showToast('Connecting...', 'info');
+      
+      // Call the API to create or get a chat room
+      fetch('/start_direct_chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+          recipient_id: userId
+        })
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          // Open the direct messaging panel if not already open
+          const directMessagingButton = document.getElementById('directMessagingButton');
+          const directMessagingPanel = document.getElementById('directMessagingPanel');
+          
+          if (!directMessagingPanel.classList.contains('show')) {
+            directMessagingButton.click();
+          }
+          
+          // Open the direct chat window using our WebSocket-enabled system
+          if (window.privateMessagingConnections) {
+            window.privateMessagingConnections.openChatWithUser({
+              id: userId,
+              name: userName,
+              role: userRole,
+              profile_picture: userImg
+            });
+          } else {
+            showToast('Messaging system not initialized', 'error');
+          }
+        } else {
+          showToast(data.error || 'Failed to start conversation', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error starting direct chat:', error);
+        showToast('Connection error. Please try again.', 'error');
+      });
+
+
+    }
+
+
+
+    function showToast(message, type = 'info') {
+    // Remove any existing toast
+    const existingToast = document.getElementById('dm-toast');
+    if (existingToast) {
+      existingToast.remove();
+    }
+    
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('dm-toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'dm-toast-container';
+      toastContainer.style.position = 'fixed';
+      toastContainer.style.bottom = '20px';
+      toastContainer.style.right = '20px';
+      toastContainer.style.zIndex = '9999';
+      document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast
+    const toast = document.createElement('div');
+    toast.id = 'dm-toast';
+    toast.style.backgroundColor = 
+      type === 'error' ? '#f44336' : 
+      type === 'success' ? '#4CAF50' : 
+      type === 'warning' ? '#ff9800' : '#2196F3';
+    toast.style.color = 'white';
+    toast.style.padding = '12px 16px';
+    toast.style.borderRadius = '4px';
+    toast.style.marginTop = '10px';
+    toast.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    toast.style.minWidth = '250px';
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    toast.textContent = message;
+    
+    // Add to container
+    toastContainer.appendChild(toast);
+    
+    // Fade in
+    setTimeout(() => {
+      toast.style.opacity = '1';
+    }, 10);
+    
+    // Fade out after 3 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => {
+        toast.remove();
+      }, 300);
+    }, 3000);
+  }
+    
+    // Helper function to get CSRF token
+    function getCsrfToken() {
+      const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (tokenInput) {
+        return tokenInput.value;
+      }
+      
+      // Fallback: try to get from cookie
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+        
+      return cookieValue || '';
+    }
+  });
+  
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize enhanced search functionality
+  initEnhancedSearchFunctionality();
+});
+
+function getCsrfToken() {
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='))
+    ?.split('=')[1];
+  return cookieValue || '';
+}
+
+
+
+
+
+
+
+
   document.addEventListener('DOMContentLoaded', function() {
   // Initialize AOS animations
   AOS.init({

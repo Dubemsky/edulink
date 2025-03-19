@@ -56,6 +56,9 @@
     </div>
   </header>
 
+  <style>
+    
+  </style>
   <!-- Chat Room Section -->
   <section>
     <div class="container">
@@ -286,40 +289,48 @@
   </div>
 
 
-
-  <!-- Analytics Modal -->
-  <!-- Analytics Modal -->
 <!-- Analytics Modal -->
 <div class="modal fade" id="analyticsModal" tabindex="-1" aria-labelledby="analyticsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg analytics-modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="analyticsModalLabel">My Analytics: {{ hub }}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="analyticsModalLabel">My Analytics: {{ hub }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Loading spinner -->
+                <div class="spinner-container" id="analyticsSpinner">
+                    <div class="analytics-spinner"></div>
+                </div>
+                
+                <!-- Analytics content (initially hidden but will be shown by the JS) -->
+                <div id="analyticsContent">
+                    <!-- Content will be populated dynamically by the StudentAnalytics module -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
-        <div class="modal-body">
-          <!-- Loading spinner -->
-          <div class="spinner-container" id="analyticsSpinner">
-            <div class="analytics-spinner"></div>
-          </div>
-          
-          <!-- Analytics content (hidden initially) -->
-          <div id="analyticsContent" style="display: none;">
-            <!-- Content will be populated dynamically by the StudentAnalytics module -->
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
-      </div>
     </div>
-  </div>
-  
-  <!-- Hidden data elements to pass information to the JS -->
-  <div data-room-id="{{ room_id|escapejs }}" data-username="{{ current_student_name|escapejs }}" style="display: none;"></div>
-  
+</div>
 
+<!-- Hidden data elements to pass information to the JS -->
+<div data-room-id="{{ room_id|escapejs }}" data-username="{{ current_student_name|escapejs }}" style="display: none;"></div>
   <!-- Add CSRF token -->
+
+
+
+
+<script>
+    // Make sure the modal is properly initialized by Bootstrap
+document.addEventListener('DOMContentLoaded', function() {
+    const analyticsModal = document.getElementById('analyticsModal');
+    if (analyticsModal && typeof bootstrap !== 'undefined') {
+        new bootstrap.Modal(analyticsModal);
+    }
+});
+</script>
   <script>
     document.cookie = "csrftoken={{ csrf_token }}";
   </script>
@@ -353,8 +364,6 @@
     }
     </style>
     `);
-    
-    
     
     
     // User's poll votes storage
@@ -559,24 +568,6 @@
         // Check user's poll votes
         checkUserPollVotes();
     });
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     
     document.addEventListener('DOMContentLoaded', function () {

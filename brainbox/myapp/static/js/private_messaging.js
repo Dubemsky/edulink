@@ -10,7 +10,17 @@ const activeConnections = {};
  * @param {HTMLElement} chatWindow - The chat window DOM element
  * @returns {WebSocket} The WebSocket connection
  */
+
+
 function initializeDirectMessageWebSocket(userId, recipientId, chatWindow) {
+  // Make sure recipientId is just the user ID, not a conversation string
+  if (recipientId.startsWith('conversation_')) {
+    // Extract the actual user ID from the conversation string
+    const parts = recipientId.replace('conversation_', '').split('_');
+    recipientId = parts.find(id => id !== userId) || recipientId;
+    console.log(`Extracted recipient ID: ${recipientId} from conversation string`);
+  }
+  
   // Create a unique conversation ID based on the two user IDs (sorted for consistency)
   const conversationId = `conversation_${[userId, recipientId].sort().join('_')}`;
   
@@ -22,6 +32,8 @@ function initializeDirectMessageWebSocket(userId, recipientId, chatWindow) {
   
   // Determine WebSocket protocol (wss for HTTPS, ws for HTTP)
   const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  
+  // Create WebSocket URL with the correct format
   const wsUrl = `${protocol}${window.location.host}/ws/direct-chat/${userId}/${recipientId}/`;
   
   console.log(`Establishing WebSocket connection to: ${wsUrl}`);
@@ -53,59 +65,63 @@ function initializeDirectMessageWebSocket(userId, recipientId, chatWindow) {
   
   socket.onmessage = function(event) {
     console.log('Message received:', event.data);
-    const data = JSON.parse(event.data);
-    
-    // Handle different message types
-    if (data.type === 'message') {
-      // Determine if this is an outgoing or incoming message
-      const isOutgoing = data.sender_id === userId;
+    try {
+      const data = JSON.parse(event.data);
       
-      // Add message to chat window
-      addMessageToChat(
-        chatWindow, 
-        data.message, 
-        isOutgoing, 
-        data.timestamp
-      );
-    } 
-    else if (data.type === 'history') {
-      // Load conversation history
-      const messagesContainer = chatWindow.querySelector('.dm-chat-messages');
-      
-      // Clear any loading placeholder
-      const loadingElement = chatWindow.querySelector('.dm-chat-loading');
-      if (loadingElement) {
-        loadingElement.style.display = 'none';
+      // Handle different message types
+      if (data.type === 'message') {
+        // Determine if this is an outgoing or incoming message
+        const isOutgoing = data.sender_id === userId;
+        
+        // Add message to chat window
+        addMessageToChat(
+          chatWindow, 
+          data.message, 
+          isOutgoing, 
+          data.timestamp
+        );
+      } 
+      else if (data.type === 'history') {
+        // Load conversation history
+        const messagesContainer = chatWindow.querySelector('.dm-chat-messages');
+        
+        // Clear any loading placeholder
+        const loadingElement = chatWindow.querySelector('.dm-chat-loading');
+        if (loadingElement) {
+          loadingElement.style.display = 'none';
+        }
+        
+        // Clear existing messages
+        messagesContainer.innerHTML = '';
+        
+        // Display welcome message
+        const welcomeMessage = document.createElement('div');
+        welcomeMessage.className = 'dm-message system-message';
+        welcomeMessage.innerHTML = `
+          <div class="dm-message-content">
+            Your conversation is private and secure.
+          </div>
+        `;
+        messagesContainer.appendChild(welcomeMessage);
+        
+        // Add all messages from history
+        if (data.messages && data.messages.length > 0) {
+          data.messages.forEach(message => {
+            const isOutgoing = message.sender_id === userId;
+            addMessageToChat(
+              chatWindow, 
+              message.content, 
+              isOutgoing, 
+              message.timestamp
+            );
+          });
+        }
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }
-      
-      // Clear existing messages
-      messagesContainer.innerHTML = '';
-      
-      // Display welcome message
-      const welcomeMessage = document.createElement('div');
-      welcomeMessage.className = 'dm-message system-message';
-      welcomeMessage.innerHTML = `
-        <div class="dm-message-content">
-          Your conversation is private and secure.
-        </div>
-      `;
-      messagesContainer.appendChild(welcomeMessage);
-      
-      // Add all messages from history
-      if (data.messages && data.messages.length > 0) {
-        data.messages.forEach(message => {
-          const isOutgoing = message.sender_id === userId;
-          addMessageToChat(
-            chatWindow, 
-            message.content, 
-            isOutgoing, 
-            message.timestamp
-          );
-        });
-      }
-      
-      // Scroll to bottom
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    } catch (error) {
+      console.error('Error processing message:', error);
     }
   };
   
@@ -113,21 +129,23 @@ function initializeDirectMessageWebSocket(userId, recipientId, chatWindow) {
     if (event.wasClean) {
       console.log(`Connection closed cleanly, code=${event.code}, reason=${event.reason}`);
     } else {
-      console.warn('Connection died');
+      console.warn('Connection died unexpectedly');
       
       // Show disconnected status in chat window
       const messagesContainer = chatWindow.querySelector('.dm-chat-messages');
-      const disconnectionMessage = document.createElement('div');
-      disconnectionMessage.className = 'dm-message system-message error';
-      disconnectionMessage.innerHTML = `
-        <div class="dm-message-content">
-          <i class="bi bi-wifi-off"></i> Disconnected - Trying to reconnect...
-        </div>
-      `;
-      messagesContainer.appendChild(disconnectionMessage);
-      
-      // Scroll to bottom
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      if (messagesContainer) {
+        const disconnectionMessage = document.createElement('div');
+        disconnectionMessage.className = 'dm-message system-message error';
+        disconnectionMessage.innerHTML = `
+          <div class="dm-message-content">
+            <i class="bi bi-wifi-off"></i> Disconnected - Trying to reconnect...
+          </div>
+        `;
+        messagesContainer.appendChild(disconnectionMessage);
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
       
       // Try to reconnect after a delay
       setTimeout(() => {
@@ -141,11 +159,15 @@ function initializeDirectMessageWebSocket(userId, recipientId, chatWindow) {
   };
   
   socket.onerror = function(error) {
-    console.error(`WebSocket Error: ${error.message}`);
+    console.error(`WebSocket Error:`, error);
   };
   
   return socket;
 }
+
+
+
+
 
 /**
  * Send a message through the WebSocket connection

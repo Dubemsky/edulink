@@ -35,6 +35,8 @@ urlpatterns = [
 
 
 
+    path('room-analytics/<str:room_id>/', get_room_analytics, name='room-analitics'),
+
 
     # Teachers section paths
     path('teachers-dashboard/', teachers_homepage, name='teachers_homepage'),
@@ -77,15 +79,29 @@ urlpatterns = [
 
 
 
+
     path('get_messages/',get_messages, name='get_messages'),
-    path('send_message/', send_message, name='send_message'),
-    path('mark_messages_read/', mark_messages_read, name='mark_messages_read'),  
+    path('send_message/', send_message, name='send_message'), 
+    path('mark_messages_read/', mark_messages_read, name='mark_messages_read'),
     path('get_conversations/', get_conversations, name='get_conversations'),
     path('start_direct_chat/', start_direct_chat, name='start_direct_chat'),
   
 
 
 ]
+
+
+
+"""
+HTTP POST /students-dashboard/mark_messages_read/ 404 [0.02, 127.0.0.1:56427]
+HTTP POST /students-dashboard/mark_messages_read/ 404 [0.01, 127.0.0.1:56485]
+HTTP POST /edulink-community/mark_messages_read/ 404 [0.02, 127.0.0.1:56563]
+HTTP POST /teachers-dashboard/mark_messages_read/ 404 [0.01, 127.0.0.1:56667]
+HTTP POST /students-dashboard/mark_messages_read/ 404 [0.02, 127.0.0.1:56485]
+HTTP POST /teachers-dashboard/mark_messages_read/ 404 [0.02, 127.0.0.1:57014]
+
+
+"""
 
 
 

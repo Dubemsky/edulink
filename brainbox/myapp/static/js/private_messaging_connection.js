@@ -616,8 +616,13 @@ function showErrorMessage(chatWindow, errorMessage) {
  * 
  * @param {string} senderId - The ID of the message sender
  */
+
+
+
+
 function markMessagesAsRead(senderId) {
-  fetch('mark_messages_read/', {
+  // Use absolute URL that doesn't depend on current page path
+  fetch('/mark_messages_read/', {  // Leading slash makes this an absolute path from the domain root
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -652,6 +657,21 @@ function markMessagesAsRead(senderId) {
     console.error('Error marking messages as read:', error);
   });
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * Update the total unread count badge in the UI
