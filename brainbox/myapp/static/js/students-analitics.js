@@ -1,4 +1,9 @@
-// Enhanced Student Analytics Module with Tabs
+/**
+ * Enhanced Student Analytics Module
+ * This script provides a comprehensive analytics dashboard for students
+ * to track their engagement, participation, and learning progress
+ */
+
 const StudentAnalytics = (function() {
     // Private properties
     let analyticsData = null;
@@ -8,22 +13,45 @@ const StudentAnalytics = (function() {
     const $modal = document.getElementById('analyticsModal');
     const $spinner = document.getElementById('analyticsSpinner');
     const $content = document.getElementById('analyticsContent');
+    const $tabs = document.querySelectorAll('.analytics-tab');
+    const $tabContents = document.querySelectorAll('.analytics-tab-content');
     
+    // Color palettes for charts
+    const colorPalette = [
+        '#4361ee', '#3a0ca3', '#7209b7', '#f72585', '#4cc9f0',
+        '#4895ef', '#560bad', '#b5179e', '#f15bb5', '#00b4d8'
+    ];
+    
+    const messageTypeColors = {
+        'text': '#4361ee',
+        'image': '#4cc9f0',
+        'file': '#560bad',
+        'video': '#f72585',
+        'poll': '#b5179e',
+        'question': '#f77f00'
+    };
+
     // Initialize the module
-    function init(roomId, username) {
-        console.log("Initializing analytics with:", roomId, username);
+    function init(roomId) {
+        console.log("Initializing student analytics with room ID:", roomId);
+        
+        // Add event listener to tabs
+        $tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                switchTab(tabName);
+            });
+        });
+        
         // Add event listener to modal
         if ($modal) {
             $modal.addEventListener('shown.bs.modal', function() {
-                // Update modal title to indicate these are student's analytics
-                const modalTitle = document.getElementById('analyticsModalLabel');
-                if (modalTitle) {
-                    const hubName = modalTitle.textContent.split('Room Analytics:')[1] || '';
-                    modalTitle.textContent = `My Analytics${hubName}`;
+                if (!analyticsData) {
+                    fetchAnalytics(roomId);
+                } else {
+                    // If we already have data but charts were destroyed, re-render
+                    renderAnalytics();
                 }
-                
-                // Fetch student-specific analytics when modal is opened
-                fetchStudentAnalytics(roomId, username);
             });
             
             $modal.addEventListener('hidden.bs.modal', function() {
@@ -35,38 +63,51 @@ const StudentAnalytics = (function() {
                 });
                 charts = {};
             });
-        } else {
-            console.error("Modal element not found!");
         }
     }
     
-    // Fetch student analytics data from the server
-    function fetchStudentAnalytics(roomId, username) {
-        console.log("Fetching analytics for:", username, "in room:", roomId);
+    // Switch between tabs
+    function switchTab(tabName) {
+        // Update active tab
+        $tabs.forEach(tab => {
+            if (tab.getAttribute('data-tab') === tabName) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+        
+        // Update active content
+        $tabContents.forEach(content => {
+            if (content.id === `${tabName}-tab`) {
+                content.classList.add('active');
+            } else {
+                content.classList.remove('active');
+            }
+        });
+    }
+    
+    // Fetch analytics data from the server
+    function fetchAnalytics(roomId) {
         showLoading();
         
-        // Use a direct URL to avoid potential parameter issues
-        const url = `/student-analytics/${roomId}/`;
-        
-        fetch(url)
+        fetch(`/student-analytics/${roomId}/`)
             .then(response => {
-                console.log("Response status:", response.status);
                 if (!response.ok) {
                     throw new Error(`Server responded with status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
-                console.log("Data received:", data);
                 if (data.success) {
                     analyticsData = data.analytics;
-                    setupTabsAndRender();
+                    renderAnalytics();
                 } else {
                     showError(data.error || 'Failed to load analytics');
                 }
             })
             .catch(error => {
-                console.error('Error fetching student analytics:', error);
+                console.error('Error fetching analytics:', error);
                 showError('Network error while loading analytics');
             })
             .finally(() => {
@@ -76,17 +117,8 @@ const StudentAnalytics = (function() {
     
     // Show loading spinner
     function showLoading() {
-        if ($spinner) {
-            $spinner.style.display = 'flex';
-        } else {
-            console.error("Spinner element not found");
-        }
-        
-        if ($content) {
-            $content.style.display = 'none';
-        } else {
-            console.error("Content element not found");
-        }
+        if ($spinner) $spinner.style.display = 'flex';
+        if ($content) $content.style.display = 'none';
     }
     
     // Hide loading spinner
@@ -104,940 +136,215 @@ const StudentAnalytics = (function() {
                 </div>
             `;
             $content.style.display = 'block';
-        } else {
-            console.error("Content element not found for error display");
         }
     }
     
-    // Setup tabs and render content
-    function setupTabsAndRender() {
-        console.log("Setting up tabs and rendering content");
-        if (!analyticsData) {
-            console.error("No analytics data available");
-            showError("No analytics data available");
-            return;
-        }
-        
-        if (!$content) {
-            console.error("Content element not found");
-            return;
-        }
+    // Render all analytics components
+    function renderAnalytics() {
+        if (!analyticsData) return;
         
         try {
-            // Set up the tabbed interface
-            setupTabbedInterface();
-            
-            // Render each section
-            renderBasicMetrics();
-            renderActivityOverTime();
-            renderEngagementInteraction();
-            renderVisualizationReporting();
-            
-            // Set up tab switching
-            console.log("Setting up tab switching");
-            setupTabSwitching();
+            // Check if Chart.js is loaded
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js is not loaded. Loading dynamically...');
+                // Try to load Chart.js dynamically
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
+                script.onload = function() {
+                    console.log('Chart.js loaded successfully, rendering analytics...');
+                    renderAnalyticsComponents();
+                };
+                script.onerror = function() {
+                    console.error('Failed to load Chart.js dynamically');
+                    showError('Failed to load chart library. Please refresh the page.');
+                };
+                document.head.appendChild(script);
+            } else {
+                renderAnalyticsComponents();
+            }
         } catch (error) {
-            console.error("Error in setupTabsAndRender:", error);
-            showError('Error rendering analytics data: ' + error.message);
+            console.error('Error rendering analytics:', error);
+            showError('Error rendering analytics data');
         }
     }
     
-    // Set up the tabbed interface
-    function setupTabbedInterface() {
-        if (!$content) {
-            console.error("Content element not found in setupTabbedInterface");
-            return;
-        }
-    
-        console.log("Setting up tabbed interface");
-        
-        // Define the tabs - updated to match requirements
-        const tabs = [
-            { id: 'basic-metrics', label: 'Basic Metrics', icon: 'fa-tachometer-alt' },
-            { id: 'activity', label: 'Activity', icon: 'fa-chart-line' },
-            { id: 'engagement', label: 'Engagement', icon: 'fa-users' },
-            { id: 'visualization', label: 'Visualization', icon: 'fa-chart-bar' }
-        ];
-        
-        // Create the tabbed interface container
-        const tabsContainer = document.createElement('div');
-        tabsContainer.className = 'student-analytics-container';
-        
-        // Create the tab navigation
-        const tabNav = document.createElement('div');
-        tabNav.className = 'nav nav-tabs mb-4';
-        tabNav.id = 'student-analytics-tabs';
-        tabNav.setAttribute('role', 'tablist');
-        
-        // Create the tab content container
-        const tabContent = document.createElement('div');
-        tabContent.className = 'tab-content';
-        tabContent.id = 'student-analytics-tab-content';
-        
-        // Create each tab and its content pane
-        tabs.forEach((tab, index) => {
-            // Create the tab button
-            const tabButton = document.createElement('button');
-            tabButton.className = `nav-link ${index === 0 ? 'active' : ''}`;
-            tabButton.id = `${tab.id}-tab`;
-            tabButton.setAttribute('data-bs-toggle', 'tab');
-            tabButton.setAttribute('data-bs-target', `#${tab.id}-pane`);
-            tabButton.setAttribute('type', 'button');
-            tabButton.setAttribute('role', 'tab');
-            tabButton.setAttribute('aria-controls', `${tab.id}-pane`);
-            tabButton.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
-            tabButton.innerHTML = `<i class="fa ${tab.icon} me-2"></i>${tab.label}`;
+    // Render all analytics components after ensuring Chart.js is available
+    // Fix for the 'renderActiveHoursDistribution is not defined' error
+// In the renderAnalyticsComponents function, change:
+    function renderAnalyticsComponents() {
+        try {
+            // Prepare overview tab
+            renderOverviewStats();
+            renderEngagementDonut();
             
-            // Create the tab nav item
-            const tabNavItem = document.createElement('div');
-            tabNavItem.className = 'nav-item';
-            tabNavItem.setAttribute('role', 'presentation');
-            tabNavItem.appendChild(tabButton);
+            // Prepare activity tab
+            renderActivityTimeline();
+            renderHoursDistributionChart(); // Use correct function name (was renderActiveHoursDistribution)
             
-            tabNav.appendChild(tabNavItem);
+            // Prepare social tab
+            renderSocialInteractions();
+            renderInteractionQuality();
             
-            // Create the tab content pane
-            const tabPane = document.createElement('div');
-            tabPane.className = `tab-pane fade ${index === 0 ? 'show active' : ''}`;
-            tabPane.id = `${tab.id}-pane`;
-            tabPane.setAttribute('role', 'tabpanel');
-            tabPane.setAttribute('aria-labelledby', `${tab.id}-tab`);
-            tabPane.setAttribute('tabindex', '0');
+            // Prepare insights tab
+            renderPersonalInsights();
+            renderProgressIndicators();
             
-            tabContent.appendChild(tabPane);
-        });
-        
-        // Add the tab navigation and content to the container
-        tabsContainer.appendChild(tabNav);
-        tabsContainer.appendChild(tabContent);
-        
-        // Replace the content with the tabbed interface
-        $content.innerHTML = '';
-        $content.appendChild(tabsContainer);
-        
-        console.log("Tabbed interface set up successfully");
-    }
-    
-    // Set up tab switching
-    function setupTabSwitching() {
-        console.log("Setting up tab switching");
-        // Use Bootstrap's tab functionality if available
-        if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-            console.log("Using Bootstrap tab functionality");
-            document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(button => {
-                new bootstrap.Tab(button);
-            });
-        } else {
-            console.log("Using manual tab switching");
-            // Manual tab switching if Bootstrap is not available
-            document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    // Get the target tab
-                    const target = this.getAttribute('data-bs-target');
-                    console.log("Switching to tab:", target);
-                    
-                    // Deactivate all tabs
-                    document.querySelectorAll('.nav-link').forEach(tab => {
-                        tab.classList.remove('active');
-                        tab.setAttribute('aria-selected', 'false');
-                    });
-                    
-                    // Hide all tab panes
-                    document.querySelectorAll('.tab-pane').forEach(pane => {
-                        pane.classList.remove('show', 'active');
-                    });
-                    
-                    // Activate the clicked tab
-                    this.classList.add('active');
-                    this.setAttribute('aria-selected', 'true');
-                    
-                    // Show the target tab pane
-                    const targetPane = document.querySelector(target);
-                    if (targetPane) {
-                        targetPane.classList.add('show', 'active');
-                    } else {
-                        console.error("Target pane not found:", target);
-                    }
-                });
-            });
+        } catch (error) {
+            console.error('Error rendering analytics components:', error);
+            showError('Error rendering analytics data');
         }
     }
-    
-    // 1. Basic Student Metrics
-    function renderBasicMetrics() {
-        console.log("Rendering basic metrics");
-        const metricsPane = document.getElementById('basic-metrics-pane');
-        if (!metricsPane) {
-            console.error("Metrics pane element not found");
-            return;
-        }
         
-        if (!analyticsData) {
-            console.error("Analytics data not available for basic metrics");
-            return;
-        }
+    // 1. OVERVIEW TAB - Render overview statistics
+    function renderOverviewStats() {
+        const overviewTab = document.getElementById('overview-tab');
+        if (!overviewTab) return;
         
         const personal = analyticsData.personal_engagement || {};
         const social = analyticsData.social_interaction || {};
         const learning = analyticsData.learning_behavior || {};
         
-        // Create metrics container
-        const container = document.createElement('div');
-        container.className = 'basic-metrics-container';
+        // Create metrics row
+        const statsRow = document.createElement('div');
+        statsRow.className = 'row mb-4';
         
-        // Create metrics grid
-        const metricsGrid = document.createElement('div');
-        metricsGrid.className = 'row';
-        
-        // Define metrics from requirements
+        // Define the key metrics
         const metrics = [
-            { 
-                label: 'Questions Asked', 
+            {
                 value: personal.messages_sent || 0,
+                label: 'Questions Asked',
                 icon: 'fa-question-circle',
                 color: 'primary'
             },
-            { 
-                label: 'Answers Given', 
+            {
                 value: personal.replies_sent || 0,
-                icon: 'fa-comment-dots',
+                label: 'Answers Given',
+                icon: 'fa-comment',
                 color: 'success'
             },
-            { 
-                label: 'Likes Received', 
+            {
                 value: social.upvotes_received || 0,
+                label: 'Upvotes Received',
                 icon: 'fa-thumbs-up',
                 color: 'info'
             },
-            { 
-                label: 'Likes Given', 
-                value: social.upvotes_given || 0,
-                icon: 'fa-heart',
-                color: 'danger'
-            },
-            { 
-                label: 'Bookmarked Questions', 
+            {
                 value: learning.bookmarks_count || 0,
+                label: 'Bookmarks',
                 icon: 'fa-bookmark',
                 color: 'warning'
-            },
-            { 
-                label: 'Polls Participated', 
-                value: learning.poll_votes_count || 0,
-                icon: 'fa-poll',
-                color: 'secondary'
             }
         ];
         
-        // Add each metric card
+        // Create each stat card
         metrics.forEach(metric => {
-            const metricCard = document.createElement('div');
-            metricCard.className = 'col-md-4 mb-4';
-            metricCard.innerHTML = `
-                <div class="card border-${metric.color} shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="rounded-circle bg-${metric.color} p-3 me-3">
-                                <i class="fa ${metric.icon} text-white"></i>
+            const col = document.createElement('div');
+            col.className = 'col-md-3';
+            col.innerHTML = `
+                <div class="analytics-stat">
+                    <div class="stat-icon bg-${metric.color}">
+                        <i class="fa ${metric.icon}"></i>
+                    </div>
+                    <div class="stat-value">${metric.value}</div>
+                    <div class="stat-label">${metric.label}</div>
+                </div>
+            `;
+            statsRow.appendChild(col);
+        });
+        
+        // Add to overview tab
+        overviewTab.appendChild(statsRow);
+        
+        // Add participation percentage card
+        const participationCard = document.createElement('div');
+        participationCard.className = 'analytics-card mb-4';
+        
+        // Calculate participation percentage
+        const participationPercentage = personal.participation_percentage || 0;
+        const participationColor = getParticipationColor(participationPercentage);
+        
+        participationCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Your Participation</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center">
+                        <div class="participation-gauge">
+                            <div class="gauge-value ${participationColor}">${participationPercentage.toFixed(1)}%</div>
+                            <div class="gauge-label">of room activity</div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="progress participation-progress" style="height: 24px;">
+                            <div class="progress-bar bg-${participationColor}" role="progressbar" 
+                                style="width: ${participationPercentage}%" 
+                                aria-valuenow="${participationPercentage}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                                ${participationPercentage.toFixed(1)}%
                             </div>
-                            <div>
-                                <div class="stat-value h4 mb-0">${metric.value}</div>
-                                <div class="stat-label text-muted">${metric.label}</div>
-                            </div>
+                        </div>
+                        <div class="participation-description mt-2">
+                            ${getParticipationMessage(participationPercentage)}
                         </div>
                     </div>
                 </div>
-            `;
-            metricsGrid.appendChild(metricCard);
-        });
-        
-        container.appendChild(metricsGrid);
-        
-        // Add engagement comparison
-        const comparisonCard = document.createElement('div');
-        comparisonCard.className = 'card mt-4';
-        
-        // Calculate participation comparison
-        const roomTotals = analyticsData.room_totals || {};
-        const roomAverage = roomTotals.total_messages && roomTotals.total_participants ? 
-            (roomTotals.total_messages / roomTotals.total_participants) : 0;
-        const studentTotal = (personal.messages_sent || 0) + (personal.replies_sent || 0);
-        let comparisonPercentage = 0;
-        
-        if (roomAverage > 0) {
-            comparisonPercentage = Math.round((studentTotal - roomAverage) / roomAverage * 100);
-        }
-        
-        comparisonCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Participation Comparison</h5>
-            </div>
-            <div class="card-body text-center">
-                <h3 class="mb-3">
-                    <span class="${comparisonPercentage >= 0 ? 'text-success' : 'text-danger'}">
-                        <i class="fa fa-${comparisonPercentage >= 0 ? 'arrow-up' : 'arrow-down'}"></i>
-                        ${Math.abs(comparisonPercentage)}%
-                    </span>
-                </h3>
-                <p>You've participated in <b>${comparisonPercentage >= 0 ? 'more' : 'fewer'}</b> discussions than the average student in this room.</p>
             </div>
         `;
         
-        container.appendChild(comparisonCard);
+        overviewTab.appendChild(participationCard);
         
-        // Add the container to the metrics pane
-        metricsPane.appendChild(container);
-        
-        console.log("Basic metrics rendered successfully");
-    }
-    
-    // 2. Activity Over Time
-    function renderActivityOverTime() {
-        console.log("Rendering activity over time");
-        const activityPane = document.getElementById('activity-pane');
-        if (!activityPane) {
-            console.error("Activity pane element not found");
-            return;
-        }
-        
-        if (!analyticsData) {
-            console.error("Analytics data not available for activity");
-            return;
-        }
-        
-        const progress = analyticsData.progress_indicators || {};
-        const personal = analyticsData.personal_engagement || {};
-        
-        // Create activity container
-        const container = document.createElement('div');
-        
-        // Daily/weekly/monthly trends chart
-        const trendsCard = document.createElement('div');
-        trendsCard.className = 'card mb-4';
-        trendsCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Participation Trends</h5>
+        // Add engagement donut chart container
+        const donutContainer = document.createElement('div');
+        donutContainer.className = 'analytics-card';
+        donutContainer.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Engagement Distribution</h5>
             </div>
-            <div class="card-body">
-                <div style="height: 300px;">
-                    <canvas id="participationTrendsChart"></canvas>
-                </div>
-            </div>
-        `;
-        container.appendChild(trendsCard);
-        
-        // Time spent in room section
-        const timeSpentCard = document.createElement('div');
-        timeSpentCard.className = 'card mb-4';
-        
-        // Calculate total active days and average session times
-        const activeDays = personal.active_days || 0;
-        const totalInteractions = (personal.messages_sent || 0) + (personal.replies_sent || 0);
-        const avgDailyInteractions = activeDays > 0 ? Math.round(totalInteractions / activeDays) : 0;
-        
-        timeSpentCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Time Engagement</h5>
-            </div>
-            <div class="card-body">
+            <div class="analytics-card-body">
                 <div class="row">
-                    <div class="col-md-6 text-center">
-                        <h2>${activeDays}</h2>
-                        <p class="text-muted">Active Days</p>
+                    <div class="col-md-7">
+                        <div class="chart-container" style="height: 250px;">
+                            <canvas id="engagementDonutChart"></canvas>
+                        </div>
                     </div>
-                    <div class="col-md-6 text-center">
-                        <h2>${avgDailyInteractions}</h2>
-                        <p class="text-muted">Average Daily Interactions</p>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <h6>Most Active Hours</h6>
-                    <div style="height: 150px;">
-                        <canvas id="activeHoursChart"></canvas>
+                    <div class="col-md-5">
+                        <div class="donut-legend" id="engagementDonutLegend"></div>
                     </div>
                 </div>
             </div>
         `;
-        container.appendChild(timeSpentCard);
         
-        // Average response time card
-        const responseTimeCard = document.createElement('div');
-        responseTimeCard.className = 'card mb-4';
-        
-        // Use response rate from existing analytics or placeholder
-        const responseRate = analyticsData.social_interaction && analyticsData.social_interaction.response_rate ? 
-            analyticsData.social_interaction.response_rate : 0;
-        const messageReplyRatio = personal.message_reply_ratio ? personal.message_reply_ratio : 0;
-        
-        responseTimeCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Response Metrics</h5>
-            </div>
-            <div class="card-body text-center">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h2>${responseRate.toFixed(1)}%</h2>
-                        <p class="text-muted">Response Rate</p>
-                        <small>Percentage of your messages that received replies</small>
-                    </div>
-                    <div class="col-md-6">
-                        <h2>${messageReplyRatio.toFixed(1)}</h2>
-                        <p class="text-muted">Messages to Replies Ratio</p>
-                        <small>Ratio of your questions to answers</small>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.appendChild(responseTimeCard);
-        
-        // Add the container to the activity pane
-        activityPane.appendChild(container);
-        
-        // Render charts once the DOM elements are available
-        setTimeout(() => {
-            renderParticipationTrendsChart(progress.activity_timeline || []);
-            renderActiveHoursChart(personal.active_times || []);
-        }, 100);
-        
-        console.log("Activity over time rendered successfully");
+        overviewTab.appendChild(donutContainer);
     }
     
-    // Helper function to render participation trends chart
-    function renderParticipationTrendsChart(timelineData) {
-        console.log("Rendering participation trends chart");
-        const canvas = document.getElementById('participationTrendsChart');
-        if (!canvas) {
-            console.error("Participation trends chart canvas not found");
-            return;
-        }
-        
-        const ctx = canvas.getContext('2d');
-        
-        // Format the dates and counts for the chart
-        const dates = [];
-        const counts = [];
-        
-        // Make sure we have data to work with
-        if (timelineData && timelineData.length > 0) {
-            timelineData.forEach(item => {
-                if (item && item.date && typeof item.count === 'number') {
-                    dates.push(item.date);
-                    counts.push(item.count);
-                }
-            });
-            
-            // Calculate 7-day moving average for weekly trend
-            const weeklyAvg = [];
-            for (let i = 0; i < counts.length; i++) {
-                let sum = 0;
-                let validDays = 0;
-                for (let j = Math.max(0, i - 6); j <= i; j++) {
-                    sum += counts[j];
-                    validDays++;
-                }
-                weeklyAvg.push(sum / validDays);
-            }
-            
-            // Create the chart
-            if (charts.participationTrends) {
-                charts.participationTrends.destroy();
-            }
-            
-            charts.participationTrends = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [
-                        {
-                            label: 'Daily',
-                            data: counts,
-                            backgroundColor: 'rgba(78, 115, 223, 0.1)',
-                            borderColor: '#4e73df',
-                            borderWidth: 2,
-                            pointRadius: 3,
-                            pointBackgroundColor: '#4e73df',
-                            pointBorderColor: '#fff',
-                            pointHoverRadius: 5,
-                            tension: 0.3,
-                            fill: false
-                        },
-                        {
-                            label: 'Weekly Average',
-                            data: weeklyAvg,
-                            backgroundColor: 'rgba(28, 200, 138, 0.1)',
-                            borderColor: '#1cc88a',
-                            borderWidth: 2,
-                            pointRadius: 0,
-                            tension: 0.4,
-                            fill: false
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            backgroundColor: '#fff',
-                            titleColor: '#5a5c69',
-                            bodyColor: '#858796',
-                            borderColor: '#dddfeb',
-                            borderWidth: 1,
-                            xPadding: 15,
-                            yPadding: 15,
-                            displayColors: false,
-                            caretPadding: 10
-                        }
-                    }
-                }
-            });
+    // Helper function to get color for participation percentage
+    function getParticipationColor(percentage) {
+        if (percentage < 5) return 'danger';
+        if (percentage < 15) return 'warning';
+        if (percentage < 30) return 'info';
+        return 'success';
+    }
+    
+    // Helper function to get a message based on participation
+    function getParticipationMessage(percentage) {
+        if (percentage < 5) {
+            return 'Your participation is quite low. Consider contributing more to discussions to enhance your learning experience.';
+        } else if (percentage < 15) {
+            return 'Your participation is below average. More active engagement could help you better understand the material.';
+        } else if (percentage < 30) {
+            return 'You\'re participating at a good level, but there\'s room to engage more with class discussions.';
         } else {
-            // No data available, show a message
-            const noDataMessage = document.createElement('div');
-            noDataMessage.className = 'text-center p-4 text-muted';
-            noDataMessage.textContent = 'No activity timeline data available';
-            canvas.parentNode.replaceChild(noDataMessage, canvas);
+            return 'Great job! You\'re an active participant in class discussions, which enhances both your learning and your peers\'.';
         }
     }
     
-    // Helper function to render active hours chart
-    function renderActiveHoursChart(activeTimes) {
-        console.log("Rendering active hours chart");
-        const canvas = document.getElementById('activeHoursChart');
-        if (!canvas) {
-            console.error("Active hours chart canvas not found");
-            return;
-        }
-        
-        const ctx = canvas.getContext('2d');
-        
-        // Prepare data for 24-hour chart
-        const hours = Array.from({ length: 24 }, (_, i) => i);
-        const activityData = Array(24).fill(0);
-        
-        // Make sure we have data to work with
-        if (activeTimes && activeTimes.length > 0) {
-            // Fill in the activity data
-            activeTimes.forEach(item => {
-                if (item && typeof item.hour === 'number' && item.hour >= 0 && item.hour < 24) {
-                    activityData[item.hour] = item.count || 0;
-                }
-            });
-            
-            // Format hours for display
-            const hourLabels = hours.map(hour => {
-                return `${hour}:00`;
-            });
-            
-            // Create the chart
-            if (charts.activeHours) {
-                charts.activeHours.destroy();
-            }
-            
-            charts.activeHours = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: hourLabels,
-                    datasets: [{
-                        label: 'Activity',
-                        data: activityData,
-                        backgroundColor: '#36b9cc',
-                        borderColor: '#36b9cc',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                autoSkip: true,
-                                maxTicksLimit: 12
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
-        } else {
-            // No data available, show a message
-            const noDataMessage = document.createElement('div');
-            noDataMessage.className = 'text-center p-4 text-muted';
-            noDataMessage.textContent = 'No active times data available';
-            canvas.parentNode.replaceChild(noDataMessage, canvas);
-        }
-    }
-    
-    // 3. Engagement & Interaction
-    function renderEngagementInteraction() {
-        console.log("Rendering engagement & interaction");
-        const engagementPane = document.getElementById('engagement-pane');
-        if (!engagementPane) {
-            console.error("Engagement pane element not found");
-            return;
-        }
-        
-        if (!analyticsData) {
-            console.error("Analytics data not available for engagement");
-            return;
-        }
-        
-        const content = analyticsData.content_analytics || {};
-        const social = analyticsData.social_interaction || {};
-        
-        // Create engagement container
-        const container = document.createElement('div');
-        
-        // Top topics interaction card
-        const topicsCard = document.createElement('div');
-        topicsCard.className = 'card mb-4';
-        
-        // Extract message types for topics or use defaults
-        let topTopics = [];
-        
-        if (content && content.message_types) {
-            topTopics = Object.entries(content.message_types).map(([type, count]) => ({
-                topic: type.charAt(0).toUpperCase() + type.slice(1),
-                interactions: count
-            }));
-        } else {
-            // Fallback to default topics
-            topTopics = [
-                { topic: 'Text Messages', interactions: 0 },
-                { topic: 'Questions', interactions: 0 },
-                { topic: 'Responses', interactions: 0 },
-                { topic: 'Resources', interactions: 0 },
-                { topic: 'Files', interactions: 0 }
-            ];
-        }
-        
-        let topicsHTML = '';
-        topTopics.forEach(topic => {
-            topicsHTML += `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>${topic.topic}</span>
-                    <span class="badge bg-primary">${topic.interactions}</span>
-                </div>
-            `;
-        });
-        
-        topicsCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Top Content Types</h5>
-            </div>
-            <div class="card-body">
-                ${topicsHTML || '<p class="text-center text-muted">No content type data available</p>'}
-                <div class="mt-3 text-center">
-                    <small class="text-muted">Based on message content analysis</small>
-                </div>
-            </div>
-        `;
-        container.appendChild(topicsCard);
-        
-        // Most engaged-with users - use top content as a proxy or create placeholder
-        const usersCard = document.createElement('div');
-        usersCard.className = 'card mb-4';
-        
-        // Try to extract top content authors as proxy for user interaction
-        let topUsers = [];
-        const progress = analyticsData.progress_indicators || {};
-        
-        if (progress && progress.top_content && progress.top_content.length > 0) {
-            // Create a map of interactions by user
-            const userInteractions = {};
-            
-            // Count interactions from top content
-            progress.top_content.forEach(content => {
-                if (content.sender) {
-                    userInteractions[content.sender] = (userInteractions[content.sender] || 0) + 1;
-                }
-            });
-            
-            // Convert to array and sort
-            topUsers = Object.entries(userInteractions)
-                .map(([name, interactions]) => ({ name, interactions }))
-                .sort((a, b) => b.interactions - a.interactions)
-                .slice(0, 5);
-        }
-        
-        // If no data, use placeholders
-        if (topUsers.length === 0) {
-            topUsers = [
-                { name: 'Instructor', interactions: 0 },
-                { name: 'Classmates', interactions: 0 }
-            ];
-        }
-        
-        let usersHTML = '';
-        topUsers.forEach(user => {
-            usersHTML += `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>${user.name}</span>
-                    <span class="badge bg-success">${user.interactions}</span>
-                </div>
-            `;
-        });
-        
-        usersCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Most Frequent Interactions</h5>
-            </div>
-            <div class="card-body">
-                ${usersHTML || '<p class="text-center text-muted">No interaction data available</p>'}
-                <div class="mt-3 text-center">
-                    <small class="text-muted">Based on replies and reactions</small>
-                </div>
-            </div>
-        `;
-        container.appendChild(usersCard);
-        
-        // Participation percentage
-        const participationCard = document.createElement('div');
-        participationCard.className = 'card mb-4';
-        
-        // Calculate viewing vs participation ratio
-        const learning = analyticsData.learning_behavior || {};
-        const readingWritingRatio = learning.reading_writing_ratio || 1;
-        const participationPercentage = readingWritingRatio > 0 ? (100 / (1 + readingWritingRatio)) : 50;
-        
-        participationCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Participation Analysis</h5>
-            </div>
-            <div class="card-body">
-                <div class="text-center mb-3">
-                    <h2>${participationPercentage.toFixed(1)}%</h2>
-                    <p>Active Participation vs Viewing</p>
-                </div>
-                <div class="progress" style="height: 25px;">
-                    <div class="progress-bar bg-primary" role="progressbar" 
-                        style="width: ${participationPercentage}%" 
-                        aria-valuenow="${participationPercentage}" 
-                        aria-valuemin="0" 
-                        aria-valuemax="100">
-                        Participation
-                    </div>
-                    <div class="progress-bar bg-secondary" role="progressbar" 
-                        style="width: ${100 - participationPercentage}%" 
-                        aria-valuenow="${100 - participationPercentage}" 
-                        aria-valuemin="0" 
-                        aria-valuemax="100">
-                        Viewing
-                    </div>
-                </div>
-                <div class="d-flex justify-content-between mt-2">
-                    <small>Active Contributions</small>
-                    <small>Passive Viewing</small>
-                </div>
-            </div>
-        `;
-        container.appendChild(participationCard);
-        
-        // Add the container to the engagement pane
-        engagementPane.appendChild(container);
-        
-        console.log("Engagement and interaction rendered successfully");
-    }
-    
-    // 4. Visualization & Reporting
-    function renderVisualizationReporting() {
-        console.log("Rendering visualization & reporting");
-        const visualizationPane = document.getElementById('visualization-pane');
-        if (!visualizationPane) {
-            console.error("Visualization pane element not found");
-            return;
-        }
-        
-        if (!analyticsData) {
-            console.error("Analytics data not available for visualization");
-            return;
-        }
-        
-        const personal = analyticsData.personal_engagement || {};
-        const social = analyticsData.social_interaction || {};
-        const progress = analyticsData.progress_indicators || {};
-        const learning = analyticsData.learning_behavior || {};
-        
-        // Create visualization container
-        const container = document.createElement('div');
-        
-        // Student engagement visualization
-        const engagementCard = document.createElement('div');
-        engagementCard.className = 'card mb-4';
-        engagementCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Engagement Distribution</h5>
-            </div>
-            <div class="card-body">
-                <div style="height: 300px;">
-                    <canvas id="engagementDistributionChart"></canvas>
-                </div>
-            </div>
-        `;
-        container.appendChild(engagementCard);
-        
-        const performanceCard = document.createElement('div');
-        performanceCard.className = 'card mb-4';
-        
-        // Create progress bars for key metrics
-        const progressBars = [
-            {
-                label: 'Participation Rate',
-                value: personal.participation_percentage || 0,
-                max: 100,
-                color: getProgressColor(personal.participation_percentage || 0, 5, 15, 30)
-            },
-            {
-                label: 'Poll Participation',
-                value: learning.poll_participation_rate || 0,
-                max: 100,
-                color: getProgressColor(learning.poll_participation_rate || 0, 25, 50, 75)
-            },
-            {
-                label: 'Response Rate',
-                value: social.response_rate || 0,
-                max: 100,
-                color: getProgressColor(social.response_rate || 0, 10, 30, 50)
-            },
-            {
-                label: 'Consistency Score',
-                value: progress.consistency_score || 0,
-                max: 100,
-                color: getProgressColor(progress.consistency_score || 0, 30, 60, 80)
-            }
-        ];
-        
-        let progressHtml = '';
-        progressBars.forEach(bar => {
-            progressHtml += `
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>${bar.label}</span>
-                        <span>${bar.value.toFixed(1)}%</span>
-                    </div>
-                    <div class="progress" style="height: 10px;">
-                        <div class="progress-bar bg-${bar.color}" role="progressbar" style="width: ${Math.min(bar.value, 100)}%"></div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        performanceCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Performance Dashboard</h5>
-            </div>
-            <div class="card-body">
-                ${progressHtml}
-            </div>
-        `;
-        container.appendChild(performanceCard);
-        
-        // Comparison with average room activity
-        const comparisonCard = document.createElement('div');
-        comparisonCard.className = 'card';
-        
-        // Calculate comparisons with room averages
-        const roomTotals = analyticsData.room_totals || {};
-        const totalParticipants = roomTotals.total_participants || 1;
-        
-        let msgComparison = 0;
-        let replyComparison = 0;
-        let reactionComparison = 0;
-        
-        if (roomTotals.total_messages && roomTotals.total_participants) {
-            msgComparison = ((personal.messages_sent || 0) / (roomTotals.total_messages / totalParticipants) - 1) * 100;
-        }
-        
-        if (roomTotals.total_replies && roomTotals.total_participants) {
-            replyComparison = ((personal.replies_sent || 0) / (roomTotals.total_replies / totalParticipants) - 1) * 100;
-        }
-        
-        if (roomTotals.total_reactions && roomTotals.total_reactions.upvotes !== undefined) {
-            const userReactions = (social.upvotes_received || 0) + (social.downvotes_received || 0);
-            const avgReactions = (roomTotals.total_reactions.upvotes + roomTotals.total_reactions.downvotes) / totalParticipants;
-            if (avgReactions > 0) {
-                reactionComparison = (userReactions / avgReactions - 1) * 100;
-            }
-        }
-        
-        comparisonCard.innerHTML = `
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Comparison with Room Average</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4 text-center mb-3">
-                        <h3 class="${msgComparison >= 0 ? 'text-success' : 'text-danger'}">
-                            ${msgComparison >= 0 ? '+' : ''}${msgComparison.toFixed(0)}%
-                        </h3>
-                        <p>Messages</p>
-                    </div>
-                    <div class="col-md-4 text-center mb-3">
-                        <h3 class="${replyComparison >= 0 ? 'text-success' : 'text-danger'}">
-                            ${replyComparison >= 0 ? '+' : ''}${replyComparison.toFixed(0)}%
-                        </h3>
-                        <p>Replies</p>
-                    </div>
-                    <div class="col-md-4 text-center mb-3">
-                        <h3 class="${reactionComparison >= 0 ? 'text-success' : 'text-danger'}">
-                            ${reactionComparison >= 0 ? '+' : ''}${reactionComparison.toFixed(0)}%
-                        </h3>
-                        <p>Reactions</p>
-                    </div>
-                </div>
-                <div class="alert alert-info mt-3">
-                    <i class="fa fa-info-circle me-2"></i>
-                    These percentages show how your activity compares to the average student in this room.
-                </div>
-            </div>
-        `;
-        container.appendChild(comparisonCard);
-        
-        // Add the container to the visualization pane
-        visualizationPane.appendChild(container);
-        
-        // Render the engagement distribution chart
-        setTimeout(() => {
-            renderEngagementDistributionChart();
-        }, 100);
-        
-        console.log("Visualization and reporting rendered successfully");
-    }
-    
-    // Render engagement distribution pie chart
-    function renderEngagementDistributionChart() {
-        console.log("Rendering engagement distribution chart");
-        const canvas = document.getElementById('engagementDistributionChart');
-        if (!canvas) {
-            console.error("Engagement distribution chart canvas not found");
-            return;
-        }
+    // Render engagement donut chart
+    function renderEngagementDonut() {
+        const canvas = document.getElementById('engagementDonutChart');
+        const legendContainer = document.getElementById('engagementDonutLegend');
+        if (!canvas || !legendContainer) return;
         
         const ctx = canvas.getContext('2d');
         
@@ -1046,166 +353,1706 @@ const StudentAnalytics = (function() {
         const learning = analyticsData.learning_behavior || {};
         const social = analyticsData.social_interaction || {};
         
-        // Create data for chart
-        const data = [
-            { label: 'Questions', value: personal.messages_sent || 0 },
-            { label: 'Answers', value: personal.replies_sent || 0 },
-            { label: 'Bookmarks', value: learning.bookmarks_count || 0 },
-            { label: 'Poll Votes', value: learning.poll_votes_count || 0 },
-            { label: 'Likes Given', value: social.upvotes_given || 0 }
+        // Define engagement categories
+        const engagementData = [
+            { 
+                label: 'Questions', 
+                value: personal.messages_sent || 0, 
+                color: messageTypeColors.question 
+            },
+            { 
+                label: 'Replies', 
+                value: personal.replies_sent || 0, 
+                color: messageTypeColors.text 
+            },
+            { 
+                label: 'Poll Votes', 
+                value: learning.poll_votes_count || 0, 
+                color: messageTypeColors.poll 
+            },
+            { 
+                label: 'Bookmarks', 
+                value: learning.bookmarks_count || 0, 
+                color: '#f9c74f' 
+            },
+            { 
+                label: 'Votes Given', 
+                value: (social.upvotes_given || 0) + (social.downvotes_given || 0), 
+                color: '#277da1' 
+            }
         ];
         
         // Filter out zero values
-        const filteredData = data.filter(item => item.value > 0);
+        const filteredData = engagementData.filter(item => item.value > 0);
         
-        if (filteredData.length > 0) {
-            // Create the chart
-            if (charts.engagementDistribution) {
-                charts.engagementDistribution.destroy();
-            }
-            
-            charts.engagementDistribution = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: filteredData.map(item => item.label),
-                    datasets: [{
-                        data: filteredData.map(item => item.value),
-                        backgroundColor: [
-                            '#4e73df', // Primary blue
-                            '#1cc88a', // Success green
-                            '#f6c23e', // Warning yellow
-                            '#36b9cc', // Info teal
-                            '#e74a3b'  // Danger red
-                        ],
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.raw || 0;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                    return `${label}: ${value} (${percentage}%)`;
-                                }
+        // If no data, show a message
+        if (filteredData.length === 0) {
+            const noDataMessage = document.createElement('div');
+            noDataMessage.className = 'text-center text-muted mt-4';
+            noDataMessage.innerHTML = '<p>No engagement data available yet</p>';
+            canvas.parentElement.replaceChild(noDataMessage, canvas);
+            legendContainer.innerHTML = '';
+            return;
+        }
+        
+        // Create the chart
+        if (charts.engagementDonut) {
+            charts.engagementDonut.destroy();
+        }
+        
+        charts.engagementDonut = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: filteredData.map(item => item.label),
+                datasets: [{
+                    data: filteredData.map(item => item.value),
+                    backgroundColor: filteredData.map(item => item.color),
+                    borderWidth: 1,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
                             }
                         }
                     }
                 }
-            });
-        } else {
-            // No data available, show a message
+            }
+        });
+        
+        // Create custom legend
+        legendContainer.innerHTML = '';
+        filteredData.forEach(item => {
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item';
+            legendItem.innerHTML = `
+                <span class="legend-color" style="background-color: ${item.color}"></span>
+                <span class="legend-label">${item.label}: ${item.value}</span>
+            `;
+            legendContainer.appendChild(legendItem);
+        });
+    }
+    
+    // 2. ACTIVITY TAB - Render activity timeline
+    function renderActivityTimeline() {
+        const activityTab = document.getElementById('activity-tab');
+        if (!activityTab) return;
+        
+        // Clear existing content
+        activityTab.innerHTML = '';
+        
+        // Create activity timeline card
+        const timelineCard = document.createElement('div');
+        timelineCard.className = 'analytics-card mb-4';
+        timelineCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Activity Over Time</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="activityTimelineChart"></canvas>
+                </div>
+                <div class="activity-trend mt-3" id="activityTrendIndicator"></div>
+            </div>
+        `;
+        
+        activityTab.appendChild(timelineCard);
+        
+        // Create hours distribution card
+        const hoursCard = document.createElement('div');
+        hoursCard.className = 'analytics-card mb-4';
+        hoursCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Activity by Hour of Day</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="hoursDistributionChart"></canvas>
+                </div>
+            </div>
+        `;
+        
+        activityTab.appendChild(hoursCard);
+        
+        // Create consistency score card
+        const consistencyCard = document.createElement('div');
+        consistencyCard.className = 'analytics-card';
+        
+        const progress = analyticsData.progress_indicators || {};
+        const personal = analyticsData.personal_engagement || {};
+        const consistencyScore = progress.consistency_score || 0;
+        const activeDays = personal.active_days || 0;
+        
+        const consistencyColor = getConsistencyColor(consistencyScore);
+        
+        consistencyCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Consistency Metrics</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-5 text-center">
+                        <div class="consistency-score ${consistencyColor}">
+                            <div class="score-value">${consistencyScore.toFixed(1)}%</div>
+                            <div class="score-label">Consistency Score</div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="consistency-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Active Days</div>
+                                <div class="detail-value">${activeDays}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Participation Trend</div>
+                                <div class="detail-value" id="participationTrendText">
+                                    ${getTrendText(progress.trend_analysis ? progress.trend_analysis.trend : 'stable')}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="consistency-message mt-3">
+                            ${getConsistencyMessage(consistencyScore)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        activityTab.appendChild(consistencyCard);
+        
+        // Render the charts after DOM elements are created
+        setTimeout(() => {
+            renderActivityChart();
+            renderHoursDistributionChart();
+        }, 100);
+    }
+    
+    // Render activity chart
+    function renderActivityChart() {
+        const canvas = document.getElementById('activityTimelineChart');
+        const trendIndicator = document.getElementById('activityTrendIndicator');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Get data from analytics
+        const progress = analyticsData.progress_indicators || {};
+        const timelineData = progress.activity_timeline || [];
+        
+        // If no data, show a message
+        if (!timelineData || timelineData.length === 0) {
             const noDataMessage = document.createElement('div');
-            noDataMessage.className = 'text-center p-4 text-muted';
-            noDataMessage.textContent = 'No engagement data available';
-            canvas.parentNode.replaceChild(noDataMessage, canvas);
+            noDataMessage.className = 'text-center text-muted mt-4';
+            noDataMessage.innerHTML = '<p>No activity data available yet</p>';
+            canvas.parentElement.replaceChild(noDataMessage, canvas);
+            if (trendIndicator) trendIndicator.innerHTML = '';
+            return;
+        }
+        
+        // Format data for chart
+        const dates = timelineData.map(item => formatDate(item.date));
+        const counts = timelineData.map(item => item.count || 0);
+        
+        // Create the chart
+        if (charts.activityTimeline) {
+            charts.activityTimeline.destroy();
+        }
+        
+        charts.activityTimeline = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Activity Count',
+                    data: counts,
+                    borderColor: '#4361ee',
+                    backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#4361ee',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 10,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `Activities: ${context.raw}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Show trend analysis
+        if (trendIndicator && progress.trend_analysis) {
+            const trend = progress.trend_analysis.trend;
+            const trendClass = trend === 'increasing' ? 'positive-trend' : 
+                              trend === 'decreasing' ? 'negative-trend' : 
+                              'neutral-trend';
+            
+            const trendIcon = trend === 'increasing' ? 'fa-arrow-up' : 
+                             trend === 'decreasing' ? 'fa-arrow-down' : 
+                             'fa-minus';
+            
+            trendIndicator.innerHTML = `
+                <div class="trend-indicator ${trendClass}">
+                    <i class="fa ${trendIcon}"></i>
+                    <span>Your activity is ${trend}. ${getTrendAdvice(trend)}</span>
+                </div>
+            `;
         }
     }
     
-    // Helper function to get progress bar color
-    function getProgressColor(value, lowThreshold, mediumThreshold, highThreshold) {
-        if (value < lowThreshold) return 'danger';
-        if (value < mediumThreshold) return 'warning';
-        if (value < highThreshold) return 'info';
-        return 'success';
+    // Render hours distribution chart
+    function renderHoursDistributionChart() {
+        const canvas = document.getElementById('hoursDistributionChart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Get data from analytics
+        const personal = analyticsData.personal_engagement || {};
+        const activeTimesData = personal.active_times || [];
+        
+        // If no data, show a message
+        if (!activeTimesData || activeTimesData.length === 0) {
+            const noDataMessage = document.createElement('div');
+            noDataMessage.className = 'text-center text-muted mt-4';
+            noDataMessage.innerHTML = '<p>No hourly activity data available yet</p>';
+            canvas.parentElement.replaceChild(noDataMessage, canvas);
+            return;
+        }
+        
+        // Create a 24-hour distribution with all hours represented
+        const hourlyData = Array(24).fill(0);
+        
+        // Fill in the data we have
+        activeTimesData.forEach(item => {
+            if (item && typeof item.hour === 'number' && item.hour >= 0 && item.hour < 24) {
+                hourlyData[item.hour] = item.count || 0;
+            }
+        });
+        
+        // Label format for hours
+        const hourLabels = Array(24).fill().map((_, i) => `${i}:00`);
+        
+        // Create the chart
+        if (charts.hoursDistribution) {
+            charts.hoursDistribution.destroy();
+        }
+        
+        charts.hoursDistribution = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: hourLabels,
+                datasets: [{
+                    label: 'Activity Count',
+                    data: hourlyData,
+                    backgroundColor: getHourColors(),
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 12
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
     }
     
-    // Public API
+    // 3. SOCIAL TAB - Render social interactions
+    function renderSocialInteractions() {
+        const socialTab = document.getElementById('social-tab');
+        if (!socialTab) return;
+        
+        // Clear existing content
+        socialTab.innerHTML = '';
+        
+        // Get data from analytics
+        const social = analyticsData.social_interaction || {};
+        const personal = analyticsData.personal_engagement || {};
+        
+        // Create social metrics card
+        const metricsCard = document.createElement('div');
+        metricsCard.className = 'analytics-card mb-4';
+        metricsCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Social Interaction Metrics</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="interaction-metric">
+                            <div class="metric-header">
+                                <div class="metric-icon upvotes-received">
+                                    <i class="fa fa-thumbs-up"></i>
+                                </div>
+                                <div class="metric-title">
+                                    <div class="metric-value">${social.upvotes_received || 0}</div>
+                                    <div class="metric-label">Upvotes Received</div>
+                                </div>
+                            </div>
+                            <div class="metric-bar">
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="interaction-metric">
+                            <div class="metric-header">
+                                <div class="metric-icon upvotes-given">
+                                    <i class="fa fa-thumbs-up"></i>
+                                </div>
+                                <div class="metric-title">
+                                    <div class="metric-value">${social.upvotes_given || 0}</div>
+                                    <div class="metric-label">Upvotes Given</div>
+                                </div>
+                            </div>
+                            <div class="metric-bar">
+                                <div class="progress">
+                                    <div class="progress-bar bg-info" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="interaction-metric">
+                            <div class="metric-header">
+                                <div class="metric-icon response-rate">
+                                    <i class="fa fa-reply"></i>
+                                </div>
+                                <div class="metric-title">
+                                    <div class="metric-value">${social.response_rate ? social.response_rate.toFixed(1) : 0}%</div>
+                                    <div class="metric-label">Response Rate</div>
+                                </div>
+                            </div>
+                            <div class="metric-bar">
+                                <div class="progress">
+                                    <div class="progress-bar bg-primary" style="width: ${social.response_rate || 0}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="interaction-metric">
+                            <div class="metric-header">
+                                <div class="metric-icon teacher-interaction">
+                                    <i class="fa fa-user"></i>
+                                </div>
+                                <div class="metric-title">
+                                    <div class="metric-value">${social.teacher_interaction_rate ? social.teacher_interaction_rate.toFixed(1) : 0}%</div>
+                                    <div class="metric-label">Teacher Interaction</div>
+                                </div>
+                            </div>
+                            <div class="metric-bar">
+                                <div class="progress">
+                                    <div class="progress-bar bg-warning" style="width: ${social.teacher_interaction_rate || 0}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        socialTab.appendChild(metricsCard);
+        
+        // Create contribution score card
+        const contributionCard = document.createElement('div');
+        contributionCard.className = 'analytics-card mb-4';
+        
+        const netScore = social.net_contribution_score || 0;
+        const scoreClass = netScore > 0 ? 'positive-score' : netScore < 0 ? 'negative-score' : 'neutral-score';
+        const scoreIcon = netScore > 0 ? 'fa-arrow-up' : netScore < 0 ? 'fa-arrow-down' : 'fa-minus';
+        
+        contributionCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Net Contribution Score</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center">
+                        <div class="contribution-score ${scoreClass}">
+                            <i class="fa ${scoreIcon}"></i>
+                            <span>${netScore}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="contribution-details">
+                            <p>${getContributionMessage(netScore)}</p>
+                            <div class="contribution-breakdown">
+                                <div class="breakdown-item">
+                                    <div class="breakdown-label">Upvotes Received</div>
+                                    <div class="breakdown-value positive">${social.upvotes_received || 0}</div>
+                                </div>
+                                <div class="breakdown-item">
+                                    <div class="breakdown-label">Downvotes Received</div>
+                                    <div class="breakdown-value negative">${social.downvotes_received || 0}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        socialTab.appendChild(contributionCard);
+        
+        // Create reading vs. writing card
+        const readingWritingCard = document.createElement('div');
+        readingWritingCard.className = 'analytics-card';
+        
+        const learning = analyticsData.learning_behavior || {};
+        const rwRatio = learning.reading_writing_ratio || 1;
+        const readingPercentage = Math.min(Math.round((rwRatio / (1 + rwRatio)) * 100), 100);
+        const writingPercentage = 100 - readingPercentage;
+        
+        readingWritingCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Reading vs. Writing Balance</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="balance-visualization">
+                    <div class="balance-bar">
+                        <div class="reading-bar" style="width: ${readingPercentage}%">
+                            <span class="bar-label">Reading ${readingPercentage}%</span>
+                        </div>
+                        <div class="writing-bar" style="width: ${writingPercentage}%">
+                            <span class="bar-label">Writing ${writingPercentage}%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="balance-interpretation mt-3">
+                    <p>${getReadingWritingAdvice(rwRatio)}</p>
+                </div>
+            </div>
+        `;
+        
+        socialTab.appendChild(readingWritingCard);
+    }
+    
+    // Render interaction quality
+    function renderInteractionQuality() {
+        const socialTab = document.getElementById('social-tab');
+        if (!socialTab) return;
+        
+        // Add top content section if available
+        const progress = analyticsData.progress_indicators || {};
+        const topContent = progress.top_content || [];
+        
+        if (topContent && topContent.length > 0) {
+            const topContentCard = document.createElement('div');
+            topContentCard.className = 'analytics-card mt-4';
+            
+            let topContentHTML = '';
+            topContent.forEach((content, index) => {
+                const contentType = content.type || 'message';
+                const icon = contentType === 'message' ? 'fa-comment' : 'fa-reply';
+                const votes = content.votes || 0;
+                const contentText = content.content || 'No content';
+                
+                topContentHTML += `
+                    <div class="top-content-item">
+                        <div class="content-rank">#${index + 1}</div>
+                        <div class="content-body">
+                            <div class="content-header">
+                                <span class="content-type"><i class="fa ${icon}"></i> ${contentType.charAt(0).toUpperCase() + contentType.slice(1)}</span>
+                                <span class="content-votes"><i class="fa fa-thumbs-up"></i> ${votes}</span>
+                            </div>
+                            <div class="content-text">${truncateText(contentText, 100)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            topContentCard.innerHTML = `
+                <div class="analytics-card-header">
+                    <h5>Your Top Content</h5>
+                </div>
+                <div class="analytics-card-body">
+                    <div class="top-content-list">
+                        ${topContentHTML}
+                    </div>
+                </div>
+            `;
+            
+            socialTab.appendChild(topContentCard);
+        }
+    }
+    
+    // 4. INSIGHTS TAB - Render personal insights
+    function renderPersonalInsights() {
+        const insightsTab = document.getElementById('insights-tab');
+        if (!insightsTab) return;
+        
+        // Clear existing content
+        insightsTab.innerHTML = '';
+        
+        // Get insights from analytics
+        const insights = analyticsData.actionable_insights || [];
+        
+        // Create insights card
+        const insightsCard = document.createElement('div');
+        insightsCard.className = 'analytics-card mb-4';
+        
+        let insightsHTML = '';
+        if (insights && insights.length > 0) {
+            insights.forEach(insight => {
+                const importanceClass = insight.importance === 'high' ? 'high-importance' :
+                                        insight.importance === 'medium' ? 'medium-importance' :
+                                        'low-importance';
+                
+                insightsHTML += `
+                    <div class="insight-item ${importanceClass}">
+                        <div class="insight-icon">
+                            <i class="fa ${getInsightIcon(insight.type)}"></i>
+                        </div>
+                        <div class="insight-content">
+                            <div class="insight-message">${insight.message}</div>
+                            <div class="insight-type">${capitalizeFirstLetter(insight.type)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            insightsHTML = `
+                <div class="no-insights">
+                    <div class="no-insights-icon">
+                        <i class="fa fa-lightbulb-o"></i>
+                    </div>
+                    <div class="no-insights-message">
+                        <p>No specific insights available yet. Keep participating to get personalized recommendations!</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        insightsCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Personalized Insights</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="insights-container">
+                    ${insightsHTML}
+                </div>
+            </div>
+        `;
+        
+        insightsTab.appendChild(insightsCard);
+        
+        // Create content analytics card
+        const contentCard = document.createElement('div');
+        contentCard.className = 'analytics-card mb-4';
+        
+        const content = analyticsData.content_analytics || {};
+        const messageTypes = content.message_types || {};
+        
+        let messageTypesHTML = '';
+        for (const [type, count] of Object.entries(messageTypes)) {
+            if (count > 0) {
+                messageTypesHTML += `
+                    <div class="content-type-item">
+                        <div class="content-type-icon" style="background-color: ${messageTypeColors[type] || '#777'}">
+                            <i class="fa ${getContentTypeIcon(type)}"></i>
+                        </div>
+                        <div class="content-type-details">
+                            <div class="content-type-name">${capitalizeFirstLetter(type)}</div>
+                            <div class="content-type-count">${count}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        contentCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Content Analysis</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="content-types-list">
+                            ${messageTypesHTML || '<p class="text-muted text-center">No content type data available</p>'}
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="content-metrics">
+                            <div class="content-metric">
+                                <div class="metric-label">Average Message Length</div>
+                                <div class="metric-value">${content.avg_message_length ? content.avg_message_length.toFixed(0) : 0} chars</div>
+                            </div>
+                            <div class="content-metric">
+                                <div class="metric-label">Question Rate</div>
+                                <div class="metric-value">${content.question_rate ? content.question_rate.toFixed(1) : 0}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        insightsTab.appendChild(contentCard);
+    }
+    
+    // Render progress indicators
+    function renderProgressIndicators() {
+        const insightsTab = document.getElementById('insights-tab');
+        if (!insightsTab) return;
+        
+        // Create learning behavior card
+        const learningCard = document.createElement('div');
+        learningCard.className = 'analytics-card';
+        
+        const learning = analyticsData.learning_behavior || {};
+        
+        learningCard.innerHTML = `
+            <div class="analytics-card-header">
+                <h5>Learning Behavior</h5>
+            </div>
+            <div class="analytics-card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="learning-metric">
+                            <div class="metric-header">
+                                <div class="metric-icon poll">
+                                    <i class="fa fa-bar-chart"></i>
+                                </div>
+                                <div class="metric-details">
+                                    <div class="metric-label">Poll Participation</div>
+                                    <div class="metric-value">${learning.poll_participation_rate ? learning.poll_participation_rate.toFixed(1) : 0}%</div>
+                                </div>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" style="width: ${learning.poll_participation_rate || 0}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="learning-metric">
+                            <div class="metric-header">
+                                <div class="metric-icon resource">
+                                    <i class="fa fa-file"></i>
+                                </div>
+                                <div class="metric-details">
+                                    <div class="metric-label">Resource Engagement</div>
+                                    <div class="metric-value">${learning.resource_engagement || 0}</div>
+                                </div>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="learning-behavior-summary mt-4">
+                    <h6>Your Learning Style</h6>
+                    <p>${getLearningStyleDescription(learning)}</p>
+                </div>
+            </div>
+        `;
+        
+        insightsTab.appendChild(learningCard);
+    }
+    
+    // HELPER FUNCTIONS
+    
+    // Helper to format dates nicely
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        } catch (e) {
+            return dateString;
+        }
+    }
+    
+    // Helper to get colors for hour of day chart
+    function getHourColors() {
+        // Color gradient based on time of day
+        return Array(24).fill().map((_, hour) => {
+            if (hour >= 0 && hour < 6) {
+                return 'rgba(25, 25, 112, 0.7)'; // Night - dark blue
+            } else if (hour >= 6 && hour < 12) {
+                return 'rgba(70, 130, 180, 0.7)'; // Morning - steel blue
+            } else if (hour >= 12 && hour < 18) {
+                return 'rgba(30, 144, 255, 0.7)'; // Afternoon - dodger blue
+            } else {
+                return 'rgba(65, 105, 225, 0.7)'; // Evening - royal blue
+            }
+        });
+    }
+    
+    // Helper to get icon for content type
+    function getContentTypeIcon(type) {
+        switch (type.toLowerCase()) {
+            case 'text': return 'fa-comment';
+            case 'image': return 'fa-image';
+            case 'file': return 'fa-file';
+            case 'video': return 'fa-video-camera';
+            case 'poll': return 'fa-bar-chart';
+            case 'question': return 'fa-question-circle';
+            default: return 'fa-comment';
+        }
+    }
+    
+    // Helper to get icon for insight type
+    function getInsightIcon(type) {
+        switch (type.toLowerCase()) {
+            case 'participation': return 'fa-users';
+            case 'content': return 'fa-file-text';
+            case 'polls': return 'fa-bar-chart';
+            case 'engagement': return 'fa-comments';
+            case 'consistency': return 'fa-calendar-check-o';
+            default: return 'fa-lightbulb-o';
+        }
+    }
+    
+    // Helper to get consistency color
+    function getConsistencyColor(score) {
+        if (score < 30) return 'low';
+        if (score < 60) return 'medium';
+        return 'high';
+    }
+    
+    // Helper for trend text
+    function getTrendText(trend) {
+        if (trend === 'increasing') return 'Increasing ↑';
+        if (trend === 'decreasing') return 'Decreasing ↓';
+        return 'Stable →';
+    }
+    
+    // Helper for trend advice
+    function getTrendAdvice(trend) {
+        if (trend === 'increasing') {
+            return 'Keep up the good work!';
+        } else if (trend === 'decreasing') {
+            return 'Consider setting a regular schedule for participation.';
+        } else {
+            return 'Your activity level is consistent.';
+        }
+    }
+    
+    // Helper for consistency message
+    function getConsistencyMessage(score) {
+        if (score < 30) {
+            return 'Your participation is inconsistent. Regular engagement helps reinforce learning and builds stronger connections with your peers.';
+        } else if (score < 60) {
+            return 'You\'re showing moderate consistency in your participation. Try to establish a more regular pattern of engagement.';
+        } else {
+            return 'Your participation is very consistent, which is excellent for sustained learning and knowledge retention.';
+        }
+    }
+    
+    // Helper for contribution message
+    function getContributionMessage(score) {
+        if (score > 5) {
+            return 'Your contributions are highly valued by your peers, as shown by the positive reaction score. Your insights and responses are making a positive impact.';
+        } else if (score > 0) {
+            return 'You have a positive contribution score, showing that your peers find value in your posts and replies.';
+        } else if (score === 0) {
+            return 'Your contribution score is neutral. Try asking more thoughtful questions or providing more detailed responses to increase engagement.';
+        } else {
+            return 'Your contribution score is negative, suggesting an opportunity to improve the quality of your interactions. Consider providing more helpful, detailed responses.';
+        }
+    }
+    
+    // Helper for reading/writing advice
+    function getReadingWritingAdvice(ratio) {
+        if (ratio < 0.5) {
+            return 'You\'re contributing more content than you\'re consuming. Try to engage more with others\' content to gain broader perspectives.';
+        } else if (ratio > 5) {
+            return 'You\'re primarily observing rather than contributing. Try sharing your thoughts more often to deepen your engagement and learning.';
+        } else {
+            return 'You have a good balance between reading and writing, which indicates engaged participation in the discussion.';
+        }
+    }
+    
+    // Helper for learning style description
+    function getLearningStyleDescription(learning) {
+        const ratio = learning.reading_writing_ratio || 1;
+        const pollRate = learning.poll_participation_rate || 0;
+        const resourceCount = learning.resource_engagement || 0;
+        
+        if (ratio > 3 && pollRate > 50) {
+            return 'You appear to be a reflective learner who prefers to observe discussions and participate in structured activities like polls.';
+        } else if (ratio < 1 && resourceCount > 2) {
+            return 'You seem to be an active participant who contributes often and engages with course resources.';
+        } else if (pollRate > 70) {
+            return 'You show high engagement with interactive elements like polls, suggesting you may prefer structured learning activities.';
+        } else {
+            return 'Your learning style shows a balanced approach between content consumption and contribution, with opportunities to increase engagement with interactive elements.';
+        }
+    }
+    
+    // Helper to truncate text
+    function truncateText(text, maxLength) {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+    
+    // Helper to capitalize first letter
+    function capitalizeFirstLetter(string) {
+        if (!string) return '';
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+    
+    // Public methods
     return {
         init: init,
-        fetchStudentAnalytics: fetchStudentAnalytics,
-        setupTabsAndRender: setupTabsAndRender
+        fetchAnalytics: fetchAnalytics
     };
 })();
 
+/**
+ * CSS styles for the enhanced student analytics
+ */
+function addStudentAnalyticsStyles() {
+    const styles = `
+    /* Basic layout and containers */
+    .analytics-modal {
+        max-width: 90% !important;
+    }
+    
+    .analytics-spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-left-color: #007bff;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .spinner-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+    }
+    
+    .analytics-tabs {
+        display: flex;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 20px;
+    }
+    
+    .analytics-tab {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        font-weight: 500;
+    }
+    
+    .analytics-tab.active {
+        color: #007bff;
+        border-bottom: 2px solid #007bff;
+    }
+    
+    .analytics-tab-content {
+        display: none;
+    }
+    
+    .analytics-tab-content.active {
+        display: block;
+        animation: fadeIn 0.3s;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    /* Cards and stats styling */
+    .analytics-card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .analytics-card-header {
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        background-color: #f8f9fa;
+    }
+    
+    .analytics-card-header h5 {
+        margin: 0;
+        color: #495057;
+        font-weight: 600;
+    }
+    
+    .analytics-card-body {
+        padding: 20px;
+    }
+    
+    .analytics-stat {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+    
+    .analytics-stat:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+        color: white;
+    }
+    
+    .stat-icon i {
+        font-size: 20px;
+    }
+    
+    .bg-primary {
+        background-color: #4361ee !important;
+    }
+    
+    .bg-success {
+        background-color: #4cc9f0 !important;
+    }
+    
+    .bg-info {
+        background-color: #4895ef !important;
+    }
+    
+    .bg-warning {
+        background-color: #f9c74f !important;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #343a40;
+    }
+    
+    .stat-label {
+        font-size: 14px;
+        color: #6c757d;
+    }
+    
+    /* Chart containers */
+    .chart-container {
+        position: relative;
+        margin: auto;
+        height: 300px;
+    }
+    
+    /* Participation styles */
+    .participation-gauge {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .gauge-value {
+        font-size: 36px;
+        font-weight: bold;
+    }
+    
+    .gauge-value.success {
+        color: #28a745;
+    }
+    
+    .gauge-value.info {
+        color: #17a2b8;
+    }
+    
+    .gauge-value.warning {
+        color: #ffc107;
+    }
+    
+    .gauge-value.danger {
+        color: #dc3545;
+    }
+    
+    .gauge-label {
+        font-size: 14px;
+        color: #6c757d;
+    }
+    
+    .participation-progress {
+        height: 24px !important;
+        border-radius: 12px;
+        overflow: hidden;
+        background-color: #f5f5f5;
+    }
+    
+    .participation-description {
+        font-size: 14px;
+        color: #6c757d;
+    }
+    
+    /* Donut chart legend */
+    .donut-legend {
+        padding: 10px;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .legend-color {
+        width: 15px;
+        height: 15px;
+        border-radius: 3px;
+        margin-right: 10px;
+    }
+    
+    .legend-label {
+        font-size: 14px;
+    }
+    
+    /* Activity trend indicators */
+    .trend-indicator {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+    
+    .trend-indicator i {
+        margin-right: 10px;
+        font-size: 16px;
+    }
+    
+    .positive-trend {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+    
+    .negative-trend {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+    
+    .neutral-trend {
+        background-color: rgba(108, 117, 125, 0.1);
+        color: #6c757d;
+    }
+    
+    /* Consistency score */
+    .consistency-score {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+    
+    .consistency-score.low {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+    
+    .consistency-score.medium {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+    }
+    
+    .consistency-score.high {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+    
+    .score-value {
+        font-size: 28px;
+        font-weight: bold;
+    }
+    
+    .score-label {
+        font-size: 14px;
+    }
+    
+    .consistency-details {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .detail-label {
+        color: #6c757d;
+    }
+    
+    .detail-value {
+        font-weight: 600;
+    }
+    
+    /* Social interaction metrics */
+    .interaction-metric {
+        margin-bottom: 20px;
+    }
+    
+    .metric-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .metric-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        color: white;
+    }
+    
+    .upvotes-received {
+        background-color: #28a745;
+    }
+    
+    .upvotes-given {
+        background-color: #17a2b8;
+    }
+    
+    .response-rate {
+        background-color: #007bff;
+    }
+    
+    .teacher-interaction {
+        background-color: #ffc107;
+    }
+    
+    .metric-title {
+        flex-grow: 1;
+    }
+    
+    .metric-bar {
+        width: 100%;
+    }
+    
+    /* Contribution score */
+    .contribution-score {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        font-weight: bold;
+    }
+    
+    .contribution-score i {
+        font-size: 24px;
+        margin-bottom: 5px;
+    }
+    
+    .contribution-score span {
+        font-size: 28px;
+    }
+    
+    .positive-score {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+    
+    .negative-score {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+    
+    .neutral-score {
+        background-color: rgba(108, 117, 125, 0.1);
+        color: #6c757d;
+    }
+    
+    .contribution-breakdown {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .breakdown-item {
+        text-align: center;
+        flex-grow: 1;
+    }
+    
+    .breakdown-label {
+        font-size: 14px;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    
+    .breakdown-value {
+        font-weight: bold;
+        font-size: 18px;
+    }
+    
+    .breakdown-value.positive {
+        color: #28a745;
+    }
+    
+    .breakdown-value.negative {
+        color: #dc3545;
+    }
+    
+    /* Reading vs. Writing Balance */
+    .balance-visualization {
+        margin-bottom: 15px;
+    }
+    
+    .balance-bar {
+        display: flex;
+        height: 40px;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    
+    .reading-bar {
+        background-color: #4cc9f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        font-weight: bold;
+    }
+    
+    .writing-bar {
+        background-color: #f72585;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        font-weight: bold;
+    }
+    
+    /* Top content list */
+    .top-content-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .top-content-item {
+        display: flex;
+        padding: 12px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .content-rank {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #4361ee;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 15px;
+    }
+    
+    .content-body {
+        flex-grow: 1;
+    }
+    
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+    
+    .content-type {
+        font-size: 14px;
+        color: #6c757d;
+    }
+    
+    .content-votes {
+        font-size: 14px;
+        color: #28a745;
+    }
+    
+    .content-text {
+        font-size: 14px;
+        color: #343a40;
+    }
+    
+    /* Insights styles */
+    .insights-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .insight-item {
+        display: flex;
+        padding: 15px;
+        border-radius: 8px;
+    }
+    
+    .insight-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+    }
+    
+    .insight-content {
+        flex-grow: 1;
+    }
+    
+    .insight-message {
+        margin-bottom: 5px;
+        font-weight: 500;
+    }
+    
+    .insight-type {
+        font-size: 14px;
+    }
+    
+    .high-importance {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+    
+    .high-importance .insight-icon {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .high-importance .insight-type {
+        color: #dc3545;
+    }
+    
+    .medium-importance {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+    
+    .medium-importance .insight-icon {
+        background-color: #ffc107;
+        color: #343a40;
+    }
+    
+    .medium-importance .insight-type {
+        color: #ffc107;
+    }
+    
+    .low-importance {
+        background-color: rgba(23, 162, 184, 0.1);
+    }
+    
+    .low-importance .insight-icon {
+        background-color: #17a2b8;
+        color: white;
+    }
+    
+    .low-importance .insight-type {
+        color: #17a2b8;
+    }
+    
+    .no-insights {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 30px 0;
+        text-align: center;
+    }
+    
+    .no-insights-icon {
+        font-size: 48px;
+        color: #6c757d;
+        margin-bottom: 15px;
+    }
+    
+    /* Content analytics */
+    .content-types-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .content-type-item {
+        display: flex;
+        align-items: center;
+    }
+    
+    .content-type-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        color: white;
+    }
+    
+    .content-type-details {
+        flex-grow: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .content-type-name {
+        font-weight: 500;
+    }
+    
+    .content-type-count {
+        font-weight: bold;
+        font-size: 18px;
+    }
+    
+    .content-metrics {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .content-metric {
+        margin-bottom: 15px;
+    }
+    
+    .content-metric:last-child {
+        margin-bottom: 0;
+    }
+    
+    /* Learning behavior section */
+    .learning-metric {
+        margin-bottom: 20px;
+    }
+    
+    .learning-metric .metric-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .learning-metric .metric-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        color: white;
+    }
+    
+    .metric-icon.poll {
+        background-color: #4361ee;
+    }
+    
+    .metric-icon.resource {
+        background-color: #4cc9f0;
+    }
+    
+    .learning-metric .metric-details {
+        flex-grow: 1;
+    }
+    
+    .learning-behavior-summary {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .learning-behavior-summary h6 {
+        margin-bottom: 10px;
+        color: #343a40;
+    }
+    
+    .learning-behavior-summary p {
+        color: #6c757d;
+        margin-bottom: 0;
+    }
+    `;
+    
+    // Add the styles to the page
+    const styleElement = document.createElement('style');
+    styleElement.textContent = styles;
+    document.head.appendChild(styleElement);
+}
+
 // Initialize the student analytics when the page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Get room ID and username from the page
-    const roomId = document.querySelector('[data-room-id]')?.dataset.roomId || 
-                "{{ room_id|escapejs }}";
-    const username = document.querySelector('[data-username]')?.dataset.username || 
-                    "{{ current_student_name|escapejs }}";
+    console.log("DOM loaded, initializing student analytics");
     
-    if (roomId && username) {
-        console.log("Initializing student analytics for:", username, "in room:", roomId);
+    // Get room ID from the page
+    const roomId = document.querySelector('[data-room-id]')?.dataset.roomId || 
+                   "{{ room_id|escapejs }}";
+    
+    if (roomId) {
+        console.log("Setting up analytics for room:", roomId);
+        
+        // Add styles for student analytics
+        addStudentAnalyticsStyles();
+        
+        // Add tab structure to the analytics modal
+        setupAnalyticsModalTabs();
         
         // Initialize the student analytics module
-        StudentAnalytics.init(roomId, username);
-        
-        // Add some basic styles to ensure proper display
-        const style = document.createElement('style');
-        style.textContent = `
-            .student-analytics-container .nav-tabs {
-                border-bottom: 1px solid #dee2e6;
-            }
-            .student-analytics-container .nav-link {
-                margin-bottom: -1px;
-                border: 1px solid transparent;
-                border-top-left-radius: 0.25rem;
-                border-top-right-radius: 0.25rem;
-            }
-            .student-analytics-container .nav-link:hover, 
-            .student-analytics-container .nav-link:focus {
-                border-color: #e9ecef #e9ecef #dee2e6;
-            }
-            .student-analytics-container .nav-link.active {
-                color: #495057;
-                background-color: #fff;
-                border-color: #dee2e6 #dee2e6 #fff;
-            }
-            .student-analytics-container .tab-content {
-                padding-top: 20px;
-            }
-            .student-analytics-container .tab-pane {
-                display: none;
-            }
-            .student-analytics-container .tab-pane.active {
-                display: block;
-            }
-            .student-analytics-container .tab-pane.show {
-                opacity: 1;
-            }
-            .student-analytics-container .card {
-                box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-                margin-bottom: 1.5rem;
-            }
-            
-            /* Analytics modal styling */
-            .analytics-modal {
-                max-width: 90%;
-            }
-            
-            .analytics-spinner {
-                border: 4px solid rgba(0, 0, 0, 0.1);
-                width: 36px;
-                height: 36px;
-                border-radius: 50%;
-                border-left-color: #007bff;
-                animation: spin 1s linear infinite;
-            }
-            
-            .spinner-container {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 200px;
-            }
-            
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-        `;
-        document.head.appendChild(style);
+        StudentAnalytics.init(roomId);
     } else {
-        console.error('Room ID or username not found. Student analytics cannot be initialized.');
+        console.error('Room ID not found. Student analytics cannot be initialized.');
     }
 });
+
+/**
+ * Setup tabs structure in the analytics modal
+ */
+function setupAnalyticsModalTabs() {
+    console.log("Setting up analytics modal tabs");
+    const modalBody = document.querySelector('#analyticsModal .modal-body #analyticsContent');
+    if (!modalBody) {
+        console.error("Analytics modal content element not found");
+        return;
+    }
+    
+    // Create tabs structure
+    const tabsHTML = `
+        <!-- Analytics Tabs -->
+        <div class="analytics-tabs">
+            <div class="analytics-tab active" data-tab="overview">Overview</div>
+            <div class="analytics-tab" data-tab="activity">Activity</div>
+            <div class="analytics-tab" data-tab="social">Social</div>
+            <div class="analytics-tab" data-tab="insights">Insights</div>
+        </div>
+        
+        <!-- Tab Contents -->
+        <div class="analytics-tab-content active" id="overview-tab"></div>
+        <div class="analytics-tab-content" id="activity-tab"></div>
+        <div class="analytics-tab-content" id="social-tab"></div>
+        <div class="analytics-tab-content" id="insights-tab"></div>
+    `;
+    
+    // Insert the tabs structure
+    modalBody.innerHTML = tabsHTML;
+    
+    // Add event listeners to tabs
+    document.querySelectorAll('.analytics-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            
+            // Update active tab
+            document.querySelectorAll('.analytics-tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Update active content
+            document.querySelectorAll('.analytics-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        });
+    });
+}

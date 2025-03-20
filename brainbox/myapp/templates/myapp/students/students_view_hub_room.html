@@ -289,7 +289,9 @@
   </div>
 
 
-<!-- Analytics Modal -->
+
+
+<!-- Enhanced Analytics Modal for Students -->
 <div class="modal fade" id="analyticsModal" tabindex="-1" aria-labelledby="analyticsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg analytics-modal">
         <div class="modal-content">
@@ -301,24 +303,106 @@
                 <!-- Loading spinner -->
                 <div class="spinner-container" id="analyticsSpinner">
                     <div class="analytics-spinner"></div>
+                    <p class="mt-3 text-muted">Loading your analytics...</p>
                 </div>
                 
-                <!-- Analytics content (initially hidden but will be shown by the JS) -->
-                <div id="analyticsContent">
-                    <!-- Content will be populated dynamically by the StudentAnalytics module -->
+                <!-- Analytics content (hidden initially) -->
+                <div id="analyticsContent" style="display: none;">
+                    <!-- The tab structure will be created by JavaScript -->
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="downloadAnalyticsBtn">
+                    <i class="fa fa-download"></i> Download Report
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Hidden data elements to pass information to the JS -->
-<div data-room-id="{{ room_id|escapejs }}" data-username="{{ current_student_name|escapejs }}" style="display: none;"></div>
-  <!-- Add CSRF token -->
+<!-- Hidden data elements to pass information to the JavaScript -->
+<div id="room-id-data" data-room-id="{{ room_id|escapejs }}" data-username="{{ current_student_name|escapejs }}" style="display: none;"></div>
 
+<!-- Add JavaScript to handle analytics report download -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const downloadBtn = document.getElementById('downloadAnalyticsBtn');
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', function() {
+        // Generate and download the analytics report
+        generateAnalyticsReport();
+      });
+    }
+  });
+
+  function generateAnalyticsReport() {
+    // Get analytics data from the window object
+    if (typeof analyticsData === 'undefined' || !analyticsData) {
+      alert('Analytics data is not available yet. Please wait for the data to load.');
+      return;
+    }
+    
+    // Create report content
+    let reportContent = `# My Analytics Report for {{ hub }}\n`;
+    reportContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+    
+    // Personal engagement stats
+    const personal = analyticsData.personal_engagement || {};
+    reportContent += `## Engagement Statistics\n`;
+    reportContent += `- Questions Asked: ${personal.messages_sent || 0}\n`;
+    reportContent += `- Answers Given: ${personal.replies_sent || 0}\n`;
+    reportContent += `- Total Contributions: ${personal.total_contributions || 0}\n`;
+    reportContent += `- Participation Percentage: ${personal.participation_percentage?.toFixed(1) || 0}%\n`;
+    reportContent += `- Active Days: ${personal.active_days || 0}\n\n`;
+    
+    // Social interaction stats
+    const social = analyticsData.social_interaction || {};
+    reportContent += `## Social Interaction\n`;
+    reportContent += `- Response Rate: ${social.response_rate?.toFixed(1) || 0}%\n`;
+    reportContent += `- Upvotes Received: ${social.upvotes_received || 0}\n`;
+    reportContent += `- Downvotes Received: ${social.downvotes_received || 0}\n`;
+    reportContent += `- Net Contribution Score: ${social.net_contribution_score || 0}\n`;
+    reportContent += `- Teacher Interaction Rate: ${social.teacher_interaction_rate?.toFixed(1) || 0}%\n\n`;
+    
+    // Learning behavior
+    const learning = analyticsData.learning_behavior || {};
+    reportContent += `## Learning Behavior\n`;
+    reportContent += `- Resource Engagement: ${learning.resource_engagement || 0}\n`;
+    reportContent += `- Bookmarks Count: ${learning.bookmarks_count || 0}\n`;
+    reportContent += `- Poll Votes Count: ${learning.poll_votes_count || 0}\n`;
+    reportContent += `- Poll Participation Rate: ${learning.poll_participation_rate?.toFixed(1) || 0}%\n`;
+    reportContent += `- Reading/Writing Ratio: ${learning.reading_writing_ratio?.toFixed(2) || 0}\n\n`;
+    
+    // Progress indicators
+    const progress = analyticsData.progress_indicators || {};
+    reportContent += `## Progress Indicators\n`;
+    reportContent += `- Consistency Score: ${progress.consistency_score?.toFixed(1) || 0}%\n`;
+    if (progress.trend_analysis && progress.trend_analysis.trend) {
+      reportContent += `- Activity Trend: ${progress.trend_analysis.trend}\n\n`;
+    }
+    
+    // Actionable insights
+    const insights = analyticsData.actionable_insights || [];
+    if (insights.length > 0) {
+      reportContent += `## Personalized Insights\n`;
+      insights.forEach(insight => {
+        reportContent += `- ${insight.message} (${insight.type})\n`;
+      });
+    }
+    
+    // Download as a text file
+    const blob = new Blob([reportContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics-report-{{ hub }}-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+</script>
 
 
 
