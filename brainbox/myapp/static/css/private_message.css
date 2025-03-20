@@ -936,3 +936,228 @@
 .dm-close-notification:hover {
   opacity: 1;
 }
+
+
+
+
+/* Add these styles to private_message.css */
+
+/* Message request styling */
+.dm-chat-request {
+  position: relative;
+  padding-right: 90px; /* Make room for action buttons */
+}
+
+.dm-request-actions {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+}
+
+.dm-accept-btn, .dm-decline-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dm-accept-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.dm-decline-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.dm-accept-btn:hover {
+  background-color: #218838;
+  transform: scale(1.05);
+}
+
+.dm-decline-btn:hover {
+  background-color: #c82333;
+  transform: scale(1.05);
+}
+
+.dm-tab-btn.has-pending {
+  position: relative;
+}
+
+.dm-tab-btn.has-pending::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  width: 8px;
+  height: 8px;
+  background-color: #dc3545;
+  border-radius: 50%;
+}
+
+.dm-tab-badge.active {
+  display: inline-flex;
+  background-color: #dc3545;
+}
+
+/* Notification styling */
+.dm-notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 350px;
+}
+
+.dm-notification {
+  background-color: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slide-in 0.3s ease forwards;
+  max-width: 100%;
+}
+
+.dm-notification-success {
+  border-left: 4px solid #28a745;
+}
+
+.dm-notification-error {
+  border-left: 4px solid #dc3545;
+}
+
+.dm-notification-info {
+  border-left: 4px solid #17a2b8;
+}
+
+.dm-notification i {
+  font-size: 18px;
+}
+
+.dm-notification-success i {
+  color: #28a745;
+}
+
+.dm-notification-error i {
+  color: #dc3545;
+}
+
+.dm-notification-info i {
+  color: #17a2b8;
+}
+
+.dm-notification span {
+  flex: 1;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.dm-notification-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.dm-notification-close:hover {
+  opacity: 1;
+}
+
+.dm-notification-hidden {
+  animation: slide-out 0.3s ease forwards;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Empty states */
+.dm-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 15px;
+  text-align: center;
+  color: #6c757d;
+}
+
+.dm-empty-state i {
+  font-size: 32px;
+  margin-bottom: 15px;
+  opacity: 0.7;
+}
+
+.dm-empty-state p {
+  margin-bottom: 15px;
+}
+
+.dm-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 15px;
+  text-align: center;
+  color: #721c24;
+}
+
+.dm-error-state i {
+  font-size: 32px;
+  margin-bottom: 15px;
+}
+
+.dm-retry-btn {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.dm-retry-btn:hover {
+  background-color: #e9ecef;
+}

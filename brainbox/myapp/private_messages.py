@@ -7,6 +7,154 @@ from .firebase import *
 from datetime import datetime
 from .community_page import *
 
+
+
+# Add this to your private_messages.py file
+
+def create_or_update_connection(sender_id, recipient_id, status='pending'):
+    """
+    Create or update a connection between two users
+    
+    Args:
+        sender_id: The ID of the user initiating the connection
+        recipient_id: The ID of the recipient user
+        status: The status of the connection ('pending', 'accepted', 'declined')
+        
+    Returns:
+        dict: Result with success status and message
+    """
+    try:
+        # Reference to connections collection
+        connections_ref = db.collection('user_connections')
+        
+        # Create a unique connection ID
+        connection_id = f"{sender_id}_to_{recipient_id}"
+        
+        # Check if the connection already exists
+        connection_doc = connections_ref.document(connection_id).get()
+        
+        if connection_doc.exists:
+            connection_data = connection_doc.to_dict()
+            current_status = connection_data.get('status')
+            
+            # Only update if the new status is different
+            if current_status != status:
+                connections_ref.document(connection_id).update({
+                    'status': status,
+                    'updated_at': firestore.SERVER_TIMESTAMP
+                })
+                
+            return {
+                'success': True,
+                'message': f'Connection updated to {status}',
+                'status': status
+            }
+        else:
+            # Create new connection
+            connections_ref.document(connection_id).set({
+                'sender_id': sender_id,
+                'recipient_id': recipient_id,
+                'status': status,
+                'created_at': firestore.SERVER_TIMESTAMP,
+                'updated_at': firestore.SERVER_TIMESTAMP
+            })
+            
+            return {
+                'success': True,
+                'message': f'Connection created with status {status}',
+                'status': status
+            }
+            
+    except Exception as e:
+        print(f"Error creating/updating connection: {e}")
+        return {
+            'success': False,
+            'message': f"Error: {str(e)}"
+        }
+
+def get_connection_status(user1_id, user2_id):
+    """
+    Get the connection status between two users
+    
+    Args:
+        user1_id: First user ID
+        user2_id: Second user ID
+        
+    Returns:
+        str: Connection status ('pending', 'accepted', 'declined', None if no connection)
+    """
+    try:
+        # Check both directions
+        connections_ref = db.collection('user_connections')
+        
+        # Check if user1 initiated a connection to user2
+        connection1_id = f"{user1_id}_to_{user2_id}"
+        connection1 = connections_ref.document(connection1_id).get()
+        
+        if connection1.exists:
+            return connection1.to_dict().get('status')
+            
+        # Check if user2 initiated a connection to user1
+        connection2_id = f"{user2_id}_to_{user1_id}"
+        connection2 = connections_ref.document(connection2_id).get()
+        
+        if connection2.exists:
+            return connection2.to_dict().get('status')
+            
+        # No connection found
+        return None
+        
+    except Exception as e:
+        print(f"Error getting connection status: {e}")
+        return None
+
+def is_mutually_connected(user1_id, user2_id):
+    """
+    Check if two users have mutually accepted connections
+    
+    Args:
+        user1_id: First user ID
+        user2_id: Second user ID
+        
+    Returns:
+        bool: True if users are mutually connected, False otherwise
+    """
+    try:
+        connections_ref = db.collection('user_connections')
+        
+        # Check for connection from user1 to user2
+        connection1_id = f"{user1_id}_to_{user2_id}"
+        connection1 = connections_ref.document(connection1_id).get()
+        
+        # Check for connection from user2 to user1
+        connection2_id = f"{user2_id}_to_{user1_id}"
+        connection2 = connections_ref.document(connection2_id).get()
+        
+        # Both users have accepted each other's connection requests
+        if (connection1.exists and connection1.to_dict().get('status') == 'accepted' and
+            connection2.exists and connection2.to_dict().get('status') == 'accepted'):
+            return True
+            
+        # Check for following relationship (backwards compatibility)
+        follows_ref = db.collection('user_follows')
+        follow1_id = f"{user1_id}_follows_{user2_id}"
+        follow2_id = f"{user2_id}_follows_{user1_id}"
+        
+        follow1 = follows_ref.document(follow1_id).get()
+        follow2 = follows_ref.document(follow2_id).get()
+        
+        if follow1.exists and follow2.exists:
+            return True
+            
+        return False
+        
+    except Exception as e:
+        print(f"Error checking mutual connection: {e}")
+        return False
+    
+
+    
+
 def get_current_user_id(request):
     """
     Get the current user's ID based on session information
@@ -91,6 +239,10 @@ def get_messages(request):
             'error': str(e)
         }, status=500)
 
+
+
+
+
 @csrf_exempt
 def send_message(request):
     """
@@ -135,19 +287,38 @@ def send_message(request):
         message_ref = db.collection('private_messages').document(conversation_id).collection('messages').document()
         message_ref.set(message)
         
-        # Update the conversation metadata
+        # Check if the users have a mutual connection
+        mutual_connection = is_mutually_connected(current_user_id, recipient_id)
+        
+        # If not, create a connection request if one doesn't exist already
+        if not mutual_connection:
+            # Create or update connection status (sender initiating a connection)
+            create_or_update_connection(current_user_id, recipient_id, status='pending')
+        
+        # Update conversation metadata with pending status information
         conversation_ref = db.collection('private_messages').document(conversation_id)
-        conversation_ref.set({
+        
+        conversation_data = {
             'participants': [current_user_id, recipient_id],
             'last_message': message_content,
             'last_message_time': firestore.SERVER_TIMESTAMP,
             'last_sender_id': current_user_id,
             'unread_count_' + recipient_id: firestore.Increment(1)
-        }, merge=True)
+        }
+        
+        # Add connection_status field to conversation metadata
+        if mutual_connection:
+            conversation_data['connection_status'] = 'connected'
+        else:
+            conversation_data['connection_status'] = 'pending'
+            conversation_data['connection_initiator'] = current_user_id
+        
+        conversation_ref.set(conversation_data, merge=True)
         
         return JsonResponse({
             'success': True,
-            'message_id': message_ref.id
+            'message_id': message_ref.id,
+            'connection_status': 'connected' if mutual_connection else 'pending'
         })
     
     except json.JSONDecodeError:
@@ -244,11 +415,10 @@ def mark_messages_read(request):
 
 
 
-
 @csrf_exempt
 def get_conversations(request):
     """
-    Get all conversations for the current user
+    Get all conversations for the current user, categorized as connections or requests
     """
     if request.method != 'GET':
         return JsonResponse({'success': False, 'error': 'Only GET method is allowed'}, status=405)
@@ -266,8 +436,10 @@ def get_conversations(request):
         conversations_ref = db.collection('private_messages')
         conversations = conversations_ref.where('participants', 'array_contains', current_user_id).stream()
         
-        # Format conversations for the client
-        conversation_list = []
+        # Format conversations for the client, separated into connections and requests
+        connection_list = []
+        request_list = []
+        
         for conversation in conversations:
             conversation_data = conversation.to_dict()
             
@@ -281,8 +453,12 @@ def get_conversations(request):
                 user = user_ref.get()
                 user_data = user.to_dict() if user.exists else {}
                 
-                # Add conversation to list
-                conversation_list.append({
+                # Determine if this is a connection or request
+                connection_status = conversation_data.get('connection_status', 'connected')  # Default to connected for backwards compatibility
+                connection_initiator = conversation_data.get('connection_initiator')
+                
+                # Create conversation object
+                conversation_obj = {
                     'id': conversation.id,
                     'user_id': other_participant_id,
                     'name': user_data.get('name', 'Unknown User'),
@@ -290,15 +466,25 @@ def get_conversations(request):
                     'profile_picture': user_data.get('profile_picture'),
                     'last_message': conversation_data.get('last_message', ''),
                     'last_message_time': conversation_data.get('last_message_time'),
-                    'unread_count': conversation_data.get(f'unread_count_{current_user_id}', 0)
-                })
+                    'unread_count': conversation_data.get(f'unread_count_{current_user_id}', 0),
+                    'connection_status': connection_status,
+                }
+                
+                # Check if this is a mutual connection or the current user initiated it
+                if connection_status == 'connected' or (connection_status == 'pending' and connection_initiator == current_user_id):
+                    connection_list.append(conversation_obj)
+                else:
+                    # This is a message request TO the current user
+                    request_list.append(conversation_obj)
         
         # Sort conversations by last message time (newest first)
-        conversation_list.sort(key=lambda x: x.get('last_message_time', 0), reverse=True)
+        connection_list.sort(key=lambda x: x.get('last_message_time', 0), reverse=True)
+        request_list.sort(key=lambda x: x.get('last_message_time', 0), reverse=True)
         
         return JsonResponse({
             'success': True,
-            'conversations': conversation_list
+            'connections': connection_list,
+            'requests': request_list
         })
     
     except Exception as e:
@@ -407,6 +593,136 @@ def start_direct_chat(request):
         
     except Exception as e:
         print(f"Error starting direct chat: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+
+# Add these functions to private_messages.py
+
+@csrf_exempt
+def accept_connection_request(request):
+    """
+    Accept a connection request from another user
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST method is allowed'}, status=405)
+    
+    # Get the current user's ID
+    current_user_id = get_current_user_id(request)
+    if not current_user_id:
+        return JsonResponse({
+            'success': False,
+            'error': 'User not authenticated'
+        }, status=401)
+    
+    try:
+        # Parse the request data
+        data = json.loads(request.body)
+        sender_id = data.get('sender_id')  # ID of the user who sent the request
+        
+        if not sender_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Sender ID is required'
+            }, status=400)
+        
+        # Create or update connection from current user to sender (accepting the request)
+        result = create_or_update_connection(current_user_id, sender_id, status='accepted')
+        
+        if not result['success']:
+            return JsonResponse({
+                'success': False,
+                'error': result['message']
+            }, status=500)
+            
+        # Update the conversation status
+        conversation_id = create_conversation_id(current_user_id, sender_id)
+        conversation_ref = db.collection('private_messages').document(conversation_id)
+        
+        conversation_ref.update({
+            'connection_status': 'connected',
+            'connection_accepted_at': firestore.SERVER_TIMESTAMP
+        })
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Connection request accepted'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON'
+        }, status=400)
+        
+    except Exception as e:
+        print(f"Error accepting connection request: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@csrf_exempt
+def decline_connection_request(request):
+    """
+    Decline a connection request from another user
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST method is allowed'}, status=405)
+    
+    # Get the current user's ID
+    current_user_id = get_current_user_id(request)
+    if not current_user_id:
+        return JsonResponse({
+            'success': False,
+            'error': 'User not authenticated'
+        }, status=401)
+    
+    try:
+        # Parse the request data
+        data = json.loads(request.body)
+        sender_id = data.get('sender_id')  # ID of the user who sent the request
+        
+        if not sender_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Sender ID is required'
+            }, status=400)
+        
+        # Create or update connection from current user to sender (declining the request)
+        result = create_or_update_connection(current_user_id, sender_id, status='declined')
+        
+        if not result['success']:
+            return JsonResponse({
+                'success': False,
+                'error': result['message']
+            }, status=500)
+            
+        # Update the conversation status
+        conversation_id = create_conversation_id(current_user_id, sender_id)
+        conversation_ref = db.collection('private_messages').document(conversation_id)
+        
+        conversation_ref.update({
+            'connection_status': 'declined',
+            'connection_declined_at': firestore.SERVER_TIMESTAMP
+        })
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Connection request declined'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON'
+        }, status=400)
+        
+    except Exception as e:
+        print(f"Error declining connection request: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)

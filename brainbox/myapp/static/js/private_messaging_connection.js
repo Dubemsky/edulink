@@ -817,3 +817,499 @@ window.privateMessagingConnections = {
   initialize: initializeConnectionsList,
   openChatWithUser: openChatWithUser
 };
+
+
+
+
+
+
+
+
+
+
+
+
+// Add these functions to private_messaging_connection.js
+
+/**
+ * Fetch the current user's connections and message requests from the server
+ * 
+ * @returns {Promise<Object>} A promise that resolves to an object with connections and requests
+ */
+function fetchUserConversations() {
+  return new Promise((resolve, reject) => {
+    // Make a request to get conversations
+    fetch('/get_conversations/')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          resolve({
+            connections: Array.isArray(data.connections) ? data.connections : [],
+            requests: Array.isArray(data.requests) ? data.requests : []
+          });
+        } else {
+          // Try to fetch following list as fallback (for backward compatibility)
+          return fetch('/get_following/');
+        }
+      })
+      .then(response => {
+        if (!response) return; // Skip if previous request was successful
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (!data) return; // Skip if previous request was successful
+        if (data.success && Array.isArray(data.following)) {
+          // For backward compatibility, convert following to connections format
+          resolve({
+            connections: data.following.map(user => ({
+              id: user.id,
+              user_id: user.id,
+              name: user.name || 'Unknown User',
+              role: user.role || '',
+              profile_picture: user.profile_picture,
+              last_message: "Start a conversation",
+              last_message_time: null,
+              unread_count: 0,
+              connection_status: 'connected'
+            })),
+            requests: []
+          });
+        } else {
+          resolve({ connections: [], requests: [] });
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching conversations:', error);
+        reject(error);
+      });
+  });
+}
+
+/**
+ * Initialize the connections and requests lists in the messaging panel
+ */
+function initializeConnectionsList() {
+  // Get the DOM elements we need
+  const connectionsInboxList = document.getElementById('dmPrimaryInboxList');
+  const requestsInboxList = document.getElementById('dmMessageRequestsList');
+  
+  const connectionsLoadingElement = connectionsInboxList ? connectionsInboxList.querySelector('.dm-loading-chats') : null;
+  const requestsLoadingElement = requestsInboxList ? requestsInboxList.querySelector('.dm-loading-chats') : null;
+  
+  // Fetch the current user's conversations from the server
+  fetchUserConversations()
+    .then(({ connections, requests }) => {
+      // Update connections tab
+      if (connectionsInboxList) {
+        // Remove loading indicator
+        if (connectionsLoadingElement) {
+          connectionsLoadingElement.style.display = 'none';
+        }
+        
+        // If no connections, show empty state
+        if (connections.length === 0) {
+          connectionsInboxList.innerHTML = `
+            <div class="dm-empty-state">
+              <i class="bi bi-people"></i>
+              <p>No connections yet. Connect with users in the Community page.</p>
+            </div>
+          `;
+        } else {
+          // Clear any existing content
+          connectionsInboxList.innerHTML = '';
+          
+          // Create connection items for each connection
+          connections.forEach(connection => {
+            const connectionItem = createConnectionItem(connection);
+            connectionsInboxList.appendChild(connectionItem);
+          });
+        }
+        
+        // Update the badge count
+        const connectionsBadgeElement = document.getElementById('dmPrimaryInboxBadge');
+        if (connectionsBadgeElement) {
+          connectionsBadgeElement.textContent = connections.length;
+        }
+      }
+      
+      // Update requests tab
+      if (requestsInboxList) {
+        // Remove loading indicator
+        if (requestsLoadingElement) {
+          requestsLoadingElement.style.display = 'none';
+        }
+        
+        // If no requests, show empty state
+        if (requests.length === 0) {
+          requestsInboxList.innerHTML = `
+            <div class="dm-empty-state">
+              <i class="bi bi-envelope"></i>
+              <p>No pending message requests.</p>
+            </div>
+          `;
+        } else {
+          // Clear any existing content
+          requestsInboxList.innerHTML = '';
+          
+          // Create request items for each request
+          requests.forEach(request => {
+            const requestItem = createRequestItem(request);
+            requestsInboxList.appendChild(requestItem);
+          });
+          
+          // Show a notification that there are pending requests
+          if (requests.length > 0) {
+            const requestsTab = document.getElementById('dmMessageRequestsTab');
+            if (requestsTab) {
+              requestsTab.classList.add('has-pending');
+            }
+          }
+        }
+        
+        // Update the badge count
+        const requestsBadgeElement = document.getElementById('dmMessageRequestsBadge');
+        if (requestsBadgeElement) {
+          requestsBadgeElement.textContent = requests.length;
+          
+          // Make the badge visible if there are requests
+          if (requests.length > 0) {
+            requestsBadgeElement.classList.add('active');
+          } else {
+            requestsBadgeElement.classList.remove('active');
+          }
+        }
+      }
+      
+      // Update total unread count
+      updateTotalUnreadCount(connections.concat(requests));
+    })
+    .catch(error => {
+      console.error('Error fetching connections:', error);
+      
+      // Show error state in connections tab
+      if (connectionsInboxList) {
+        connectionsInboxList.innerHTML = `
+          <div class="dm-error-state">
+            <i class="bi bi-exclamation-circle"></i>
+            <p>There was an error loading your connections. Please try again.</p>
+            <button class="dm-retry-btn" onclick="initializeConnectionsList()">
+              <i class="bi bi-arrow-clockwise"></i> Retry
+            </button>
+          </div>
+        `;
+      }
+      
+      // Show error state in requests tab
+      if (requestsInboxList) {
+        requestsInboxList.innerHTML = `
+          <div class="dm-error-state">
+            <i class="bi bi-exclamation-circle"></i>
+            <p>There was an error loading message requests. Please try again.</p>
+          </div>
+        `;
+      }
+    });
+}
+
+/**
+ * Create a DOM element for a connection item
+ * 
+ * @param {Object} connection - The connection data
+ * @returns {HTMLElement} The connection item element
+ */
+function createConnectionItem(connection) {
+  // Get the template
+  const template = document.getElementById('dmChatItemTemplate');
+  if (!template) {
+    console.error('Chat item template not found');
+    return document.createElement('div');
+  }
+  
+  const clone = document.importNode(template.content, true);
+  
+  // Fill in the template with connection data
+  const item = clone.querySelector('.dm-chat-item');
+  const img = clone.querySelector('.dm-chat-item-img');
+  const name = clone.querySelector('.dm-chat-item-name');
+  const message = clone.querySelector('.dm-chat-item-last-message');
+  const time = clone.querySelector('.dm-chat-item-time');
+  
+  // Set the connection data
+  item.setAttribute('data-user-id', connection.user_id);
+  img.src = connection.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+  img.alt = connection.name;
+  name.textContent = connection.name;
+  message.textContent = connection.last_message || 'Click to start chatting';
+  time.textContent = formatMessageTime(connection.last_message_time) || 'Now';
+  
+  // Add unread badge if there are unread messages
+  if (connection.unread_count && connection.unread_count > 0) {
+    const unreadBadge = document.createElement('span');
+    unreadBadge.className = 'dm-unread-badge';
+    unreadBadge.textContent = connection.unread_count;
+    item.appendChild(unreadBadge);
+  }
+  
+  // Add click handler to open chat with this connection
+  item.addEventListener('click', function() {
+    openChatWithUser(connection);
+  });
+  
+  return item;
+}
+
+/**
+ * Create a DOM element for a message request item
+ * 
+ * @param {Object} request - The request data
+ * @returns {HTMLElement} The request item element
+ */
+function createRequestItem(request) {
+  // Get the template
+  const template = document.getElementById('dmChatItemTemplate');
+  if (!template) {
+    console.error('Chat item template not found');
+    return document.createElement('div');
+  }
+  
+  const clone = document.importNode(template.content, true);
+  
+  // Fill in the template with request data
+  const item = clone.querySelector('.dm-chat-item');
+  const img = clone.querySelector('.dm-chat-item-img');
+  const name = clone.querySelector('.dm-chat-item-name');
+  const message = clone.querySelector('.dm-chat-item-last-message');
+  const time = clone.querySelector('.dm-chat-item-time');
+  
+  // Set the request data
+  item.setAttribute('data-user-id', request.user_id);
+  item.classList.add('dm-chat-request');
+  img.src = request.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+  img.alt = request.name;
+  name.textContent = request.name;
+  message.textContent = request.last_message || 'New message request';
+  time.textContent = formatMessageTime(request.last_message_time) || 'Now';
+  
+  // Add unread badge if there are unread messages
+  if (request.unread_count && request.unread_count > 0) {
+    const unreadBadge = document.createElement('span');
+    unreadBadge.className = 'dm-unread-badge';
+    unreadBadge.textContent = request.unread_count;
+    item.appendChild(unreadBadge);
+  }
+  
+  // Add accept/decline buttons
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'dm-request-actions';
+  
+  const acceptBtn = document.createElement('button');
+  acceptBtn.className = 'dm-accept-btn';
+  acceptBtn.innerHTML = '<i class="bi bi-check-lg"></i>';
+  acceptBtn.title = 'Accept';
+  acceptBtn.addEventListener('click', function(e) {
+    e.stopPropagation(); // Prevent opening chat
+    acceptConnectionRequest(request.user_id);
+  });
+  
+  const declineBtn = document.createElement('button');
+  declineBtn.className = 'dm-decline-btn';
+  declineBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+  declineBtn.title = 'Decline';
+  declineBtn.addEventListener('click', function(e) {
+    e.stopPropagation(); // Prevent opening chat
+    declineConnectionRequest(request.user_id);
+  });
+  
+  actionsDiv.appendChild(acceptBtn);
+  actionsDiv.appendChild(declineBtn);
+  item.appendChild(actionsDiv);
+  
+  // Add click handler to view the request
+  item.addEventListener('click', function() {
+    openChatWithUser(request);
+  });
+  
+  return item;
+}
+
+/**
+ * Accept a connection request
+ * 
+ * @param {string} senderId - The ID of the user who sent the request
+ */
+function acceptConnectionRequest(senderId) {
+  fetch('/accept_connection_request/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({
+      sender_id: senderId
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Find and remove the request from the requests list
+      const requestItem = document.querySelector(`.dm-chat-request[data-user-id="${senderId}"]`);
+      if (requestItem && requestItem.parentElement) {
+        requestItem.parentElement.removeChild(requestItem);
+      }
+      
+      // Refresh the conversation lists
+      initializeConnectionsList();
+      
+      // Show success message
+      showNotification('Connection request accepted', 'success');
+    } else {
+      showNotification('Failed to accept connection request', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error accepting connection request:', error);
+    showNotification('Error accepting connection request', 'error');
+  });
+}
+
+/**
+ * Decline a connection request
+ * 
+ * @param {string} senderId - The ID of the user who sent the request
+ */
+function declineConnectionRequest(senderId) {
+  fetch('/decline_connection_request/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({
+      sender_id: senderId
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Find and remove the request from the requests list
+      const requestItem = document.querySelector(`.dm-chat-request[data-user-id="${senderId}"]`);
+      if (requestItem && requestItem.parentElement) {
+        requestItem.parentElement.removeChild(requestItem);
+      }
+      
+      // Update counts
+      const requestsBadgeElement = document.getElementById('dmMessageRequestsBadge');
+      if (requestsBadgeElement) {
+        const currentCount = parseInt(requestsBadgeElement.textContent) || 0;
+        if (currentCount > 0) {
+          requestsBadgeElement.textContent = currentCount - 1;
+          
+          // Hide badge if no more requests
+          if (currentCount - 1 === 0) {
+            requestsBadgeElement.classList.remove('active');
+            
+            // Show empty state in requests tab
+            const requestsInboxList = document.getElementById('dmMessageRequestsList');
+            if (requestsInboxList) {
+              requestsInboxList.innerHTML = `
+                <div class="dm-empty-state">
+                  <i class="bi bi-envelope"></i>
+                  <p>No pending message requests.</p>
+                </div>
+              `;
+            }
+          }
+        }
+      }
+      
+      // Show success message
+      showNotification('Connection request declined', 'success');
+    } else {
+      showNotification('Failed to decline connection request', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error declining connection request:', error);
+    showNotification('Error declining connection request', 'error');
+  });
+}
+
+/**
+ * Show a notification to the user
+ * 
+ * @param {string} message - The message to display
+ * @param {string} type - The type of notification ('success', 'error', 'info')
+ */
+function showNotification(message, type = 'info') {
+  // Create the notification element if it doesn't exist
+  let notificationContainer = document.getElementById('dmNotificationContainer');
+  
+  if (!notificationContainer) {
+    notificationContainer = document.createElement('div');
+    notificationContainer.id = 'dmNotificationContainer';
+    notificationContainer.className = 'dm-notification-container';
+    document.body.appendChild(notificationContainer);
+  }
+  
+  // Create the notification
+  const notification = document.createElement('div');
+  notification.className = `dm-notification dm-notification-${type}`;
+  
+  // Add icon based on type
+  let icon = 'info-circle';
+  if (type === 'success') {
+    icon = 'check-circle';
+  } else if (type === 'error') {
+    icon = 'exclamation-circle';
+  }
+  
+  notification.innerHTML = `
+    <i class="bi bi-${icon}"></i>
+    <span>${message}</span>
+    <button class="dm-notification-close"><i class="bi bi-x"></i></button>
+  `;
+  
+  // Add to container
+  notificationContainer.appendChild(notification);
+  
+  // Add close button functionality
+  const closeButton = notification.querySelector('.dm-notification-close');
+  if (closeButton) {
+    closeButton.addEventListener('click', function() {
+      notification.classList.add('dm-notification-hidden');
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.parentElement.removeChild(notification);
+        }
+      }, 300);
+    });
+  }
+  
+  // Auto-close after 5 seconds
+  setTimeout(() => {
+    notification.classList.add('dm-notification-hidden');
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.parentElement.removeChild(notification);
+      }
+    }, 300);
+  }, 5000);
+}

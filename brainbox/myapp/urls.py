@@ -75,10 +75,8 @@ urlpatterns = [
     path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
     path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
-
-
-
-
+    path('accept_connection_request/', accept_connection_request, name='accept_connection_request'),
+    path('decline_connection_request/', decline_connection_request, name='decline_connection_request'),
 
     path('get_messages/',get_messages, name='get_messages'),
     path('send_message/', send_message, name='send_message'), 
