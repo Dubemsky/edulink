@@ -445,15 +445,12 @@ def get_student_analytics(request, room_id):
 
 
 
-
 @csrf_exempt
 def get_room_analytics(request, **kwargs):
     """
-    Fetches analytics data for a specific room.
-    Returns various metrics like message counts, user engagement, etc.
-    
-    This function accepts any URL parameter through kwargs to be compatible
-    with various URL routing configurations.
+    Enhanced version of the room analytics function.
+    Fetches comprehensive analytics data for a specific room.
+    Returns various metrics like message counts, user engagement, temporal patterns, etc.
     """
     try:
         # Extract room_id from any of the possible kwargs
@@ -467,6 +464,7 @@ def get_room_analytics(request, **kwargs):
                 "success": False,
                 "error": "No room ID provided"
             }, status=400)
+        
         # Get all messages for this room
         messages_ref = db.collection('hub_messages').where('room_id', '==', room_id)
         messages = list(messages_ref.stream())
@@ -479,12 +477,21 @@ def get_room_analytics(request, **kwargs):
         message_data = [msg.to_dict() for msg in messages]
         reply_data = [reply.to_dict() for reply in replies]
         
+        # ------------------- BASIC COUNTS -------------------
+        
         # Basic counts
         total_messages = len(message_data)
         total_replies = len(reply_data)
         
         # Message types
         message_types = Counter(msg.get('message_type', 'text') for msg in message_data)
+        
+        # Ensure the following common types are present even if count is 0
+        for msg_type in ['text', 'image', 'file', 'video', 'poll']:
+            if msg_type not in message_types:
+                message_types[msg_type] = 0
+        
+        # ------------------- USER ENGAGEMENT -------------------
         
         # Get unique senders (participants)
         message_senders = set(msg.get('sender') for msg in message_data if msg.get('sender'))
@@ -503,8 +510,10 @@ def get_room_analytics(request, **kwargs):
         # Convert to list of dicts for easy rendering in charts
         top_contributors = [
             {"name": sender, "messages": count} 
-            for sender, count in combined_counts.most_common(5)
+            for sender, count in combined_counts.most_common(10)  # Increased from 5 to 10
         ]
+        
+        # ------------------- TEMPORAL ANALYSIS -------------------
         
         # Time-based analysis (messages per day)
         message_dates = []
@@ -530,11 +539,84 @@ def get_room_analytics(request, **kwargs):
         # Count messages per day
         messages_per_day = Counter(message_dates)
         
-        # Format for chart
+        # Format for chart and ensure dates are sorted
         activity_timeline = [
             {"date": date, "count": count}
             for date, count in sorted(messages_per_day.items())
         ]
+        
+        # ------------------- ADVANCED ENGAGEMENT METRICS -------------------
+        
+        # Calculate hourly activity distribution
+        hour_activity = Counter()
+        for msg in message_data:
+            timestamp = msg.get('timestamp')
+            if isinstance(timestamp, (str, datetime)):
+                try:
+                    date_obj = None
+                    if isinstance(timestamp, str):
+                        date_obj = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    else:
+                        date_obj = timestamp
+                    
+                    hour_activity[date_obj.hour] += 1
+                except ValueError:
+                    continue
+        
+        # Format for chart
+        hourly_distribution = [
+            {"hour": hour, "count": count}
+            for hour, count in sorted(hour_activity.items())
+        ]
+        
+        # Get response time metrics (time between message and first reply)
+        response_times = []
+        for msg in message_data:
+            msg_id = msg.get('message_id')
+            msg_time = None
+            
+            try:
+                if isinstance(msg.get('timestamp'), str):
+                    msg_time = datetime.strptime(msg.get('timestamp'), '%Y-%m-%d %H:%M:%S')
+                elif isinstance(msg.get('timestamp'), datetime):
+                    msg_time = msg.get('timestamp')
+            except ValueError:
+                continue
+                
+            if not msg_time:
+                continue
+                
+            # Find replies to this message
+            relevant_replies = [r for r in reply_data if r.get('question_id') == msg_id]
+            if not relevant_replies:
+                continue
+                
+            # Find the earliest reply
+            earliest_reply_time = None
+            for reply in relevant_replies:
+                reply_time = None
+                try:
+                    if isinstance(reply.get('timestamp'), str):
+                        reply_time = datetime.strptime(reply.get('timestamp'), '%Y-%m-%d %H:%M:%S')
+                    elif isinstance(reply.get('timestamp'), datetime):
+                        reply_time = reply.get('timestamp')
+                except ValueError:
+                    continue
+                    
+                if reply_time and (earliest_reply_time is None or reply_time < earliest_reply_time):
+                    earliest_reply_time = reply_time
+            
+            if earliest_reply_time:
+                # Calculate time difference in minutes
+                time_diff = (earliest_reply_time - msg_time).total_seconds() / 60
+                response_times.append(time_diff)
+        
+        # Calculate average response time (if data available)
+        avg_response_time = None
+        if response_times:
+            avg_response_time = sum(response_times) / len(response_times)
+        
+        # ------------------- POLL ANALYSIS -------------------
         
         # Poll statistics if any
         polls = [msg for msg in message_data if msg.get('is_poll', False)]
@@ -551,12 +633,34 @@ def get_room_analytics(request, **kwargs):
                     ]
                 })
         
-        # Get reactions/votes data
+        # ------------------- ENGAGEMENT QUALITY -------------------
+        
+        # Calculate interaction metrics
+        
+        # 1. Messages with replies percentage
+        messages_with_replies = 0
+        for msg in message_data:
+            msg_id = msg.get('message_id')
+            if any(reply.get('question_id') == msg_id for reply in reply_data):
+                messages_with_replies += 1
+        
+        message_reply_ratio = (messages_with_replies / max(total_messages, 1)) * 100
+        
+        # 2. Reactions engagement
         upvotes_total = sum(msg.get('upvotes', 0) for msg in message_data)
         upvotes_total += sum(reply.get('upvotes', 0) for reply in reply_data)
         
         downvotes_total = sum(msg.get('downvotes', 0) for msg in message_data)
         downvotes_total += sum(reply.get('downvotes', 0) for reply in reply_data)
+        
+        # 3. Content richness (percentage of messages that aren't just text)
+        non_text_messages = sum(1 for msg in message_data if 
+                              msg.get('image_url') or 
+                              msg.get('file_url') or 
+                              msg.get('video_url') or 
+                              msg.get('is_poll', False))
+        
+        content_richness = (non_text_messages / max(total_messages, 1)) * 100
         
         # Get members count safely
         try:
@@ -570,6 +674,40 @@ def get_room_analytics(request, **kwargs):
         participation_percentage = 0
         if members_count > 0:
             participation_percentage = (len(all_participants) / members_count) * 100
+            
+        # Define the function to calculate inactive days
+        def calculate_inactive_days(timeline):
+            if not timeline or len(timeline) < 2:
+                return 0
+                
+            # Sort dates
+            dates = sorted([entry["date"] for entry in timeline])
+            
+            # Convert to datetime objects
+            date_objects = []
+            for date_str in dates:
+                try:
+                    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                    date_objects.append(date_obj)
+                except ValueError:
+                    continue
+            
+            if len(date_objects) < 2:
+                return 0
+                
+            # Calculate gaps
+            total_inactive_days = 0
+            for i in range(1, len(date_objects)):
+                gap = (date_objects[i] - date_objects[i-1]).days - 1
+                if gap > 0:
+                    total_inactive_days += gap
+                    
+            return total_inactive_days
+        
+        # ------------------- COMPILE ANALYTICS -------------------
+        
+        # Calculate inactive days
+        inactive_days = calculate_inactive_days(activity_timeline)
         
         # Compile analytics data
         analytics = {
@@ -578,14 +716,30 @@ def get_room_analytics(request, **kwargs):
                 "total_replies": total_replies,
                 "message_types": dict(message_types),
                 "total_participants": len(all_participants),
-                "total_reactions": {"upvotes": upvotes_total, "downvotes": downvotes_total}
+                "total_reactions": {"upvotes": upvotes_total, "downvotes": downvotes_total},
+                "messages_with_replies_percent": round(message_reply_ratio, 2),
+                "content_richness_percent": round(content_richness, 2)
             },
             "user_engagement": {
                 "top_contributors": top_contributors,
-                "participation_percentage": round(participation_percentage, 2)
+                "participation_percentage": round(participation_percentage, 2),
+                "user_count": members_count,
+                "average_response_time_minutes": round(avg_response_time, 2) if avg_response_time is not None else None
             },
-            "activity_timeline": activity_timeline,
-            "polls": poll_data
+            "temporal_analysis": {
+                "activity_timeline": activity_timeline,
+                "hourly_distribution": hourly_distribution,
+                "peak_activity_hour": hour_activity.most_common(1)[0][0] if hour_activity else None,
+                "peak_activity_count": hour_activity.most_common(1)[0][1] if hour_activity else 0,
+                "inactive_days": inactive_days
+            },
+            "polls": poll_data,
+            "engagement_quality": {
+                "message_reply_ratio": round(message_reply_ratio, 2),
+                "reaction_per_message": round((upvotes_total + downvotes_total) / max(total_messages + total_replies, 1), 2),
+                "content_richness": round(content_richness, 2),
+                "sentiment_ratio": round(upvotes_total / max(downvotes_total, 1), 2) if downvotes_total > 0 else upvotes_total
+            }
         }
         
         return JsonResponse({

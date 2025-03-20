@@ -68,9 +68,6 @@ urlpatterns = [
     path('summarize-replies/',summarize_replies, name='summarize_replies'),
 
 
-
-
-
     path('bookmark-questions/',bookmark_questions,name="bookmark_questions"),
     path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
