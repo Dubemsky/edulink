@@ -709,6 +709,431 @@ function getCsrfToken() {
 
 
 
+/**
+ * Enhanced Live Search Functionality
+ * - Shows matching users as you type
+ * - Displays search suggestions in a dropdown
+ * - Highlights matching text
+ * - Works with existing filter system
+ */
+
+// This code should be added to your existing script at the end of community_page.html
+
+function initLiveSearchFunctionality() {
+  const searchInput = document.getElementById('userSearchInput');
+  const searchSuggestions = document.getElementById('searchSuggestions');
+  const clearSearchBtn = document.getElementById('clearSearchBtn');
+  const searchBar = searchInput.closest('.search-bar');
+  const searchLoadingIndicator = document.querySelector('.search-loading');
+  
+  // Track current filter type
+  let currentFilterType = 'all';
+  
+  // Update current filter when filter buttons are clicked
+  document.querySelectorAll('.filter-button').forEach(button => {
+    button.addEventListener('click', function() {
+      currentFilterType = this.getAttribute('data-filter');
+      
+      // If search box has content, refresh suggestions with new filter
+      const searchTerm = searchInput.value.trim();
+      if (searchTerm) {
+        fetchSearchSuggestions(searchTerm, currentFilterType);
+      }
+    });
+  });
+  
+  // Handle input with minimal debounce for live suggestions
+  let debounceTimeout;
+  searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.trim();
+    
+    // Toggle clear button visibility
+    if (searchTerm) {
+      searchBar.classList.add('has-text');
+    } else {
+      searchBar.classList.remove('has-text');
+      hideSuggestions();
+      return;
+    }
+    
+    // Show loading indicator
+    searchLoadingIndicator.classList.add('active');
+    
+    // Debounce search with a short delay (150ms is responsive yet prevents too many requests)
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+      // Show suggestions even with a single character
+      if (searchTerm.length >= 1) {
+        fetchSearchSuggestions(searchTerm, currentFilterType);
+      } else {
+        hideSuggestions();
+      }
+    }, 150);
+  });
+  
+  // Handle clicking outside to close suggestions
+  document.addEventListener('click', function(event) {
+    if (!searchBar.contains(event.target) && !searchSuggestions.contains(event.target)) {
+      hideSuggestions();
+    }
+  });
+  
+  // Handle clear button click
+  clearSearchBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    searchBar.classList.remove('has-text');
+    hideSuggestions();
+    
+    // Reset to show all users for current filter
+    if (window.loadUsers) {
+      window.loadUsers(currentFilterType);
+    }
+  });
+  
+  // Focus search input when clicking on search bar
+  searchBar.addEventListener('click', function(event) {
+    if (event.target !== searchInput) {
+      searchInput.focus();
+    }
+  });
+  
+  // Handle search form submission
+  searchInput.closest('form')?.addEventListener('submit', function(event) {
+    event.preventDefault();
+    const searchTerm = searchInput.value.trim();
+    
+    if (searchTerm) {
+      performFullSearch(searchTerm, currentFilterType);
+      hideSuggestions();
+    }
+  });
+  
+  /**
+   * Fetch search suggestions from the server
+   */
+  function fetchSearchSuggestions(searchTerm, filterType) {
+    fetch("/search_users/", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ 
+        search_term: searchTerm,
+        filter_type: filterType
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Hide loading indicator
+      searchLoadingIndicator.classList.remove('active');
+      
+      if (data.success) {
+        displaySearchSuggestions(data.users, searchTerm);
+      } else {
+        console.error(data.error || 'Failed to fetch search suggestions');
+        hideSuggestions();
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching search suggestions:', error);
+      searchLoadingIndicator.classList.remove('active');
+      hideSuggestions();
+    });
+  }
+  
+  /**
+   * Display search suggestions in the dropdown
+   */
+  function displaySearchSuggestions(users, searchTerm) {
+    // Clear previous suggestions
+    searchSuggestions.innerHTML = '';
+    
+    if (users.length === 0) {
+      searchSuggestions.innerHTML = `
+        <div class="no-suggestions">
+          No users found matching "${searchTerm}"
+        </div>
+      `;
+      showSuggestions();
+      return;
+    }
+    
+    // Display maximum 6 suggestions to keep dropdown manageable
+    const maxSuggestions = 6;
+    const displayUsers = users.slice(0, maxSuggestions);
+    
+    // Create suggestion items
+    displayUsers.forEach(user => {
+      const suggestionItem = document.createElement('div');
+      suggestionItem.className = 'suggestion-item';
+      
+      // Highlight matching text in name
+      const userName = user.name;
+      const highlightedName = highlightMatch(userName, searchTerm);
+      
+      suggestionItem.innerHTML = `
+        <img src="${user.profile_picture || '/static/images/default_profile.jpg'}" 
+             alt="${userName}" class="suggestion-avatar">
+        <div class="suggestion-info">
+          <div class="suggestion-name">${highlightedName}</div>
+          <div class="suggestion-role">${user.role}</div>
+        </div>
+      `;
+      
+      // Handle click to show user details
+      suggestionItem.addEventListener('click', () => {
+        hideSuggestions();
+        showUserProfileModal(user);
+      });
+      
+      searchSuggestions.appendChild(suggestionItem);
+    });
+    
+    // Add "See all results" if there are more users
+    if (users.length > maxSuggestions) {
+      const seeAllItem = document.createElement('div');
+      seeAllItem.className = 'suggestion-item see-all-item';
+      seeAllItem.innerHTML = `
+        <div class="see-all-text">
+          <i class="bi bi-search me-2"></i>
+          See all ${users.length} results
+        </div>
+      `;
+      
+      seeAllItem.addEventListener('click', () => {
+        performFullSearch(searchTerm, currentFilterType);
+        hideSuggestions();
+      });
+      
+      searchSuggestions.appendChild(seeAllItem);
+    }
+    
+    showSuggestions();
+  }
+  
+  /**
+   * Perform a full search and display results in the main grid
+   */
+  function performFullSearch(searchTerm, filterType) {
+    // We can use the existing search function
+    if (window.performSearch) {
+      window.performSearch(searchTerm, filterType);
+    } else {
+      // Fallback implementation if window.performSearch doesn't exist
+      const userGrid = document.getElementById('user-grid');
+      const loadingSpinner = document.getElementById('loading-spinner');
+      
+      // Show loading spinner
+      userGrid.innerHTML = '';
+      loadingSpinner.style.display = 'flex';
+      
+      fetch("/search_users/", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ 
+          search_term: searchTerm,
+          filter_type: filterType
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        loadingSpinner.style.display = 'none';
+        
+        if (data.success) {
+          window.renderUsers(data.users);
+          
+          // Update filter buttons
+          document.querySelectorAll('.filter-button').forEach(btn => {
+            if (btn.getAttribute('data-filter') === filterType) {
+              btn.classList.add('active');
+            } else {
+              btn.classList.remove('active');
+            }
+          });
+          
+          // Show search stats if we have the function
+          if (window.showSearchStats) {
+            window.showSearchStats(searchTerm, data.users.length, filterType);
+          }
+        } else {
+          showToast(data.error || 'Failed to search users', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        loadingSpinner.style.display = 'none';
+        showToast('Error connecting to server', 'error');
+      });
+    }
+  }
+  
+  /**
+   * Helper function to highlight matching text
+   */
+  function highlightMatch(text, query) {
+    if (!query) return text;
+    
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQuery, 'gi');
+    
+    return text.replace(regex, match => `<span class="highlight">${match}</span>`);
+  }
+  
+  /**
+   * Show suggestions dropdown
+   */
+  function showSuggestions() {
+    searchSuggestions.classList.add('active');
+  }
+  
+  /**
+   * Hide suggestions dropdown
+   */
+  function hideSuggestions() {
+    searchSuggestions.classList.remove('active');
+  }
+}
+
+// Make the performSearch function available globally for the "See all results" button
+window.performSearch = function(searchTerm, filterType) {
+  // Show loading spinner
+  const userGrid = document.getElementById('user-grid');
+  const loadingSpinner = document.getElementById('loading-spinner');
+  userGrid.innerHTML = '';
+  loadingSpinner.style.display = 'flex';
+  
+  // Fetch search results from the server
+  fetch("/search_users/", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({ 
+      search_term: searchTerm,
+      filter_type: filterType
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    // Hide loading spinner
+    loadingSpinner.style.display = 'none';
+    
+    if (data.success) {
+      // Render search results
+      renderUsers(data.users);
+      
+      // Update filter buttons to match current filter
+      document.querySelectorAll('.filter-button').forEach(btn => {
+        if (btn.getAttribute('data-filter') === data.filter_type) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      
+      // Show search stats
+      if (window.showSearchStats) {
+        window.showSearchStats(data.search_term, data.count, data.filter_type);
+      }
+      
+      // Fetch connection status for the users
+      if (window.fetchConnectionStatus) {
+        window.fetchConnectionStatus();
+      }
+    } else {
+      window.showToast(data.error || 'Failed to search users', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    loadingSpinner.style.display = 'none';
+    window.showToast('Error connecting to server', 'error');
+  });
+};
+
+// Function to show search statistics
+window.showSearchStats = function(searchTerm, count, filterType) {
+  // Remove any existing search stats
+  const existingStats = document.getElementById('search-stats');
+  if (existingStats) {
+    existingStats.remove();
+  }
+  
+  // Create search stats container
+  const statsContainer = document.createElement('div');
+  statsContainer.id = 'search-stats';
+  statsContainer.className = 'search-stats';
+  
+  // Format filter type for display
+  let filterDisplay = 'all users';
+  if (filterType === 'teachers') filterDisplay = 'teachers';
+  if (filterType === 'students') filterDisplay = 'students';
+  
+  if (count > 0) {
+    statsContainer.innerHTML = `
+      <div class="search-results-info">
+        Found <span class="search-count">${count}</span> ${count === 1 ? 'result' : 'results'} 
+        for "<span class="search-term">${searchTerm}</span>" 
+        in <span class="filter-type">${filterDisplay}</span>
+      </div>
+    `;
+  } else {
+    statsContainer.innerHTML = `
+      <div class="search-results-info empty">
+        No results found for "<span class="search-term">${searchTerm}</span>" 
+        in <span class="filter-type">${filterDisplay}</span>
+      </div>
+      <button class="reset-search-btn">Clear Search</button>
+    `;
+    
+    // Add event listener to reset button
+    setTimeout(() => {
+      const resetBtn = statsContainer.querySelector('.reset-search-btn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+          document.getElementById('userSearchInput').value = '';
+          document.getElementById('userSearchInput').closest('.search-bar').classList.remove('has-text');
+          
+          // Reset to show all users for current filter
+          const activeFilterBtn = document.querySelector('.filter-button.active');
+          const filterType = activeFilterBtn ? activeFilterBtn.getAttribute('data-filter') : 'all';
+          
+          if (window.loadUsers) {
+            window.loadUsers(filterType);
+          }
+          
+          // Remove search stats
+          statsContainer.remove();
+        });
+      }
+    }, 0);
+  }
+  
+  // Insert stats before the user grid
+  const userGrid = document.getElementById('user-grid');
+  userGrid.parentNode.insertBefore(statsContainer, userGrid);
+};
+
+// Initialize the enhanced search functionality when the document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  initLiveSearchFunctionality();
+});
+
 
   document.addEventListener('DOMContentLoaded', function() {
   // Initialize AOS animations

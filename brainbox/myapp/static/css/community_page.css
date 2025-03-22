@@ -158,6 +158,264 @@
   -webkit-box-orient: vertical;
 }
 
+
+
+/* Enhanced Search Styling 
+ * Add these styles to your existing CSS in the community_page.html
+ */
+
+/* Improved search bar styles */
+.search-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 25px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 100; /* Higher z-index to ensure dropdown appears above content */
+}
+
+.search-bar {
+  position: relative;
+  width: 100%;
+  background-color: white;
+  border-radius: 50px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  transition: all 0.3s ease;
+}
+
+.search-bar:focus-within {
+  box-shadow: 0 6px 25px rgba(52, 152, 219, 0.2);
+  transform: translateY(-2px);
+}
+
+.search-icon {
+  color: #3498db;
+  font-size: 1.2rem;
+  margin-right: 10px;
+}
+
+#userSearchInput {
+  flex: 1;
+  border: none;
+  padding: 15px 0;
+  font-size: 1rem;
+  outline: none;
+  width: 100%;
+  background: transparent;
+}
+
+.search-loading {
+  display: none;
+  margin-right: 10px;
+}
+
+.search-loading.active {
+  display: block;
+}
+
+.search-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(52, 152, 219, 0.2);
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: search-spin 0.8s linear infinite;
+}
+
+@keyframes search-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.clear-search-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 5px;
+  display: none;
+  transition: color 0.3s ease;
+}
+
+.clear-search-btn:hover {
+  color: #3498db;
+}
+
+.search-bar.has-text .clear-search-btn {
+  display: block;
+}
+
+/* Enhanced Search Suggestions Dropdown */
+.search-suggestions {
+  position: absolute;
+  top: 60px;
+  left: 20px;
+  right: 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  z-index: 110;
+  opacity: 0;
+}
+
+.search-suggestions.active {
+  opacity: 1;
+  max-height: 400px;
+  padding: 10px 0;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 10px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.suggestion-item:hover {
+  background-color: #f1f9ff;
+}
+
+.suggestion-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 15px;
+  object-fit: cover;
+}
+
+.suggestion-info {
+  flex: 1;
+}
+
+.suggestion-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 3px;
+}
+
+.suggestion-role {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.highlight {
+  background-color: rgba(52, 152, 219, 0.2);
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.no-suggestions {
+  padding: 15px 20px;
+  text-align: center;
+  color: #777;
+  font-style: italic;
+}
+
+/* See all results item */
+.see-all-item {
+  border-top: 1px solid #eee;
+  justify-content: center;
+  padding: 12px 20px;
+}
+
+.see-all-text {
+  color: #3498db;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.see-all-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* Search stats enhancements */
+.search-stats {
+  width: 100%;
+  margin: 0 auto 20px;
+  padding: 10px;
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-results-info {
+  background-color: #e3f2fd;
+  padding: 10px 15px;
+  border-radius: 8px;
+  display: inline-block;
+  color: #0d47a1;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-results-info.empty {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.reset-search-btn {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 16px;
+  border: none;
+  background-color: #f5f5f5;
+  color: #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.reset-search-btn:hover {
+  background-color: #eee;
+  color: #333;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .search-bar {
+    padding: 0 15px;
+  }
+  
+  #userSearchInput {
+    padding: 12px 0;
+    font-size: 0.9rem;
+  }
+  
+  .search-suggestions {
+    top: 50px;
+    left: 10px;
+    right: 10px;
+  }
+  
+  .suggestion-item {
+    padding: 8px 15px;
+  }
+  
+  .suggestion-avatar {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+
 .user-stats {
   display: flex;
   justify-content: space-around;

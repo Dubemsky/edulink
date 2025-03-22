@@ -42,6 +42,16 @@ OLLAMA
 
 
 
+##############    LIVE STREAMING    ################
+- Live streaming with screen sharing
+- Live streaming with video and audio
+- Teachers schedule a live stream
+- Students joins and can engage
+- Live stream recording and save to chat
+
+
+
+
 - Private messaging   (student and teachers)
 It will make use of the 
 so it will be grouped into 2 sections. Primary Inbox (Both follows eachother), Message Request (U dont follow them)
