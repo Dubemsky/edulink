@@ -54,6 +54,8 @@ def students_homepage(request):
 
             
         notifications = get_notifications_by_username(current_student)
+
+        print(f"These are \n{notifications}\n\n")
         number_of_nofications = len(notifications)
         
     return render(request, "myapp/students/students_homepage.html", {

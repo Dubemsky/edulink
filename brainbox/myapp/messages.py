@@ -152,10 +152,13 @@ def get_notifications_by_username(username):
 
         # Check if it's a livestream and add livestream-specific details
         if notification_data.get("type") == "livestream":
+            s = str(notification_data.get("content"),)
+            result = s.split(" for ")[0]
+            
             notification_item.update({
                 "livestream_id": notification_data.get("livestream_id"),
-                "title": notification_data.get("title"),
-                "created_at": notification_data.get("created_at"),
+                "message": result,
+                "timestamp": notification_data.get("created_at"),
                 "read": notification_data.get("read"),
             })
 

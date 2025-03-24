@@ -1,7 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
+  console.log("DOM Content Loaded - Setting up livestream management");
+  
   // Add event listeners for the livestream management tabs
   const manageLivestreamsModal = document.getElementById('manageLivestreamsModal');
   if (manageLivestreamsModal) {
+    console.log("Found manageLivestreamsModal, setting up event listeners");
     manageLivestreamsModal.addEventListener('show.bs.modal', loadTeacherLivestreams);
     
     // Add event listeners for tab changes
@@ -26,6 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
         loadPastLivestreams();
       });
     }
+  } else {
+    console.warn("Warning: Could not find manageLivestreamsModal");
   }
   
   // Add event listener for edit form submission
@@ -33,33 +38,257 @@ document.addEventListener('DOMContentLoaded', function() {
   if (saveLivestreamChangesBtn) {
     saveLivestreamChangesBtn.addEventListener('click', saveEditedLivestream);
   }
+  
+  // Fix for Schedule Livestream button in the navbar
+  const scheduleLivestreamNavButton = document.querySelector('a[data-bs-target="#scheduleLivestreamModal"]');
+  if (scheduleLivestreamNavButton) {
+    console.log("Found Schedule Livestream button, adding direct click handler");
+    scheduleLivestreamNavButton.addEventListener('click', function(e) {
+      console.log("Schedule Livestream button clicked");
+      e.preventDefault();
+      
+      // Get the modal and show it using Bootstrap's modal API
+      const scheduleLivestreamModal = document.getElementById('scheduleLivestreamModal');
+      if (scheduleLivestreamModal) {
+        const modal = new bootstrap.Modal(scheduleLivestreamModal);
+        modal.show();
+      } else {
+        console.error("Could not find scheduleLivestreamModal element");
+        showToast("Error: Modal not found", "error");
+      }
+    });
+  } else {
+    console.warn("Warning: Could not find the Schedule Livestream button");
+  }
+  
+  // Fix for Manage Livestreams button
+  const manageStreamsButton = document.querySelector('a[data-bs-target="#manageLivestreamsModal"]');
+  if (manageStreamsButton) {
+    console.log("Found Manage Livestreams button, adding direct click handler");
+    manageStreamsButton.addEventListener('click', function(e) {
+      console.log("Manage Livestreams button clicked");
+      e.preventDefault();
+      
+      // Manually initialize and show the modal
+      const manageLivestreamsModal = document.getElementById('manageLivestreamsModal');
+      if (manageLivestreamsModal) {
+        const modal = new bootstrap.Modal(manageLivestreamsModal);
+        modal.show();
+        
+        // Load livestreams immediately without relying on bootstrap events
+        console.log("Loading teacher livestreams directly");
+        loadTeacherLivestreams();
+      } else {
+        console.error("Could not find manageLivestreamsModal element");
+        showToast("Error: Modal not found", "error");
+      }
+    });
+  } else {
+    console.warn("Warning: Could not find the Manage Livestreams button");
+  }
+  
+  // Add listener for the Schedule button within the modal
+  const scheduleLivestreamBtn = document.getElementById('scheduleLivestreamBtn');
+  if (scheduleLivestreamBtn) {
+    scheduleLivestreamBtn.addEventListener('click', function() {
+      // Get form values
+      const title = document.getElementById('livestreamTitle').value.trim();
+      const description = document.getElementById('livestreamDescription').value.trim();
+      const dateTime = document.getElementById('livestreamDateTime').value;
+      
+      // Get the room ID
+      let roomId = null;
+      const roomIdElement = document.getElementById('room-id-data');
+      if (roomIdElement) {
+        roomId = roomIdElement.dataset.roomId;
+      } else {
+        // Try to get room ID from URL if element is missing
+        const pathParts = window.location.pathname.split('/');
+        for (let i = 0; i < pathParts.length; i++) {
+          if (pathParts[i] === 'hub-room' && i+1 < pathParts.length) {
+            roomId = pathParts[i+1];
+            break;
+          }
+        }
+      }
+      
+      // Validate inputs
+      if (!title) {
+        showToast("Please enter a title for your livestream", "error");
+        return;
+      }
+      
+      if (!dateTime) {
+        showToast("Please select a date and time for your livestream", "error");
+        return;
+      }
+      
+      if (!roomId) {
+        showToast("Error: Room ID not found. Please refresh the page.", "error");
+        return;
+      }
+      
+      // Disable the button during submission
+      scheduleLivestreamBtn.disabled = true;
+      scheduleLivestreamBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Scheduling...';
+      
+      console.log("Scheduling livestream with data:", {
+        title, description, dateTime, roomId
+      });
+      
+      // Submit the data
+      fetch('/schedule-livestream/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          title: title,
+          description: description,
+          scheduled_time: dateTime,
+          room_id: roomId
+        })
+      })
+      .then(response => {
+        console.log("API response status:", response.status);
+        return response.json();
+      })
+      .then(data => {
+        console.log("API response data:", data);
+        scheduleLivestreamBtn.disabled = false;
+        scheduleLivestreamBtn.textContent = 'Schedule Livestream';
+        
+        if (data.success) {
+          // Close the modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleLivestreamModal'));
+          modal.hide();
+          
+          // Show success message
+          showToast("Livestream scheduled successfully", "success");
+          
+          // Refresh the livestreams list if it exists
+          if (typeof loadUpcomingLivestreams === 'function') {
+            loadUpcomingLivestreams();
+          }
+        } else {
+          showToast(data.error || "Failed to schedule livestream", "error");
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        scheduleLivestreamBtn.disabled = false;
+        scheduleLivestreamBtn.textContent = 'Schedule Livestream';
+        showToast("An error occurred. Please try again.", "error");
+      });
+    });
+  } else {
+    console.warn("Warning: Could not find scheduleLivestreamBtn");
+  }
 });
 
-// Function to load all livestreams when the manage modal is opened
+// Enhanced function to load all livestreams when the manage modal is opened
 function loadTeacherLivestreams() {
+  console.log("loadTeacherLivestreams called");
+  
+  // Fix for missing room-id-data element
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement) {
+    console.error("Error: room-id-data element not found!");
+    
+    // Find room ID from the URL if element is missing
+    const pathParts = window.location.pathname.split('/');
+    let roomId = null;
+    
+    // Look for a segment that looks like a room ID in the URL
+    for (let i = 0; i < pathParts.length; i++) {
+      if (pathParts[i] === 'hub-room' && i+1 < pathParts.length) {
+        roomId = pathParts[i+1];
+        break;
+      }
+    }
+    
+    if (roomId) {
+      console.log("Found room ID from URL:", roomId);
+      
+      // Create the room-id-data element if it's missing
+      const roomIdData = document.createElement('div');
+      roomIdData.id = 'room-id-data';
+      roomIdData.dataset.roomId = roomId;
+      roomIdData.style.display = 'none';
+      document.body.appendChild(roomIdData);
+      
+      console.log("Created room-id-data element with room ID:", roomId);
+    } else {
+      console.error("Could not determine room ID from URL");
+      showToast("Error: Could not determine room ID. Please refresh the page.", "error");
+      return;
+    }
+  } else {
+    console.log("Room ID found:", roomIdElement.dataset.roomId);
+  }
+  
   // Load upcoming livestreams by default
   loadUpcomingLivestreams();
 }
 
 // Function to load upcoming livestreams
 function loadUpcomingLivestreams() {
-  const roomId = document.getElementById('room-id-data').dataset.roomId;
+  console.log("loadUpcomingLivestreams called");
+  
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement) {
+    console.error("room-id-data element not found in loadUpcomingLivestreams");
+    showToast("Error: Room ID not found. Please refresh the page.", "error");
+    return;
+  }
+  
+  const roomId = roomIdElement.dataset.roomId;
+  if (!roomId) {
+    console.error("Room ID is empty in loadUpcomingLivestreams");
+    showToast("Error: Room ID is empty. Please refresh the page.", "error");
+    return;
+  }
+  
+  console.log("Loading upcoming livestreams for room ID:", roomId);
+  
   const container = document.getElementById('upcoming-livestreams-list');
+  if (!container) {
+    console.error("upcoming-livestreams-list container not found");
+    return;
+  }
+  
   const noLivestreamsMessage = document.getElementById('no-upcoming-livestreams');
+  if (!noLivestreamsMessage) {
+    console.warn("no-upcoming-livestreams element not found");
+  }
   
   // Show loading spinner
   container.innerHTML = '<div class="loading-spinner">Loading your scheduled livestreams...</div>';
   
+  // Log the API URL for debugging
+  const apiUrl = `/get-teacher-livestreams/?room_id=${roomId}&status=scheduled`;
+  console.log("Fetching from API URL:", apiUrl);
+  
   // Make API request to get upcoming livestreams
-  fetch(`/get-teacher-livestreams/?room_id=${roomId}&status=scheduled`)
-    .then(response => response.json())
+  fetch(apiUrl)
+    .then(response => {
+      console.log("API response status:", response.status);
+      return response.json();
+    })
     .then(data => {
+      console.log("API response data:", data);
+      
       if (data.success && data.livestreams && data.livestreams.length > 0) {
+        console.log(`Found ${data.livestreams.length} upcoming livestreams`);
+        
         // Clear the container
         container.innerHTML = '';
         
         // Hide the "no livestreams" message
-        noLivestreamsMessage.style.display = 'none';
+        if (noLivestreamsMessage) {
+          noLivestreamsMessage.style.display = 'none';
+        }
         
         // Sort livestreams by date (closest first)
         const sortedLivestreams = data.livestreams.sort((a, b) => {
@@ -68,25 +297,57 @@ function loadUpcomingLivestreams() {
         
         // Create elements for each upcoming livestream
         sortedLivestreams.forEach(livestream => {
+          console.log("Creating element for livestream:", livestream.title);
           const livestreamEl = createTeacherLivestreamItem(livestream, 'upcoming');
           container.appendChild(livestreamEl);
         });
       } else {
+        console.log("No upcoming livestreams found or error in response");
+        
         // No upcoming livestreams
         container.innerHTML = '';
-        noLivestreamsMessage.style.display = 'block';
+        
+        if (noLivestreamsMessage) {
+          noLivestreamsMessage.style.display = 'block';
+        } else {
+          // Create a message if the element doesn't exist
+          container.innerHTML = '<div class="no-livestreams">You haven\'t scheduled any upcoming livestreams.</div>';
+        }
       }
     })
     .catch(error => {
-      console.error('Error:', error);
+      console.error('Error fetching livestreams:', error);
       container.innerHTML = '<div class="error-message">Error loading livestreams. Please try again.</div>';
+      showToast("Error loading livestreams. Please try again.", "error");
     });
 }
 
 // Function to load active (live) livestreams
 function loadLiveLivestreams() {
-  const roomId = document.getElementById('room-id-data').dataset.roomId;
+  console.log("loadLiveLivestreams called");
+  
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement) {
+    console.error("room-id-data element not found in loadLiveLivestreams");
+    showToast("Error: Room ID not found. Please refresh the page.", "error");
+    return;
+  }
+  
+  const roomId = roomIdElement.dataset.roomId;
+  if (!roomId) {
+    console.error("Room ID is empty in loadLiveLivestreams");
+    showToast("Error: Room ID is empty. Please refresh the page.", "error");
+    return;
+  }
+  
+  console.log("Loading live livestreams for room ID:", roomId);
+  
   const container = document.getElementById('live-livestreams-list');
+  if (!container) {
+    console.error("live-livestreams-list container not found");
+    return;
+  }
+  
   const noLivestreamsMessage = document.getElementById('no-live-livestreams');
   
   // Show loading spinner
@@ -96,12 +357,16 @@ function loadLiveLivestreams() {
   fetch(`/get-teacher-livestreams/?room_id=${roomId}&status=live`)
     .then(response => response.json())
     .then(data => {
+      console.log("Live streams API response:", data);
+      
       if (data.success && data.livestreams && data.livestreams.length > 0) {
         // Clear the container
         container.innerHTML = '';
         
         // Hide the "no livestreams" message
-        noLivestreamsMessage.style.display = 'none';
+        if (noLivestreamsMessage) {
+          noLivestreamsMessage.style.display = 'none';
+        }
         
         // Create elements for each live livestream
         data.livestreams.forEach(livestream => {
@@ -111,7 +376,12 @@ function loadLiveLivestreams() {
       } else {
         // No live livestreams
         container.innerHTML = '';
-        noLivestreamsMessage.style.display = 'block';
+        
+        if (noLivestreamsMessage) {
+          noLivestreamsMessage.style.display = 'block';
+        } else {
+          container.innerHTML = '<div class="no-livestreams">You don\'t have any active livestreams right now.</div>';
+        }
       }
     })
     .catch(error => {
@@ -122,8 +392,30 @@ function loadLiveLivestreams() {
 
 // Function to load past livestreams
 function loadPastLivestreams() {
-  const roomId = document.getElementById('room-id-data').dataset.roomId;
+  console.log("loadPastLivestreams called");
+  
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement) {
+    console.error("room-id-data element not found in loadPastLivestreams");
+    showToast("Error: Room ID not found. Please refresh the page.", "error");
+    return;
+  }
+  
+  const roomId = roomIdElement.dataset.roomId;
+  if (!roomId) {
+    console.error("Room ID is empty in loadPastLivestreams");
+    showToast("Error: Room ID is empty. Please refresh the page.", "error");
+    return;
+  }
+  
+  console.log("Loading past livestreams for room ID:", roomId);
+  
   const container = document.getElementById('past-livestreams-list');
+  if (!container) {
+    console.error("past-livestreams-list container not found");
+    return;
+  }
+  
   const noLivestreamsMessage = document.getElementById('no-past-livestreams');
   
   // Show loading spinner
@@ -133,12 +425,16 @@ function loadPastLivestreams() {
   fetch(`/get-teacher-livestreams/?room_id=${roomId}&status=completed,cancelled`)
     .then(response => response.json())
     .then(data => {
+      console.log("Past streams API response:", data);
+      
       if (data.success && data.livestreams && data.livestreams.length > 0) {
         // Clear the container
         container.innerHTML = '';
         
         // Hide the "no livestreams" message
-        noLivestreamsMessage.style.display = 'none';
+        if (noLivestreamsMessage) {
+          noLivestreamsMessage.style.display = 'none';
+        }
         
         // Sort livestreams by date (most recent first)
         const sortedLivestreams = data.livestreams.sort((a, b) => {
@@ -153,7 +449,12 @@ function loadPastLivestreams() {
       } else {
         // No past livestreams
         container.innerHTML = '';
-        noLivestreamsMessage.style.display = 'block';
+        
+        if (noLivestreamsMessage) {
+          noLivestreamsMessage.style.display = 'block';
+        } else {
+          container.innerHTML = '<div class="no-livestreams">You don\'t have any completed livestreams yet.</div>';
+        }
       }
     })
     .catch(error => {
@@ -668,5 +969,3 @@ function getCookie(name) {
   }
   return cookieValue;
 }
-
-

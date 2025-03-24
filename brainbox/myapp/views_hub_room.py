@@ -59,6 +59,7 @@ def check_new_livestreams_view(request):
 
 
 
+
 def get_teacher_livestreams_view(request):
     """API endpoint to get livestreams for a teacher based on status"""
     if request.method != 'GET':
@@ -99,20 +100,28 @@ def get_teacher_livestreams_view(request):
             data = doc.to_dict()
             data['id'] = doc.id
             
+            # Convert Firestore timestamp to string
+            if 'created_at' in data and hasattr(data['created_at'], 'strftime'):
+                data['created_at'] = data['created_at'].strftime('%Y-%m-%dT%H:%M:%SZ')
+            
             # Filter by status if we have multiple values
             if len(status_values) > 1 and data.get('status') not in status_values:
                 continue
                 
             livestreams.append(data)
+            
+        print(f"Found {len(livestreams)} livestreams for teacher {teacher_name}, room {room_id}")
         
         return JsonResponse({
             'success': True,
             'livestreams': livestreams
-        })
+        }, json_dumps_params={'default': str})  # Use default=str to handle any other non-serializable objects
         
     except Exception as e:
         print(f"Error getting teacher livestreams: {e}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+
 
 
 def get_livestream_details_view(request, livestream_id):
