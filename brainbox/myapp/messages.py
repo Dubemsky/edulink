@@ -124,13 +124,13 @@ def notifications_for_bookmarked_questions(question_id, room_id, sender):
 
 def get_notifications_by_username(username):
     """
-    Retrieve notifications for a specific user from Firebase.
+    Retrieve notifications for a specific user from Firebase, including livestreams.
     """
     notifications_ref = db.collection("notifications")
-    query = notifications_ref.where("username", "==", username) 
+    query = notifications_ref.where("username", "==", username)
     notifications_list = []  # Use a list to store all notifications
 
-    notifications = query.stream() 
+    notifications = query.stream()
 
     for notification in notifications:
         notification_data = notification.to_dict()
@@ -139,17 +139,31 @@ def get_notifications_by_username(username):
         encrypted_message = notification_data.get("message")
         decrypted_message = encryption_manager.decrypt(encrypted_message)
 
-        # Append the notification data to the list with decrypted message
-        notifications_list.append({
+        # Common notification structure
+        notification_item = {
             "notification_id": notification.id,
             "question_id": notification_data.get("question_id"),
             "message": decrypted_message,
             "username": notification_data.get("username"),
             "room_id": notification_data.get("room_id"),
             "timestamp": notification_data.get("timestamp"),
-        })
+            "type": notification_data.get("type"),
+        }
+
+        # Check if it's a livestream and add livestream-specific details
+        if notification_data.get("type") == "livestream":
+            notification_item.update({
+                "livestream_id": notification_data.get("livestream_id"),
+                "title": notification_data.get("title"),
+                "created_at": notification_data.get("created_at"),
+                "read": notification_data.get("read"),
+            })
+
+        # Append the notification data to the list
+        notifications_list.append(notification_item)
 
     return notifications_list  # Return the list of notifications
+
 
 @csrf_exempt
 def mark_notification_read(request):

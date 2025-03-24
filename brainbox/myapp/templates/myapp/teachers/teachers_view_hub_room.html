@@ -55,7 +55,16 @@
             </li>
         {% endif %}
 
-
+        <li>
+            <a data-bs-toggle="modal" data-bs-target="#scheduleLivestreamModal" style="cursor: pointer;">
+              <i class="bi bi-broadcast"></i> Schedule Livestream
+            </a>
+          </li>
+          <li>
+            <a data-bs-toggle="modal" data-bs-target="#manageLivestreamsModal" style="cursor: pointer;">
+              <i class="bi bi-calendar-event"></i> Manage Livestreams
+            </a>
+          </li>
 
           <li><a href="{% url 'teachers_homepage' %}" class="active">
             <i class="bi bi-house"></i> Dashboard
@@ -355,6 +364,315 @@
 
 
 
+  <!-- Modal for livestreaming -->
+  <div class="modal fade" id="scheduleLivestreamModal" tabindex="-1" aria-labelledby="scheduleLivestreamModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="scheduleLivestreamModalLabel">Schedule a Livestream</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="scheduleLivestreamForm">
+            <div class="mb-3">
+              <label for="livestreamTitle" class="form-label">Title</label>
+              <input type="text" class="form-control" id="livestreamTitle" placeholder="Enter a title for your livestream" required>
+            </div>
+            <div class="mb-3">
+              <label for="livestreamDescription" class="form-label">Description (Optional)</label>
+              <textarea class="form-control" id="livestreamDescription" rows="3" placeholder="Describe what your livestream will cover"></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="livestreamDateTime" class="form-label">Date and Time</label>
+              <input type="datetime-local" class="form-control" id="livestreamDateTime" required>
+            </div>
+            <div class="mb-3 form-text">
+              Students in this room will be notified about this scheduled livestream.
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="scheduleLivestreamBtn">Schedule Livestream</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Add a section to display scheduled livestreams in the "Streams" tab -->
+  <div class="tab-content" id="streams">
+    <h4>Livestreams</h4>
+    
+    <div class="streams-header">
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleLivestreamModal">
+        <i class="bi bi-plus-circle"></i> Schedule New
+      </button>
+    </div>
+    
+    <div id="upcoming-livestreams" class="upcoming-livestreams-list">
+      <div class="loading-spinner">Loading livestreams...</div>
+    </div>
+    
+    <div class="no-livestreams" style="display: none;">
+      <p>No scheduled livestreams available.</p>
+      <p>Schedule a livestream to connect with your students in real-time!</p>
+    </div>
+  </div>
+
+
+
+
+
+  <!--     editing livestream modal -->
+<!-- Add this modal to your template, before the closing body tag -->
+<div class="modal fade" id="manageLivestreamsModal" tabindex="-1" aria-labelledby="manageLivestreamsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="manageLivestreamsModalLabel">Manage Your Livestreams</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul class="nav nav-tabs mb-3" id="livestreamsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming-tab-pane" type="button" role="tab" aria-controls="upcoming-tab-pane" aria-selected="true">
+                Upcoming
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="live-tab" data-bs-toggle="tab" data-bs-target="#live-tab-pane" type="button" role="tab" aria-controls="live-tab-pane" aria-selected="false">
+                Live Now
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="past-tab" data-bs-toggle="tab" data-bs-target="#past-tab-pane" type="button" role="tab" aria-controls="past-tab-pane" aria-selected="false">
+                Past Livestreams
+              </button>
+            </li>
+          </ul>
+          
+          <div class="tab-content" id="livestreamsTabsContent">
+            <!-- Upcoming Livestreams Tab -->
+            <div class="tab-pane fade show active" id="upcoming-tab-pane" role="tabpanel" aria-labelledby="upcoming-tab" tabindex="0">
+              <div id="upcoming-livestreams-list" class="livestreams-list">
+                <div class="loading-spinner">Loading your scheduled livestreams...</div>
+              </div>
+              <div class="no-livestreams" id="no-upcoming-livestreams" style="display: none;">
+                <p>You haven't scheduled any upcoming livestreams.</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scheduleLivestreamModal" data-bs-dismiss="modal">
+                  <i class="bi bi-plus-circle"></i> Schedule a Livestream
+                </button>
+              </div>
+            </div>
+            
+            <!-- Live Now Tab -->
+            <div class="tab-pane fade" id="live-tab-pane" role="tabpanel" aria-labelledby="live-tab" tabindex="0">
+              <div id="live-livestreams-list" class="livestreams-list">
+                <div class="loading-spinner">Checking for active livestreams...</div>
+              </div>
+              <div class="no-livestreams" id="no-live-livestreams" style="display: none;">
+                <p>You don't have any active livestreams right now.</p>
+              </div>
+            </div>
+            
+            <!-- Past Livestreams Tab -->
+            <div class="tab-pane fade" id="past-tab-pane" role="tabpanel" aria-labelledby="past-tab" tabindex="0">
+              <div id="past-livestreams-list" class="livestreams-list">
+                <div class="loading-spinner">Loading your past livestreams...</div>
+              </div>
+              <div class="no-livestreams" id="no-past-livestreams" style="display: none;">
+                <p>You don't have any completed livestreams yet.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scheduleLivestreamModal" data-bs-dismiss="modal">
+            <i class="bi bi-plus-circle"></i> Schedule New
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Livestream Edit Modal -->
+  <div class="modal fade" id="editLivestreamModal" tabindex="-1" aria-labelledby="editLivestreamModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editLivestreamModalLabel">Edit Livestream</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editLivestreamForm">
+            <input type="hidden" id="edit-livestream-id">
+            <div class="mb-3">
+              <label for="edit-livestreamTitle" class="form-label">Title</label>
+              <input type="text" class="form-control" id="edit-livestreamTitle" required>
+            </div>
+            <div class="mb-3">
+              <label for="edit-livestreamDescription" class="form-label">Description (Optional)</label>
+              <textarea class="form-control" id="edit-livestreamDescription" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="edit-livestreamDateTime" class="form-label">Date and Time</label>
+              <input type="datetime-local" class="form-control" id="edit-livestreamDateTime" required>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveLivestreamChangesBtn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    .livestreams-list {
+      margin-top: 15px;
+    }
+    
+    .livestream-item {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 15px;
+      margin-bottom: 15px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .livestream-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    
+    .livestream-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .livestream-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .livestream-status {
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    
+    .status-live {
+      background-color: #dc3545;
+      color: white;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+    
+    .status-soon {
+      background-color: #fd7e14;
+      color: white;
+    }
+    
+    .status-scheduled {
+      background-color: #6c757d;
+      color: white;
+    }
+    
+    .status-completed {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .status-cancelled {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    .livestream-details {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    
+    .livestream-datetime, .livestream-viewers {
+      margin-right: 15px;
+      font-size: 14px;
+      color: #6c757d;
+    }
+    
+    .livestream-description {
+      font-size: 14px;
+      margin: 10px 0;
+      color: #343a40;
+    }
+    
+    .livestream-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    
+    .loading-spinner {
+      text-align: center;
+      padding: 20px;
+      color: #6c757d;
+    }
+    
+    .no-livestreams {
+      text-align: center;
+      padding: 20px;
+      color: #6c757d;
+    }
+    
+    /* Stats for past livestreams */
+    .livestream-stats {
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    
+    .livestream-stats-item {
+      display: inline-block;
+      margin-right: 15px;
+      font-size: 14px;
+    }
+    
+    .livestream-stats-item i {
+      margin-right: 5px;
+      color: #6c757d;
+    }
+    
+    /* Live indicator for currently active livestreams */
+    .live-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: #dc3545;
+      border-radius: 50%;
+      margin-right: 5px;
+      animation: pulse 1.5s infinite;
+    }
+  </style>
+
 
   <!-- Analytics Modal -->
 
@@ -525,6 +843,7 @@
   <!-- Main JS Files -->
   <script src="{% static 'js/main.js' %}"></script>
   <script src="{% static 'js/summarize.js' %}"></script>
+  <script src="{% static 'js/livestream.js' %}"></script> 
   <script src="{% static 'js/room-analytics.js' %}"></script> 
   <script>
 
