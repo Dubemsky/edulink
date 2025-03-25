@@ -42,7 +42,7 @@ OLLAMA
 
 
 
-##############    LIVE STREAMING   "livekit"  ################
+##############    LIVE STREAMING    ################
 - Live streaming with screen sharing
 - Live streaming with video and audio
 - Teachers schedule a live stream
@@ -66,63 +66,5 @@ Can be able to make a groupchat and chat with 3 or more people
 
 ##############  additional ########################
 code editor# Ideas for Improvement
-
-## AI Implementation / Text Analytics
-
-### Smart Question Suggestion
-
-* Use a search algorithm (like fuzzy matching or full-text search) to find similar questions
-* Display top 3-5 similar questions below the input field
-
-### Auto-Tagging & Categorization
-
-* Automatically assign tags based on keywords
-* Implementation:
-	+ Use Natural Language Processing (NLP) (like Python's spaCy or an AI API) to extract key topics
-
-### Summarized Discussions
-
-* Generate a summary of long discussions under each question
-* Implementation:
-	+ Use AI models like GPT to summarize discussions into key takeaways
-
-### AI: Check if a text is a question
-
-* Use hugging face text analysis and llama for text classification
-
-### AI Generated Study Notes
-
-* Implement a feature to generate study notes based on discussions
-
-### Live Streaming
-
-* Live streaming with screen sharing
-* Live streaming with video and audio
-* Teachers schedule a live stream
-* Students join and can engage
-* Live stream recording and save to chat
-
-### Private Chats
-
-* Private messaging (student and teachers)
-* Group chat feature for 3 or more people
-
-### Additional Features
-
-* Code editor integration
-* Polls feature for live streams and discussions
-* Room analytics for live streams and discussions
-
-### Notifications
-
-* Implement a notification system for replies, tags, and live streams
-
-### Bookmarking
-
-* Allow users to bookmark conversations for later reference
-
-### Database Encryption
-
-* Implement encryption for messages stored in the database
-
-
+deployment
+intigration with educational platforms like D2L
