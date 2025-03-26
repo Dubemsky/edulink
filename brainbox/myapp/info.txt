@@ -71,7 +71,7 @@ deployment
 intigration with educational platforms like D2L
 gamification
 groupchat
-
+users can select their prefered languages
 
 
 

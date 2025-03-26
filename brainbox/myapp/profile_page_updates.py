@@ -23,7 +23,8 @@ def get_user_by_name(name):
                     "phone_number": user.phone_number,
                     "uid": user.uid,
                     "created_at": user.user_metadata.creation_timestamp,
-                    "last_signed_in": user.user_metadata.last_sign_in_timestamp
+                    "last_signed_in": user.user_metadata.last_sign_in_timestamp,
+                    "verified": "pending" if not user.email_verified else "verified"
                 }
         return None  
     except Exception as e:

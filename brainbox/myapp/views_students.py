@@ -15,6 +15,15 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import *
 from .messages import *
 
+
+from django.contrib import messages
+from django.http import HttpResponseRedirect, Http404
+from django.urls import reverse
+from django.core.exceptions import PermissionDenied
+from .email_verification import *
+
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,19 +39,74 @@ logger = logging.getLogger(__name__)
 
 
 
+from datetime import datetime, timedelta
+
+def calculate_days_remaining(verification_initiated):
+    if not verification_initiated:
+        return 14  # Default to 14 days if missing
+
+    try:
+        initiation_date = datetime.strptime(verification_initiated, "%Y-%m-%d %H:%M:%S")
+        expiration_date = initiation_date + timedelta(days=14)
+        remaining_days = (expiration_date - datetime.now()).days
+        return max(remaining_days, 0)
+    except ValueError:
+        return 14  # Fallback in case of parsing error
+
+
+
+def get_verification_status(user_id):
+    """
+    Fetches the verification status of a student from Firestore based on their user ID.
+    
+    Args:
+        user_id (str): The unique identifier of the user.
+    
+    Returns:
+        dict: Verification status details or None if not found.
+    """
+    try:
+        user_ref = db.collection('users_profile').document(user_id)
+        user_doc = user_ref.get()
+        
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            verification_status = user_data.get('verified', 'unknown')
+            verification_initiated = user_data.get('verification_initiated')
+            
+            days_remaining = None
+            if verification_initiated:
+                initiated_date = datetime.strptime(verification_initiated, "%Y-%m-%d %H:%M:%S")
+                days_remaining = max(0, 14 - (datetime.now() - initiated_date).days)
+            
+            return {
+                'status': verification_status,
+                'days_remaining': days_remaining
+            }
+        else:
+            print(f"User with ID {user_id} not found.")
+            return None
+    except Exception as e:
+        print(f"Error fetching verification status: {e}")
+        return None
+    
 
 def students_homepage(request):
     current_student = request.session.get("students_name")
     student_name = get_student_user_id(request)
     details = get_user_by_name(student_name)
     user_id = details.get('uid')
-    
+
+    students_hubs = []
+    notifications = []
+    number_of_nofications = 0
+    verification_status = {'status': 'pending', 'days_remaining': None}
+
     if current_student:
         # Get the hubs students joined based on their name.
         students_hubs_queryset = Students_joined_hub.objects.filter(student=current_student)
-        
+
         # Create a list with additional data for each hub
-        students_hubs = []
         for hub_entry in students_hubs_queryset:
             hub_data = {
                 'hub': hub_entry.hub,
@@ -52,20 +116,25 @@ def students_homepage(request):
             }
             students_hubs.append(hub_data)
 
-            
+        # Fetch notifications
         notifications = get_notifications_by_username(current_student)
-
-        print(f"These are \n{notifications}\n\n")
         number_of_nofications = len(notifications)
-        
+
+        # Retrieve verification status from Firestore
+        if user_id:
+            verification_status = get_verification_status(user_id) or {'status': 'pending', 'days_remaining': None}
+
     return render(request, "myapp/students/students_homepage.html", {
         "students_hubs": students_hubs, 
-        "number_of_hubs":len(students_hubs),
+        "number_of_hubs": len(students_hubs),
         "notifications": notifications,
         "number_of_nofications": number_of_nofications,
         "username": current_student,
-        "user_id": user_id
+        "user_id": user_id,
+        "verification_status": verification_status
     })
+
+
 
 
 def students_join_hub_page(request):
@@ -311,10 +380,174 @@ def student_profile_page_my_profile(request):
         return render(request, 'myapp/students/profile/student_profile_my_profile.html', context)
 
 
+
+
+
 def student_profile_page_securty_settings(request):
-    return render(request, "myapp/students/profile/student_profile_securty_settings.html", {'active_tab': 'security'})
+    """
+    View function to display and manage security settings
+    """
+    student_name = get_student_user_id(request)
+    
+    if not student_name:
+        return redirect('first_page')
+    
+    # Get user details
+    details = get_user_by_name(student_name)
+    if not details or not details.get('uid'):
+        messages.error(request, 'User not found. Please log in again.')
+        return redirect('first_page')
+    
+    user_id = details.get('uid')
+    
+    # Get verification status
+    verification_status = check_account_verification_status(user_id)
+    
+    # Default privacy settings (can be loaded from database in the future)
+    privacy = {
+        'profile_visibility': 'public',
+        'activity_visibility': 'public',
+        'show_online_status': True
+    }
+    
+    # Default notification settings
+    notifications = {
+        'email_notifications': True,
+        'question_replies': True,
+        'hub_updates': True,
+        'upvotes_mentions': True
+    }
+    
+    context = {
+        'verification_status': verification_status,
+        'privacy': privacy,
+        'notifications': notifications,
+        'active_tab': 'security'
+    }
+
+    print(f"This is the content of the ting {student_name} {context}")
+    
+    return render(request, "myapp/students/profile/student_profile_securty_settings.html", context)
 
 
+def verify_email(request, token):
+    """
+    View function to handle email verification links
+    """
+    if not token:
+        messages.error(request, 'Invalid verification link.')
+        return redirect('first_page')
+    
+    # Verify the token
+    verify_result = verify_email_token(token)
+    
+    if verify_result['success']:
+        messages.success(request, 'Your email has been successfully verified. You can now fully access your account.')
+        # Redirect to login if not logged in, or to dashboard if logged in
+        if request.session.get('students_name'):
+            return redirect('students_homepage')
+        else:
+            return redirect('login_page')
+    else:
+        messages.error(request, verify_result['error'])
+        return redirect('first_page')
+
+
+def resend_verification_email(request):
+    """
+    View function to resend verification email
+    """
+    if request.method != 'POST':
+        raise Http404('Only POST requests are allowed')
+    
+    student_name = get_student_user_id(request)
+    
+    if not student_name:
+        messages.error(request, 'You must be logged in to request a verification email.')
+        return redirect('first_page')
+    
+    # Get user details
+    details = get_user_by_name(student_name)
+    if not details or not details.get('uid'):
+        messages.error(request, 'User not found. Please log in again.')
+        return redirect('first_page')
+    
+    user_id = details.get('uid')
+    email = details.get('email')
+    
+    # Generate new verification token
+    verification_token = generate_email_verification_token(user_id)
+    
+    # Send verification email
+    if send_verification_email(email, student_name, verification_token):
+        messages.success(request, 'Verification email has been sent. Please check your inbox.')
+    else:
+        messages.error(request, 'Failed to send verification email. Please try again later.')
+    
+    # Redirect back to security settings
+    return HttpResponseRedirect(reverse('student_profile_page_securty_settings'))
+
+
+
+
+def change_password(request):
+    """
+    View function to handle password change requests
+    """
+    if request.method != 'POST':
+        raise Http404('Only POST requests are allowed')
+    
+    student_name = get_student_user_id(request)
+    
+    if not student_name:
+        messages.error(request, 'You must be logged in to change your password.')
+        return redirect('first_page')
+    
+    # Get user details
+    details = get_user_by_name(student_name)
+    if not details or not details.get('uid'):
+        messages.error(request, 'User not found. Please log in again.')
+        return redirect('first_page')
+    
+    user_id = details.get('uid')
+    
+    # Get form data
+    current_password = request.POST.get('current_password')
+    new_password = request.POST.get('new_password')
+    confirm_password = request.POST.get('confirm_password')
+    
+    # Validate form data
+    if not current_password or not new_password or not confirm_password:
+        messages.error(request, 'All password fields are required.')
+        return HttpResponseRedirect(reverse('student_profile_page_securty_settings'))
+    
+    if new_password != confirm_password:
+        messages.error(request, 'New passwords do not match.')
+        return HttpResponseRedirect(reverse('student_profile_page_securty_settings'))
+    
+    # Basic password strength validation
+    if len(new_password) < 8:
+        messages.error(request, 'Password must be at least 8 characters long.')
+        return HttpResponseRedirect(reverse('student_profile_page_securty_settings'))
+    
+    if not any(char.isdigit() for char in new_password):
+        messages.error(request, 'Password must include at least one number.')
+        return HttpResponseRedirect(reverse('student_profile_page_securty_settings'))
+    
+    if not any(char in '!@#$%^&*(),.?":{}|<>' for char in new_password):
+        messages.error(request, 'Password must include at least one special character.')
+        return HttpResponseRedirect(reverse('student_profile_page_securty_settings'))
+    
+    # Change the password
+    result = change_user_password(user_id, current_password, new_password)
+    
+    if result['success']:
+        messages.success(request, 'Your password has been updated successfully.')
+    else:
+        messages.error(request, result['error'])
+    
+    # Redirect back to security settings
+    return HttpResponseRedirect(reverse('student_profile_page_securty_settings'))
 
 
 

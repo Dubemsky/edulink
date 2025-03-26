@@ -1,4 +1,99 @@
 {% load static %}
+
+{% if verification_status.status == 'pending' or verification_status.status == 'expired' %}
+<div class="email-verification-alert {% if verification_status.status == 'expired' %}alert-danger{% else %}alert-warning{% endif %} alert-dismissible fade show" data-aos="fade-up" role="alert">
+  <div class="alert-content">
+    <div class="verification-icon">
+      <i class="bi {% if verification_status.status == 'expired' %}bi-x-circle text-danger{% else %}bi-exclamation-triangle text-warning{% endif %}"></i>
+    </div>
+    <div class="verification-text">
+      {% if verification_status.status == 'pending' %}
+        <strong>Email Verification Required</strong>
+        <p>Please verify your email address within {{ verification_status.days_remaining }} days or your account will be deactivated.</p>
+      {% elif verification_status.status == 'expired' %}
+        <strong>Email Verification Expired</strong>
+        <p>Your verification period has expired. Please request a new verification email to keep your account active.</p>
+      {% endif %}
+      <a href="{% url 'student_profile_page_securty_settings' %}" class="alert-link btn btn-outline-primary btn-sm">
+        {% if verification_status.status == 'pending' %}Verify Now{% else %}Request Verification{% endif %}
+      </a>
+    </div>
+  </div>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+<style>
+  .email-verification-alert {
+    margin-bottom: 20px;
+    border-radius: 0.75rem;
+    background-color: #f8f9fa;
+    border: 1px solid transparent;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .email-verification-alert .alert-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .verification-icon {
+    font-size: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .verification-text {
+    flex-grow: 1;
+  }
+
+  .verification-text strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-size: 1.1rem;
+  }
+
+  .verification-text p {
+    margin-bottom: 0.75rem;
+    color: #666;
+  }
+
+  .alert-warning {
+    border-left: 4px solid #ffc107;
+  }
+
+  .alert-danger {
+    border-left: 4px solid #dc3545;
+  }
+
+  .email-verification-alert .alert-link {
+    font-weight: 600;
+    margin-left: 0;
+  }
+
+  .email-verification-alert .btn-close {
+    margin-left: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .email-verification-alert .alert-content {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .verification-icon {
+      margin-bottom: 0.75rem;
+    }
+  }
+</style>
+{% endif %}
 <!DOCTYPE html>
 <html lang="en">
 <head>

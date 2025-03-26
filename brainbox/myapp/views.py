@@ -70,7 +70,7 @@ def signup_page(request):
         confirm_password = request.POST.get('confirm_password')
 
         # Validate email domain and password strength using regular expression (regex)
-        if not email.endswith('@mytudublin.ie'):
+        if not email.endswith('@mytudublin.ie'):  
             error_message = "Email must be from the domain @mytudublin.ie."
         elif password != confirm_password:
             error_message = "Passwords do not match."

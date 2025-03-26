@@ -1,31 +1,119 @@
-{% load static %}
+<!-- Replace or update your existing success.html content with this -->
 
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon"> 
-    <title>Success Message</title>
-    <style>
-        .message-box {
-            border: 1px solid #4CAF50;
-            background-color: #f9f9f9; 
-            padding: 20px;
-            margin: 20px; 
-            border-radius: 5px; 
-            text-align: center; 
-            font-family: Arial, sans-serif; 
-            color: #333; 
-        }
-    </style>
-</head>
-<body>
-    <div class="message-box">
-        You successfully signed up. Log in now
-        <br><br>
-        <a href="{% url 'login_page' %}?role=student" style="text-decoration: none; color: #4CAF50; font-weight: bold;">Login now</a>
+<div class="success-container">
+    <div class="success-icon">
+      <i class="bi bi-check-circle-fill"></i>
     </div>
-</body>
-</html>
+    
+    <h1>Registration Successful!</h1>
+    <p class="main-message">Your EduLink account has been created successfully.</p>
+    
+    <div class="email-verification-box">
+      <div class="email-icon">
+        <i class="bi bi-envelope-check-fill"></i>
+      </div>
+      <h2>Check Your Email</h2>
+      <p>We've sent a verification link to your email address. Please check your inbox and click the link to verify your account.</p>
+      <p class="important-note"><strong>Important:</strong> You have 14 days to verify your email or your account will be deactivated.</p>
+    </div>
+    
+    <div class="next-steps">
+      <h3>Next Steps</h3>
+      <ol>
+        <li>Check your email inbox (and spam folder) for the verification email</li>
+        <li>Click the verification link in the email</li>
+        <li>Log in to your new EduLink account</li>
+      </ol>
+    </div>
+    
+    <div class="action-buttons">
+      <a href="{% url 'login_page' %}" class="btn btn-primary">Go to Login</a>
+    </div>
+  </div>
+  
+  <style>
+    .success-container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 30px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    
+    .success-icon {
+      font-size: 3rem;
+      color: #28a745;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+    
+    .main-message {
+      font-size: 1.1rem;
+      color: #555;
+      margin-bottom: 30px;
+    }
+    
+    .email-verification-box {
+      background-color: #f0f9ff;
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 30px;
+      border-left: 5px solid #0d6efd;
+      text-align: left;
+    }
+    
+    .email-icon {
+      display: inline-block;
+      color: #0d6efd;
+      font-size: 2rem;
+      margin-bottom: 15px;
+    }
+    
+    .email-verification-box h2 {
+      color: #0d6efd;
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+    }
+    
+    .important-note {
+      margin-top: 15px;
+      color: #dc3545;
+    }
+    
+    .next-steps {
+      text-align: left;
+      margin-bottom: 30px;
+    }
+    
+    .next-steps h3 {
+      color: #333;
+      font-size: 1.3rem;
+      margin-bottom: 15px;
+    }
+    
+    .next-steps ol {
+      padding-left: 25px;
+    }
+    
+    .next-steps li {
+      margin-bottom: 10px;
+      color: #555;
+    }
+    
+    .action-buttons {
+      margin-top: 25px;
+    }
+    
+    .btn-primary {
+      background-color: #3a7bd5;
+      border-color: #3a7bd5;
+      padding: 10px 25px;
+      font-weight: 600;
+    }
+  </style>

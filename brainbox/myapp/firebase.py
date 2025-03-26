@@ -197,38 +197,33 @@ def format_timestamp(timestamp_ms):
 def add_students_to_database(email, password, username, role):
     email = email.lower()
     try:
-        # Check if the user already exists
         user = auth.get_user_by_email(email)
         print(f"User already exists: {email}")
         return False  # User already exists
 
     except auth.UserNotFoundError:
-        # Check if the display name is unique
         if not users_unique_name(username):
             print(f"Display name '{username}' is already taken. Please choose another.")
             return False  
 
-        # Create the user if name is unique
         try:
             user = auth.create_user(
                 email=email,
                 password=password,
                 display_name=username
             )
-            # Set custom claims (role)
             auth.set_custom_user_claims(user.uid, {'role': role})
 
-            # Create a dictionary for the new user
             new_user_data = {
                 'uid': user.uid,
                 'username': username,
                 'role': role,
-                'created_at': format_timestamp(user.user_metadata.creation_timestamp)
+                'created_at': format_timestamp(user.user_metadata.creation_timestamp),
+                'verified': "pending",  # New students also set to 'pending'
+                'verification_initiated': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
-            # Add the new user to Firestore collection
-            add_users_to_collection([new_user_data])  # Pass the user data as a list
-
+            add_users_to_collection([new_user_data])
             return True
 
         except Exception as create_error:
@@ -418,21 +413,6 @@ def get_bookmarked_messages(username, room_id):
         return []
 
 
-
-DEFAULT_PIC_URL = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
-
-def update_profile_pictures():
-    users_ref = db.collection("users_profile")
-    docs = users_ref.stream()
-
-    for doc in docs:
-        user_data = doc.to_dict()
-        profile_pic = user_data.get("profile_picture", "")
-
-        if not profile_pic:  # Check if null or empty
-            doc_ref = users_ref.document(doc.id)
-            doc_ref.update({"profile_picture": DEFAULT_PIC_URL})
-            print(f"Updated profile picture for user: {doc.id}")
 
 
 

@@ -7,11 +7,82 @@
   <h3 class="profile-detail-title">Security & Settings</h3>
 </div>
 
+{% if messages %}
+<div class="profile-messages">
+  {% for message in messages %}
+    <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% elif message.tags == 'info' %}alert-info{% elif message.tags == 'warning' %}alert-warning{% endif %} alert-dismissible fade show">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Email Verification Section -->
+<div class="profile-section">
+  <h4 class="section-title"><i class="bi bi-envelope-check"></i> Email Verification</h4>
+  
+  <div class="verification-status-card">
+    {% if verification_status.is_verified %}
+      <div class="status verified">
+        <i class="bi bi-check-circle-fill"></i>
+        <div class="status-text">
+          <h5>Email Verified</h5>
+          <p>Your email has been successfully verified.</p>
+        </div>
+      </div>
+    {% else %}
+      {% if verification_status.status == 'pending' %}
+        <div class="status pending">
+          <i class="bi bi-hourglass-split"></i>
+          <div class="status-text">
+            <h5>Verification Required</h5>
+            <p>Please check your email and click the verification link to activate your account.</p>
+            <p><strong>{{ verification_status.days_remaining }} days remaining</strong> to verify your account.</p>
+          </div>
+        </div>
+        <div class="resend-verification mt-3">
+          <form method="POST" action="{% url 'resend_verification_email' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-secondary">
+              <i class="bi bi-envelope"></i> Resend Verification Email
+            </button>
+          </form>
+        </div>
+      {% elif verification_status.status == 'expired' %}
+        <div class="status expired">
+          <i class="bi bi-x-circle-fill"></i>
+          <div class="status-text">
+            <h5>Verification Period Expired</h5>
+            <p>Your account verification period has expired. Please request a new verification email to activate your account.</p>
+          </div>
+        </div>
+        <div class="resend-verification mt-3">
+          <form method="POST" action="{% url 'resend_verification_email' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-primary">
+              <i class="bi bi-envelope"></i> Send New Verification Email
+            </button>
+          </form>
+        </div>
+      {% else %}
+        <div class="status unknown">
+          <i class="bi bi-question-circle-fill"></i>
+          <div class="status-text">
+            <h5>Verification Status Unknown</h5>
+            <p>We couldn't determine your verification status. Please contact support.</p>
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
 <!-- Password Section -->
 <div class="profile-section">
   <h4 class="section-title"><i class="bi bi-shield-lock"></i> Password</h4>
   
-  <form id="passwordForm" method="POST" action="#">
+  <form id="passwordForm" method="POST" action="{% url 'change_password' %}">
     {% csrf_token %}
     <div class="form-row">
       <label class="form-label">Current Password</label>
@@ -19,12 +90,18 @@
     </div>
     <div class="form-row">
       <label class="form-label">New Password</label>
-      <input type="password" class="form-control" name="new_password" required>
+      <input type="password" class="form-control" name="new_password" id="new_password" required>
       <small class="form-text">Password must be at least 8 characters and include a number and a special character.</small>
     </div>
     <div class="form-row">
       <label class="form-label">Confirm New Password</label>
-      <input type="password" class="form-control" name="confirm_password" required>
+      <input type="password" class="form-control" name="confirm_password" id="confirm_password" required>
+    </div>
+    <div class="password-strength-meter mt-2 mb-3">
+      <div class="progress">
+        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+      <small class="password-strength-text">Password strength: Too weak</small>
     </div>
     <button type="submit" class="btn btn-primary">
       <i class="bi bi-check-circle"></i> Update Password
@@ -304,6 +381,50 @@
       });
     }
     
+    // Password strength meter
+    const newPasswordInput = document.getElementById('new_password');
+    const passwordStrengthBar = document.querySelector('.password-strength-meter .progress-bar');
+    const passwordStrengthText = document.querySelector('.password-strength-text');
+    
+    if (newPasswordInput && passwordStrengthBar && passwordStrengthText) {
+      newPasswordInput.addEventListener('input', function() {
+        const password = this.value;
+        let strength = 0;
+        let feedback = 'Too weak';
+        
+        // Calculate password strength
+        if (password.length > 0) {
+          // Length check
+          strength += Math.min(password.length * 4, 25);
+          
+          // Character variety checks
+          if (/[A-Z]/.test(password)) strength += 15;
+          if (/[a-z]/.test(password)) strength += 10;
+          if (/[0-9]/.test(password)) strength += 15;
+          if (/[^A-Za-z0-9]/.test(password)) strength += 20;
+          
+          // Determine feedback text
+          if (strength < 30) {
+            feedback = 'Too weak';
+            passwordStrengthBar.className = 'progress-bar bg-danger';
+          } else if (strength < 60) {
+            feedback = 'Moderate';
+            passwordStrengthBar.className = 'progress-bar bg-warning';
+          } else if (strength < 80) {
+            feedback = 'Strong';
+            passwordStrengthBar.className = 'progress-bar bg-info';
+          } else {
+            feedback = 'Very strong';
+            passwordStrengthBar.className = 'progress-bar bg-success';
+          }
+        }
+        
+        // Update UI
+        passwordStrengthBar.style.width = `${Math.min(strength, 100)}%`;
+        passwordStrengthText.textContent = `Password strength: ${feedback}`;
+      });
+    }
+    
     // Toggle switches animation
     const toggleSwitches = document.querySelectorAll('.toggle-switch input[type="checkbox"]');
     
@@ -340,6 +461,52 @@
       });
     }
   });
+  
+  // Helper function to show notifications
+  function showNotification(message, type = 'info') {
+    // Check if we already have a notification container
+    let container = document.querySelector('.notification-container');
+    
+    // Create container if it doesn't exist
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'notification-container';
+      document.body.appendChild(container);
+    }
+    
+    // Create the notification
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+      <div class="notification-content">
+        <span>${message}</span>
+        <button type="button" class="close-btn">&times;</button>
+      </div>
+    `;
+    
+    // Add to container
+    container.appendChild(notification);
+    
+    // Add event listener to close button
+    notification.querySelector('.close-btn').addEventListener('click', function() {
+      notification.classList.add('fade-out');
+      setTimeout(() => {
+        notification.remove();
+      }, 300);
+    });
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.classList.add('fade-out');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 300);
+      }
+    }, 5000);
+  }
 </script>
 
 <style>
@@ -380,6 +547,61 @@
     flex-shrink: 0;
     width: 150px;
     text-align: right;
+  }
+  
+  /* Verification Status Card */
+  .verification-status-card {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  
+  .verification-status-card .status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .verification-status-card .status i {
+    font-size: 2rem;
+  }
+  
+  .verification-status-card .status.verified i {
+    color: #28a745;
+  }
+  
+  .verification-status-card .status.pending i {
+    color: #ffc107;
+  }
+  
+  .verification-status-card .status.expired i {
+    color: #dc3545;
+  }
+  
+  .verification-status-card .status.unknown i {
+    color: #6c757d;
+  }
+  
+  .verification-status-card .status-text h5 {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+  
+  .verification-status-card .status-text p {
+    margin-bottom: 0.25rem;
+    color: #6c757d;
+  }
+  
+  /* Password Strength Meter */
+  .password-strength-meter .progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+  }
+  
+  .password-strength-text {
+    font-size: 0.8rem;
+    color: #6c757d;
   }
   
   /* Toggle Switch */
@@ -484,6 +706,84 @@
     color: #fff;
     background-color: #dc3545;
     border-color: #dc3545;
+  }
+  
+  /* Notification styles */
+  .notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 350px;
+  }
+  
+  .notification {
+    margin-bottom: 10px;
+    padding: 15px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slide-in 0.3s ease-out forwards;
+    background-color: white;
+    border-left: 4px solid #3a7bd5;
+  }
+  
+  .notification.info {
+    border-left-color: #3a7bd5;
+  }
+  
+  .notification.success {
+    border-left-color: #28a745;
+  }
+  
+  .notification.warning {
+    border-left-color: #ffc107;
+  }
+  
+  .notification.error {
+    border-left-color: #dc3545;
+  }
+  
+  .notification-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .notification .close-btn {
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0;
+    margin-left: 10px;
+  }
+  
+  .notification.fade-out {
+    animation: fade-out 0.3s ease-out forwards;
+  }
+  
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fade-out {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
   }
 </style>
 {% endblock %}

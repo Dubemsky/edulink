@@ -56,8 +56,10 @@ urlpatterns = [
     
     path('vote-reply/', vote_reply, name='vote_reply'),
     path('poll-voting/', poll_voting, name='poll_voting'),
+    path('get_messages/',get_messages, name='get_messages'),
+    path('send_message/', send_message, name='send_message'),
     path('search_users/', search_users, name='search_users'),
-    path('follow_user/',follow_user_view,name='follow_user'),
+    path('follow_user/',follow_user_view,name='follow_user'), 
     path('log-tab-click/', log_tab_click, name='log_tab_click'),
     path('get-user-votes/', get_user_votes, name='get_user_votes'),
     path('get_following/', get_following_list, name='get_following'),
@@ -66,14 +68,6 @@ urlpatterns = [
     path('check-poll-votes/', check_poll_votes, name='check_poll_votes'),
     path('summarize-replies/',summarize_replies, name='summarize_replies'),
     path('bookmark-questions/',bookmark_questions,name="bookmark_questions"),
-    path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
-    path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
-    path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
-    path('accept_connection_request/', accept_connection_request, name='accept_connection_request'),
-    path('decline_connection_request/', decline_connection_request, name='decline_connection_request'),
-
-    path('get_messages/',get_messages, name='get_messages'),
-    path('send_message/', send_message, name='send_message'), 
     path('get_conversations/', get_conversations, name='get_conversations'),
     path('start_direct_chat/', start_direct_chat, name='start_direct_chat'),
     path('mark_messages_read/', mark_messages_read, name='mark_messages_read'),
@@ -81,14 +75,20 @@ urlpatterns = [
     path('get_group_chats/', get_group_chats, name='get_group_chats'),
     path('create_group_chat/', create_group_chat, name='create_group_chat'),
     path('send_group_message/', send_group_message, name='send_group_message'),
-    path('get_group_messages/<str:group_id>/', get_group_messages, name='get_group_messages'),
-    path('mark_group_messages_read/', mark_group_messages_read, name='mark_group_messages_read'),
-    path('remove_group_participant/', remove_group_participant, name='remove_group_participant'),
     path('update_group_info/', update_group_info, name='update_group_info'),
   
-path('send-invite/', send_invite, name='send_invite'),
+    path('send-invite/', send_invite, name='send_invite'),
     path('search-students/', search_students, name='search_students'),
     path('respond-to-invite/', respond_to_invite, name='respond_to_invite'),
+
+    path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
+    path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
+        path('get_group_messages/<str:group_id>/', get_group_messages, name='get_group_messages'),
+    path('mark_group_messages_read/', mark_group_messages_read, name='mark_group_messages_read'),
+    path('remove_group_participant/', remove_group_participant, name='remove_group_participant'),
+    path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
+    path('accept_connection_request/', accept_connection_request, name='accept_connection_request'),
+    path('decline_connection_request/', decline_connection_request, name='decline_connection_request'),
 
     # Add these URL patterns to your urls.py file
 
@@ -105,7 +105,20 @@ path('send-invite/', send_invite, name='send_invite'),
 
 
 
+
+
+# Emai verification
+    path('verify-email/<str:token>/', verify_email, name='verify_email'),
+    path('resend-verification-email/', resend_verification_email, name='resend_verification_email'),
+    path('change-password/', change_password, name='change_password'),
+
+
+
+
 ]
+
+
+
 
 
 

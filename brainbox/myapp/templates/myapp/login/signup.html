@@ -261,6 +261,33 @@
         padding: 1.5rem;
       }
     }
+
+  .email-verification-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-radius: 8px;
+    background-color: #cfe5ff;
+    border-left: 4px solid #0d6efd;
+    padding: 15px;
+  }
+  
+  .email-verification-notice i {
+    font-size: 1.5rem;
+    color: #0d6efd;
+    margin-top: 3px;
+  }
+  
+  .email-verification-notice .alert-content strong {
+    display: block;
+    margin-bottom: 5px;
+  }
+  
+  .email-verification-notice p {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+  }
+
   </style>
 </head>
 
@@ -328,6 +355,19 @@
             <input type="password" id="confirm_password" name="confirm_password" class="form-control" required placeholder="Repeat your password">
           </div>
           
+
+          <!-- Add this to your signup.html template, just below the form inputs but before the submit button -->
+
+          <div class="alert alert-info email-verification-notice mt-3">
+            <i class="bi bi-info-circle-fill"></i>
+            <div class="alert-content">
+              <strong>Email Verification Required</strong>
+              <p>After signing up, you'll need to verify your email address within 14 days to keep your account active. We'll send a verification link to your email.</p>
+            </div>
+          </div>
+
+
+
           <button type="submit" class="btn-signup">
             <i class="bi bi-person-check"></i> Create Account
           </button>
