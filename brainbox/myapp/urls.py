@@ -1,10 +1,10 @@
 from .views import *
 from .analitics import *
 from .summarise import *
+from .group_chat import *
 from django.urls import path
 from .views_teachers import *
 from .views_students import *
-from .import *
 from .community_page import *
 from .livestream_view import *
 from .private_messages import *
@@ -35,14 +35,11 @@ urlpatterns = [
     path('students-dashboard/student-profile/activity-contribution',student_profile_page_activity_contribution,name='student_profile_page_activity_contribution'),
 
 
-
-    path('room-analytics/<str:room_id>/', get_room_analytics, name='room-analitics'),
-
-
     # Teachers section paths
+    path('send_invite',send_invite,name='send_invite'),
     path('teachers-dashboard/', teachers_homepage, name='teachers_homepage'),
     path('teachers-create-hub/', teachers_create_hub, name='teachers_create_hub'),
-    path('send_invite',send_invite,name='send_invite'),
+    path('room-analytics/<str:room_id>/', get_room_analytics, name='room-analitics'),
     path('teacher/profile/update/', teachers_profile_update, name='teacher_profile_update'),
     path('teachers-dashboard/teachers-profile', teachers_profile_page,name='teachers_profile_page'),
     path('teachers-dashboard/hub-room/<str:id>/', current_teacher_hub_room, name='current_teacher_hub_room'),
@@ -58,8 +55,8 @@ urlpatterns = [
     
     path('vote-reply/', vote_reply, name='vote_reply'),
     path('poll-voting/', poll_voting, name='poll_voting'),
-    path('follow_user/',follow_user_view,name='follow_user'),
     path('search_users/', search_users, name='search_users'),
+    path('follow_user/',follow_user_view,name='follow_user'),
     path('log-tab-click/', log_tab_click, name='log_tab_click'),
     path('get-user-votes/', get_user_votes, name='get_user_votes'),
     path('get_following/', get_following_list, name='get_following'),
@@ -78,9 +75,17 @@ urlpatterns = [
 
     path('get_messages/',get_messages, name='get_messages'),
     path('send_message/', send_message, name='send_message'), 
-    path('mark_messages_read/', mark_messages_read, name='mark_messages_read'),
     path('get_conversations/', get_conversations, name='get_conversations'),
     path('start_direct_chat/', start_direct_chat, name='start_direct_chat'),
+    path('mark_messages_read/', mark_messages_read, name='mark_messages_read'),
+
+    path('get_group_chats/', get_group_chats, name='get_group_chats'),
+    path('create_group_chat/', create_group_chat, name='create_group_chat'),
+    path('send_group_message/', send_group_message, name='send_group_message'),
+    path('get_group_messages/<str:group_id>/', get_group_messages, name='get_group_messages'),
+    path('mark_group_messages_read/', mark_group_messages_read, name='mark_group_messages_read'),
+    path('remove_group_participant/', remove_group_participant, name='remove_group_participant'),
+    path('update_group_info/', update_group_info, name='update_group_info'),
   
 
     # Add these URL patterns to your urls.py file

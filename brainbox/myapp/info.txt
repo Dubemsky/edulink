@@ -1,12 +1,18 @@
 # More ideas to Add
 
 
+
+
+
+
+
+
+
 - message are encrypted and stored in database
 - Bookmark : allows people to follow up with conversations
 - Notifications : will show replies, tags
 - schedule  session livestream and screen record. this will save it to the chats or a section called live streams
 - Building and customising it. Jisti Meet for live stream  Mediastream API for screen recording and upload videos to Firebase
-
 
 
 ###### AI IMPLEMNTATION / TEXT ANALYTICS
@@ -26,7 +32,6 @@
 
 - AI: Check if a text is a question, for monitoring convo making sure its appropriate
         hugging face text analisis and llama for text classification
-
 
 
 https://www.youtube.com/watch?v=1h6lfzJ0wZw   for explanation
@@ -60,11 +65,29 @@ so it will be grouped into 2 sections. Primary Inbox (Both follows eachother), M
 Can be able to make a groupchat and chat with 3 or more people
 
 
-
-
-
-
 ##############  additional ########################
 code editor# Ideas for Improvement
 deployment
 intigration with educational platforms like D2L
+gamification
+groupchat
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

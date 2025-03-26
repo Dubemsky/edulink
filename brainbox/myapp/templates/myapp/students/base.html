@@ -1,0 +1,2173 @@
+<!-- Add these templates to your HTML file, perhaps near your existing chat templates -->
+
+<!-- Group Chat Window Template (hidden, will be cloned for each group chat) -->
+<template id="groupChatWindowTemplate">
+    <div class="group-chat-window" data-group-id="">
+      <div class="group-chat-header">
+        <div class="group-chat-info">
+          <div class="group-chat-avatar">
+            <div class="group-avatar-placeholder">
+              <i class="bi bi-people-fill"></i>
+            </div>
+          </div>
+          <div class="group-chat-details">
+            <h4 class="group-chat-name"></h4>
+            <span class="group-chat-participants"></span>
+          </div>
+        </div>
+        <div class="group-chat-actions">
+          <button class="group-action-btn group-info-btn" aria-label="Group info">
+            <i class="bi bi-info-circle"></i>
+          </button>
+          <button class="group-action-btn group-minimize-btn" aria-label="Minimize">
+            <i class="bi bi-dash-lg"></i>
+          </button>
+          <button class="group-action-btn group-close-btn" aria-label="Close">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="group-chat-messages">
+        <!-- Messages will be added here dynamically -->
+        <div class="group-chat-loading">
+          <div class="group-spinner"></div>
+        </div>
+      </div>
+      
+      <div class="group-chat-input-container">
+        <div class="group-chat-tools">
+          <button class="group-tool-btn" aria-label="Add attachment">
+            <i class="bi bi-paperclip"></i>
+          </button>
+          <button class="group-tool-btn" aria-label="Add emoji">
+            <i class="bi bi-emoji-smile"></i>
+          </button>
+        </div>
+        <div class="group-chat-input-wrapper">
+          <textarea class="group-chat-input" placeholder="Write a message..."></textarea>
+          <button class="group-send-message-btn" aria-label="Send message">
+            <i class="bi bi-send-fill"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+  
+  <!-- Group Chat Item Template (for group chat list) -->
+  <template id="groupChatItemTemplate">
+    <div class="group-chat-item" data-group-id="">
+      <div class="group-chat-item-avatar">
+        <div class="group-avatar-placeholder">
+          <i class="bi bi-people-fill"></i>
+        </div>
+      </div>
+      <div class="group-chat-item-details">
+        <div class="group-chat-item-header">
+          <h4 class="group-chat-item-name"></h4>
+          <span class="group-chat-item-time"></span>
+        </div>
+        <div class="group-chat-item-preview">
+          <span class="group-chat-item-sender"></span>
+          <p class="group-chat-item-last-message"></p>
+          <span class="group-chat-item-badge"></span>
+        </div>
+      </div>
+    </div>
+  </template>
+  
+  <!-- Create Group Chat Modal -->
+  <div class="modal fade" id="createGroupChatModal" tabindex="-1" aria-labelledby="createGroupChatModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="createGroupChatModalLabel">Create Group Chat</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="createGroupForm">
+            <div class="mb-3">
+              <label for="groupName" class="form-label">Group Name</label>
+              <input type="text" class="form-control" id="groupName" placeholder="Enter group name" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Select Participants</label>
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" id="participantSearch" placeholder="Search users...">
+                <button class="btn btn-outline-secondary" type="button" id="searchParticipantsBtn">
+                  <i class="bi bi-search"></i>
+                </button>
+              </div>
+              <div id="participantResults" class="participant-results">
+                <!-- Search results will appear here -->
+                <div class="text-center text-muted py-3 d-none" id="noParticipantsFound">
+                  No users found
+                </div>
+              </div>
+              <div class="selected-participants-container">
+                <label class="form-label">Selected Participants:</label>
+                <div id="selectedParticipants" class="selected-participants">
+                  <!-- Selected participants will appear here -->
+                  <div class="text-center text-muted py-2 d-none" id="noParticipantsSelected">
+                    No participants selected
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="createGroupBtn" disabled>Create Group</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Group Info Modal -->
+  <div class="modal fade" id="groupInfoModal" tabindex="-1" aria-labelledby="groupInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="groupInfoModalLabel">Group Information</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="group-info-avatar-container mb-3 text-center">
+            <div class="group-info-avatar">
+              <div class="group-avatar-placeholder">
+                <i class="bi bi-people-fill"></i>
+              </div>
+            </div>
+            <h4 id="groupInfoName" class="mt-2"></h4>
+            <p class="text-muted" id="groupInfoCreated"></p>
+          </div>
+          
+          <div class="group-info-section">
+            <h6 class="group-info-heading">
+              <i class="bi bi-people"></i> Participants (<span id="participantCount">0</span>)
+            </h6>
+            <div id="groupParticipantsList" class="group-participants-list">
+              <!-- Participants will be listed here -->
+            </div>
+          </div>
+          
+          <div class="group-info-section" id="groupAdminSection">
+            <h6 class="group-info-heading">Group Admin Actions</h6>
+            <div class="d-grid gap-2">
+              <button class="btn btn-outline-primary btn-sm" id="addParticipantBtn">
+                <i class="bi bi-person-plus"></i> Add Participants
+              </button>
+              <button class="btn btn-outline-secondary btn-sm" id="editGroupNameBtn">
+                <i class="bi bi-pencil"></i> Edit Group Name
+              </button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      <button type="button" class="btn btn-danger" id="leaveGroupBtn">Leave Group</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Add Participants Modal -->
+<div class="modal fade" id="addParticipantsModal" tabindex="-1" aria-labelledby="addParticipantsModalLabel" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title" id="addParticipantsModalLabel">Add Participants</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <div class="input-group mb-3">
+        <input type="text" class="form-control" id="addParticipantSearch" placeholder="Search users...">
+        <button class="btn btn-outline-secondary" type="button" id="searchNewParticipantsBtn">
+          <i class="bi bi-search"></i>
+        </button>
+      </div>
+      <div id="newParticipantResults" class="participant-results">
+        <!-- Search results will appear here -->
+        <div class="text-center text-muted py-3 d-none" id="noNewParticipantsFound">
+          No users found
+        </div>
+      </div>
+      <div class="selected-participants-container">
+        <label class="form-label">Selected to Add:</label>
+        <div id="newSelectedParticipants" class="selected-participants">
+          <!-- Selected participants will appear here -->
+          <div class="text-center text-muted py-2" id="noNewParticipantsSelected">
+            No participants selected
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirmAddParticipantsBtn" disabled>Add to Group</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Edit Group Name Modal -->
+<div class="modal fade" id="editGroupNameModal" tabindex="-1" aria-labelledby="editGroupNameModalLabel" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title" id="editGroupNameModalLabel">Edit Group Name</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <form id="editGroupNameForm">
+        <div class="mb-3">
+          <label for="newGroupName" class="form-label">Group Name</label>
+          <input type="text" class="form-control" id="newGroupName" placeholder="Enter new group name" required>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveGroupNameBtn">Save</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Create Group Chat Button (Add this to your direct-messaging-panel) -->
+<button class="dm-action-btn" id="createGroupChatBtn" aria-label="Create group chat">
+<i class="bi bi-people-fill"></i>
+</button>
+
+<!-- CSS Styles for Group Chat -->
+<style>
+/* Group Chat Window Styles */
+.group-chat-window {
+  position: fixed;
+  bottom: 0;
+  right: 320px;
+  width: 350px;
+  height: 450px;
+  background-color: white;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+  border: 1px solid #e0e0e0;
+  transition: height 0.3s;
+}
+
+.group-chat-window.minimized {
+  height: 50px;
+  overflow: hidden;
+}
+
+/* Group Chat Header */
+.group-chat-header {
+  padding: 10px 15px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f8f9fa;
+  border-radius: 10px 10px 0 0;
+}
+
+.group-chat-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.group-chat-avatar {
+  width: 32px;
+  height: 32px;
+  margin-right: 10px;
+  position: relative;
+}
+
+.group-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #3498db;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.group-chat-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-chat-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-chat-participants {
+  font-size: 0.75rem;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-chat-actions {
+  display: flex;
+}
+
+.group-action-btn {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 5px;
+  transition: color 0.2s;
+}
+
+.group-action-btn:hover {
+  color: #3498db;
+}
+
+/* Group Chat Messages */
+.group-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #f8f9fa;
+}
+
+.group-message {
+  max-width: 80%;
+  position: relative;
+  margin-bottom: 5px;
+}
+
+.group-message.incoming {
+  align-self: flex-start;
+}
+
+.group-message.outgoing {
+  align-self: flex-end;
+}
+
+.group-message-sender {
+  display: flex;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.group-sender-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: 6px;
+  object-fit: cover;
+}
+
+.group-sender-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.group-message-content {
+  padding: 10px 12px;
+  border-radius: 18px;
+  font-size: 0.9rem;
+  position: relative;
+  word-wrap: break-word;
+}
+
+.group-message.incoming .group-message-content {
+  background-color: white;
+  color: #212529;
+  border: 1px solid #e0e0e0;
+  border-top-left-radius: 4px;
+}
+
+.group-message.outgoing .group-message-content {
+  background-color: #3498db;
+  color: white;
+  border-top-right-radius: 4px;
+}
+
+.group-message-time {
+  font-size: 0.65rem;
+  color: #6c757d;
+  margin-top: 2px;
+  text-align: right;
+}
+
+.group-message.incoming .group-message-time {
+  text-align: left;
+  margin-left: 35px;
+}
+
+/* System Messages */
+.group-message.system-message {
+  align-self: center;
+  max-width: 90%;
+}
+
+.group-message.system-message .group-message-content {
+  background-color: #f1f3f5;
+  color: #6c757d;
+  font-size: 0.75rem;
+  padding: 5px 10px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+/* Group Chat Input */
+.group-chat-input-container {
+  padding: 10px;
+  border-top: 1px solid #e0e0e0;
+  background-color: white;
+}
+
+.group-chat-tools {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.group-tool-btn {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 5px;
+  transition: color 0.2s;
+}
+
+.group-tool-btn:hover {
+  color: #3498db;
+}
+
+.group-chat-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  padding: 5px 12px;
+}
+
+.group-chat-input {
+  flex: 1;
+  border: none;
+  resize: none;
+  padding: 5px 0;
+  max-height: 100px;
+  outline: none;
+  font-size: 0.9rem;
+  background: transparent;
+}
+
+.group-send-message-btn {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  padding: 5px;
+  transition: color 0.2s;
+}
+
+.group-send-message-btn:hover {
+  color: #2980b9;
+}
+
+/* Group Chat Item in the sidebar */
+.group-chat-item {
+  display: flex;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f3f5;
+  transition: background-color 0.2s;
+}
+
+.group-chat-item:hover {
+  background-color: #f8f9fa;
+}
+
+.group-chat-item-avatar {
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+  position: relative;
+}
+
+.group-chat-item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-chat-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.group-chat-item-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-chat-item-time {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.group-chat-item-preview {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.group-chat-item-sender {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.group-chat-item-last-message {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.group-chat-item-badge {
+  background-color: #3498db;
+  color: white;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0 5px;
+}
+
+/* Participant Selection UI */
+.participant-results {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f3f5;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.participant-item:last-child {
+  border-bottom: none;
+}
+
+.participant-item:hover {
+  background-color: #f8f9fa;
+}
+
+.participant-item.selected {
+  background-color: #e3f2fd;
+}
+
+.participant-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  margin-right: 10px;
+  object-fit: cover;
+}
+
+.participant-info {
+  flex: 1;
+}
+
+.participant-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 1px;
+}
+
+.participant-role {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.selected-participants-container {
+  margin-top: 15px;
+}
+
+.selected-participants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 40px;
+  padding: 5px;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+}
+
+.selected-participant {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e3f2fd;
+    border-radius: 30px;
+    padding: 3px 10px 3px 5px;
+    font-size: 0.8rem;
+  }
+  
+  .selected-participant-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin-right: 5px;
+    object-fit: cover;
+  }
+  
+  .selected-participant-name {
+    margin-right: 5px;
+  }
+  
+  .remove-participant-btn {
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.8rem;
+  }
+  
+  .remove-participant-btn:hover {
+    color: #dc3545;
+  }
+  
+  /* Group Info Modal */
+  .group-info-avatar-container {
+    padding: 15px 0;
+  }
+  
+  .group-info-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+  }
+  
+  .group-info-avatar .group-avatar-placeholder {
+    font-size: 32px;
+  }
+  
+  .group-info-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .group-participants-list {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .group-participant-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 5px;
+    border-bottom: 1px solid #f8f9fa;
+  }
+  
+  .group-participant-info {
+    display: flex;
+    align-items: center;
+  }
+  
+  .group-participant-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 10px;
+    object-fit: cover;
+  }
+  
+  .group-participant-name {
+    font-size: 0.85rem;
+  }
+  
+  .group-participant-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 5px;
+  }
+  
+  .group-participant-actions {
+    display: flex;
+    gap: 5px;
+  }
+  
+  .group-participant-btn {
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 3px;
+    font-size: 0.8rem;
+  }
+  
+  .group-participant-btn:hover {
+    color: #dc3545;
+  }
+  
+  .group-info-section {
+    margin-bottom: 20px;
+  }
+  
+  /* Group Chat Loading */
+  .group-chat-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+  
+  .group-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(52, 152, 219, 0.2);
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: group-spin 1s linear infinite;
+  }
+  
+  @keyframes group-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Typing Indicator */
+  .group-typing-indicator {
+    align-self: flex-start;
+    color: #6c757d;
+    font-size: 0.75rem;
+    font-style: italic;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .typing-dots span {
+    animation: typingDot 1.4s infinite;
+    animation-fill-mode: both;
+    margin-left: 2px;
+  }
+  
+  .typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  
+  .typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  
+  @keyframes typingDot {
+    0% { opacity: 0.2; }
+    20% { opacity: 1; }
+    100% { opacity: 0.2; }
+  }
+</style>
+
+<!-- Initialize Group Chat Functionality -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize group chat functionality when DOM is loaded
+  initializeGroupChatFunctionality();
+});
+
+function initializeGroupChatFunctionality() {
+  // Reference to the create group chat button
+  const createGroupChatBtn = document.getElementById('createGroupChatBtn');
+  if (createGroupChatBtn) {
+    createGroupChatBtn.addEventListener('click', function() {
+      // Show the create group chat modal
+      const createGroupModal = new bootstrap.Modal(document.getElementById('createGroupChatModal'));
+      createGroupModal.show();
+    });
+  }
+  
+  // Reference to the search participants button and input
+  const searchParticipantsBtn = document.getElementById('searchParticipantsBtn');
+  const participantSearchInput = document.getElementById('participantSearch');
+  
+  if (searchParticipantsBtn && participantSearchInput) {
+    // Set up search participants functionality
+    searchParticipantsBtn.addEventListener('click', function() {
+      searchParticipants(participantSearchInput.value);
+    });
+    
+    participantSearchInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchParticipants(this.value);
+      }
+    });
+  }
+  
+  // Reference to the create group button
+  const createGroupBtn = document.getElementById('createGroupBtn');
+  if (createGroupBtn) {
+    createGroupBtn.addEventListener('click', function() {
+      createNewGroupChat();
+    });
+  }
+  
+  // Load existing group chats
+  loadGroupChats();
+}
+
+async function searchParticipants(searchTerm) {
+  if (!searchTerm.trim()) {
+    showToast('Please enter a search term', 'info');
+    return;
+  }
+  
+  try {
+    // Show loading state
+    const participantResults = document.getElementById('participantResults');
+    const noParticipantsFound = document.getElementById('noParticipantsFound');
+    
+    participantResults.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><span class="ms-2">Searching...</span></div>';
+    noParticipantsFound.classList.add('d-none');
+    
+    // Fetch users from the server (using the existing search_users endpoint)
+    const response = await fetch('/search_users/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        search_term: searchTerm,
+        filter_type: 'all'
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      displayParticipantResults(data.users);
+    } else {
+      throw new Error(data.error || 'Failed to search users');
+    }
+  } catch (error) {
+    console.error('Error searching participants:', error);
+    const participantResults = document.getElementById('participantResults');
+    participantResults.innerHTML = `
+      <div class="text-center text-danger py-3">
+        <i class="bi bi-exclamation-circle me-2"></i>Error searching users
+      </div>
+    `;
+  }
+}
+
+function displayParticipantResults(users) {
+  const participantResults = document.getElementById('participantResults');
+  const noParticipantsFound = document.getElementById('noParticipantsFound');
+  
+  // Clear results
+  participantResults.innerHTML = '';
+  
+  if (!users || users.length === 0) {
+    noParticipantsFound.classList.remove('d-none');
+    return;
+  }
+  
+  noParticipantsFound.classList.add('d-none');
+  
+  // Get currently selected participants
+  const selectedParticipants = getSelectedParticipants();
+  
+  // Display each user
+  users.forEach(user => {
+    // Don't include current user or already selected participants
+    if (user.id === getCurrentUserId() || selectedParticipants.some(p => p.id === user.id)) {
+      return;
+    }
+    
+    const participantItem = document.createElement('div');
+    participantItem.className = 'participant-item';
+    participantItem.dataset.userId = user.id;
+    participantItem.dataset.userName = user.name;
+    participantItem.dataset.userRole = user.role;
+    participantItem.dataset.userPicture = user.profile_picture || '';
+    
+    participantItem.innerHTML = `
+      <img src="${user.profile_picture || '/static/images/default-avatar.jpg'}" 
+           alt="${user.name}" class="participant-avatar">
+      <div class="participant-info">
+        <div class="participant-name">${user.name}</div>
+        <div class="participant-role">${user.role}</div>
+      </div>
+      <div class="participant-select">
+        <i class="bi bi-plus-circle"></i>
+      </div>
+    `;
+    
+    // Add click handler
+    participantItem.addEventListener('click', function() {
+      toggleParticipantSelection(this);
+    });
+    
+    participantResults.appendChild(participantItem);
+  });
+}
+
+function toggleParticipantSelection(participantElement) {
+  const userId = participantElement.dataset.userId;
+  const userName = participantElement.dataset.userName;
+  const userPicture = participantElement.dataset.userPicture;
+  
+  // Toggle selected class
+  participantElement.classList.toggle('selected');
+  
+  // Add or remove from selected participants
+  const selectedParticipantsContainer = document.getElementById('selectedParticipants');
+  const noParticipantsSelected = document.getElementById('noParticipantsSelected');
+  
+  if (participantElement.classList.contains('selected')) {
+    // Hide "no participants" message
+    noParticipantsSelected.classList.add('d-none');
+    
+    // Add to selected participants
+    const selectedParticipant = document.createElement('div');
+    selectedParticipant.className = 'selected-participant';
+    selectedParticipant.dataset.userId = userId;
+    
+    selectedParticipant.innerHTML = `
+      <img src="${userPicture || '/static/images/default-avatar.jpg'}" alt="${userName}" class="selected-participant-avatar">
+      <span class="selected-participant-name">${userName}</span>
+      <button type="button" class="remove-participant-btn" aria-label="Remove participant">
+        <i class="bi bi-x"></i>
+      </button>
+    `;
+    
+    // Add remove handler
+    const removeBtn = selectedParticipant.querySelector('.remove-participant-btn');
+    removeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      removeSelectedParticipant(userId);
+      
+      // Find and deselect in the search results
+      const searchItem = document.querySelector(`.participant-item[data-user-id="${userId}"]`);
+      if (searchItem) {
+        searchItem.classList.remove('selected');
+      }
+    });
+    
+    selectedParticipantsContainer.appendChild(selectedParticipant);
+  } else {
+    // Remove from selected participants
+    removeSelectedParticipant(userId);
+  }
+  
+  // Update create button state
+  updateCreateGroupButtonState();
+}
+
+function removeSelectedParticipant(userId) {
+  const selectedParticipant = document.querySelector(`.selected-participant[data-user-id="${userId}"]`);
+  if (selectedParticipant) {
+    selectedParticipant.remove();
+  }
+  
+  // Show "no participants" message if none selected
+  const selectedParticipants = document.querySelectorAll('.selected-participant');
+  const noParticipantsSelected = document.getElementById('noParticipantsSelected');
+  
+  if (selectedParticipants.length === 0 && noParticipantsSelected) {
+    noParticipantsSelected.classList.remove('d-none');
+  }
+  
+  // Update create button state
+  updateCreateGroupButtonState();
+}
+
+function getSelectedParticipants() {
+  const selectedParticipants = [];
+  const participantElements = document.querySelectorAll('.selected-participant');
+  
+  participantElements.forEach(element => {
+    selectedParticipants.push({
+      id: element.dataset.userId,
+      name: element.querySelector('.selected-participant-name').textContent
+    });
+  });
+  
+  return selectedParticipants;
+}
+
+function updateCreateGroupButtonState() {
+  const createGroupBtn = document.getElementById('createGroupBtn');
+  const groupNameInput = document.getElementById('groupName');
+  const selectedParticipants = getSelectedParticipants();
+  
+  // Enable button if group name is not empty and at least one participant is selected
+  if (createGroupBtn) {
+    createGroupBtn.disabled = !(groupNameInput && groupNameInput.value.trim() && selectedParticipants.length > 0);
+  }
+}
+
+// Add input event listener to group name input
+document.addEventListener('DOMContentLoaded', function() {
+  const groupNameInput = document.getElementById('groupName');
+  if (groupNameInput) {
+    groupNameInput.addEventListener('input', updateCreateGroupButtonState);
+  }
+});
+
+async function createNewGroupChat() {
+  try {
+    // Get group name and selected participants
+    const groupName = document.getElementById('groupName').value.trim();
+    const selectedParticipants = getSelectedParticipants();
+    
+    if (!groupName) {
+      showToast('Please enter a group name', 'warning');
+      return;
+    }
+    
+    if (selectedParticipants.length === 0) {
+      showToast('Please select at least one participant', 'warning');
+      return;
+    }
+    
+    // Show loading state
+    const createGroupBtn = document.getElementById('createGroupBtn');
+    createGroupBtn.disabled = true;
+    createGroupBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...`;
+    
+    // Extract participant IDs
+    const participantIds = selectedParticipants.map(p => p.id);
+    
+    // Create the group chat
+    const response = await window.groupChat.create(groupName, participantIds);
+    
+    // Hide modal
+    const createGroupModal = bootstrap.Modal.getInstance(document.getElementById('createGroupChatModal'));
+    createGroupModal.hide();
+    // Show success message
+    showToast(`Group "${groupName}" created successfully`, 'success');
+    
+    // Reset the form
+    document.getElementById('groupName').value = '';
+    document.getElementById('participantSearch').value = '';
+    document.getElementById('participantResults').innerHTML = '';
+    document.getElementById('selectedParticipants').innerHTML = '';
+    document.getElementById('noParticipantsSelected').classList.remove('d-none');
+    
+    // Reload group chats
+    loadGroupChats();
+    
+    // Open the new group chat
+    openGroupChat(response.group_id, groupName, selectedParticipants.length + 1);
+    
+  } catch (error) {
+    console.error('Error creating group chat:', error);
+    showToast('Error creating group chat', 'error');
+    
+    // Reset button
+    const createGroupBtn = document.getElementById('createGroupBtn');
+    createGroupBtn.disabled = false;
+    createGroupBtn.textContent = 'Create Group';
+  }
+}
+
+async function loadGroupChats() {
+  try {
+    // Get the group chats list element
+    const dmPrimaryInboxList = document.getElementById('dmPrimaryInboxList');
+    if (!dmPrimaryInboxList) {
+      console.error('Group chats list element not found');
+      return;
+    }
+    
+    // Show loading spinner if not already showing
+    let loadingElement = dmPrimaryInboxList.querySelector('.dm-loading-chats');
+    if (!loadingElement) {
+      loadingElement = document.createElement('div');
+      loadingElement.className = 'dm-loading-chats';
+      loadingElement.innerHTML = `
+        <div class="dm-spinner"></div>
+        <p>Loading conversations...</p>
+      `;
+      dmPrimaryInboxList.appendChild(loadingElement);
+    }
+    
+    // Fetch group chats
+    const groupChats = await window.groupChat.getChats();
+    
+    // Hide loading spinner
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
+    
+    // If there are no direct messages, add group chats at the beginning
+    // If there are direct messages, add group chats after them
+    const directMessageItems = dmPrimaryInboxList.querySelectorAll('.dm-chat-item:not(.group-chat-item)');
+    
+    // Add group chats to the list
+    if (groupChats.length > 0) {
+      groupChats.forEach((chat, index) => {
+        // Check if this group chat is already in the list
+        const existingChatItem = dmPrimaryInboxList.querySelector(`.group-chat-item[data-group-id="${chat.id}"]`);
+        
+        if (existingChatItem) {
+          // Update the existing item
+          updateGroupChatListItem(existingChatItem, chat);
+        } else {
+          // Create a new item
+          const groupChatItem = createGroupChatListItem(chat);
+          
+          // If there are direct messages, insert after them, otherwise prepend to the list
+          if (directMessageItems.length > 0 && index === 0) {
+            // Insert after the last direct message
+            directMessageItems[directMessageItems.length - 1].after(groupChatItem);
+          } else if (index === 0) {
+            // Insert at the beginning of the list
+            dmPrimaryInboxList.prepend(groupChatItem);
+          } else {
+            // Insert after the previous group chat
+            const previousGroupChatItem = dmPrimaryInboxList.querySelector(`.group-chat-item[data-group-id="${groupChats[index - 1].id}"]`);
+            if (previousGroupChatItem) {
+              previousGroupChatItem.after(groupChatItem);
+            } else {
+              dmPrimaryInboxList.appendChild(groupChatItem);
+            }
+          }
+        }
+      });
+    }
+    
+    // Update unread count
+    updateTotalUnreadCount();
+    
+  } catch (error) {
+    console.error('Error loading group chats:', error);
+  }
+}
+
+function createGroupChatListItem(groupChat) {
+  // Get the template
+  const template = document.getElementById('groupChatItemTemplate');
+  if (!template) {
+    console.error('Group chat item template not found');
+    return document.createElement('div');
+  }
+  
+  const clone = document.importNode(template.content, true);
+  
+  // Fill in the template with group chat data
+  const item = clone.querySelector('.group-chat-item');
+  const avatarPlaceholder = clone.querySelector('.group-avatar-placeholder');
+  const name = clone.querySelector('.group-chat-item-name');
+  const sender = clone.querySelector('.group-chat-item-sender');
+  const message = clone.querySelector('.group-chat-item-last-message');
+  const time = clone.querySelector('.group-chat-item-time');
+  const badge = clone.querySelector('.group-chat-item-badge');
+  
+  // Set the group chat data
+  item.dataset.groupId = groupChat.id;
+  item.classList.add('group-chat-item'); // Add specific class for group chats
+  
+  // Customize the avatar placeholder color based on the group name
+  const colorIndex = (groupChat.name.charCodeAt(0) % 5) + 1;
+  avatarPlaceholder.classList.add(`group-color-${colorIndex}`);
+  
+  name.textContent = groupChat.name;
+  
+  // If there's a last message, show sender and message
+  if (groupChat.last_message) {
+    // Find the sender name if it's not the current user
+    if (groupChat.last_sender_id !== getCurrentUserId()) {
+      const sender_name = findParticipantName(groupChat.participants, groupChat.last_sender_id);
+      sender.textContent = sender_name ? `${sender_name.split(' ')[0]}: ` : '';
+    }
+    
+    message.textContent = groupChat.last_message;
+    time.textContent = formatMessageTime(groupChat.last_message_time) || 'Now';
+  } else {
+    message.textContent = 'Group created';
+    time.textContent = formatMessageTime(groupChat.created_at) || 'Now';
+  }
+  
+  // Show unread badge if there are unread messages
+  if (groupChat.unread_count && groupChat.unread_count > 0) {
+    badge.textContent = groupChat.unread_count;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+  
+  // Add click handler to open chat with this group
+  item.addEventListener('click', function() {
+    openGroupChat(groupChat.id, groupChat.name, groupChat.participant_count);
+  });
+  
+  return item;
+}
+
+function updateGroupChatListItem(listItem, groupChat) {
+  // Update group name
+  const nameElement = listItem.querySelector('.group-chat-item-name');
+  if (nameElement) {
+    nameElement.textContent = groupChat.name;
+  }
+  
+  // Update last message and sender
+  const senderElement = listItem.querySelector('.group-chat-item-sender');
+  const messageElement = listItem.querySelector('.group-chat-item-last-message');
+  const timeElement = listItem.querySelector('.group-chat-item-time');
+  
+  if (groupChat.last_message) {
+    // Find the sender name if it's not the current user
+    if (groupChat.last_sender_id !== getCurrentUserId()) {
+      const sender_name = findParticipantName(groupChat.participants, groupChat.last_sender_id);
+      if (senderElement) {
+        senderElement.textContent = sender_name ? `${sender_name.split(' ')[0]}: ` : '';
+      }
+    } else if (senderElement) {
+      senderElement.textContent = '';
+    }
+    
+    if (messageElement) {
+      messageElement.textContent = groupChat.last_message;
+    }
+    
+    if (timeElement) {
+      timeElement.textContent = formatMessageTime(groupChat.last_message_time) || 'Now';
+    }
+  }
+  
+  // Update unread badge
+  const badgeElement = listItem.querySelector('.group-chat-item-badge');
+  if (badgeElement) {
+    if (groupChat.unread_count && groupChat.unread_count > 0) {
+      badgeElement.textContent = groupChat.unread_count;
+      badgeElement.style.display = 'inline-flex';
+    } else {
+      badgeElement.style.display = 'none';
+    }
+  }
+}
+
+function findParticipantName(participants, participantId) {
+  if (!participants || !Array.isArray(participants)) return null;
+  
+  const participant = participants.find(p => p.id === participantId);
+  return participant ? participant.name : null;
+}
+
+function openGroupChat(groupId, groupName, participantCount) {
+  // Get the chat windows container
+  const chatWindowsContainer = document.getElementById('dmChatWindowsContainer');
+  
+  if (!chatWindowsContainer) {
+    console.error('Chat windows container not found');
+    return;
+  }
+  
+  // Generate a unique ID for this group chat window
+  const chatId = `group-chat-${groupId}`;
+  
+  // Check if a chat window for this group already exists
+  let chatWindow = document.querySelector(`.group-chat-window[data-group-id="${groupId}"]`);
+  
+  // If it doesn't exist, create it
+  if (!chatWindow) {
+    // Get template
+    const template = document.getElementById('groupChatWindowTemplate');
+    if (!template) {
+      console.error('Group chat window template not found');
+      return;
+    }
+    
+    const clone = document.importNode(template.content, true);
+    
+    // Update the template with group data
+    chatWindow = clone.querySelector('.group-chat-window');
+    chatWindow.setAttribute('data-group-id', groupId);
+    chatWindow.setAttribute('data-chat-id', chatId);
+    
+    const groupChatName = chatWindow.querySelector('.group-chat-name');
+    const groupChatParticipants = chatWindow.querySelector('.group-chat-participants');
+    
+    groupChatName.textContent = groupName;
+    groupChatParticipants.textContent = `${participantCount} participants`;
+    
+    // Set up close button
+    const closeBtn = chatWindow.querySelector('.group-close-btn');
+    closeBtn.addEventListener('click', function() {
+      // Close WebSocket connection when chat window is closed
+      if (window.groupChat) {
+        window.groupChat.closeConnection(groupId);
+      }
+      
+      chatWindow.remove();
+    });
+    
+    // Set up minimize button
+    const minimizeBtn = chatWindow.querySelector('.group-minimize-btn');
+    minimizeBtn.addEventListener('click', function() {
+      chatWindow.classList.toggle('minimized');
+    });
+    
+    // Set up group info button
+    const infoBtn = chatWindow.querySelector('.group-info-btn');
+    infoBtn.addEventListener('click', function() {
+      showGroupInfo(groupId);
+    });
+    
+    // Add to container
+    chatWindowsContainer.appendChild(chatWindow);
+    
+    // Initialize WebSocket connection
+    if (window.groupChat) {
+      const userId = getCurrentUserId();
+      const socket = window.groupChat.initialize(
+        groupId,
+        userId,
+        chatWindow
+      );
+      
+      // Mark messages as read when opening the chat
+      markGroupMessagesAsRead(groupId);
+    } else {
+      // Fallback to AJAX if WebSocket is not available
+      loadGroupMessages(chatWindow, groupId);
+      console.warn('Group Chat WebSocket module not loaded, using AJAX fallback');
+    }
+    
+    // Handle send button clicks
+    const sendButton = chatWindow.querySelector('.group-send-message-btn');
+    const chatInput = chatWindow.querySelector('.group-chat-input');
+    
+    sendButton.addEventListener('click', function() {
+      const messageText = chatInput.value.trim();
+      if (messageText) {
+        sendGroupMessageHandler(groupId, messageText, chatWindow);
+        chatInput.value = '';
+      }
+    });
+    
+    // Handle typing events in the textarea
+    let typingTimeout;
+    chatInput.addEventListener('input', function() {
+      if (window.groupChat) {
+        // Send typing indicator
+        window.groupChat.sendTypingIndicator(socket, true);
+        
+        // Clear previous timeout
+        clearTimeout(typingTimeout);
+        
+        // Set a new timeout to stop typing indicator after 2 seconds of inactivity
+        typingTimeout = setTimeout(() => {
+          window.groupChat.sendTypingIndicator(socket, false);
+        }, 2000);
+      }
+    });
+    
+    // Handle enter key in the textarea
+    chatInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendButton.click();
+      }
+    });
+  }
+  
+  // If minimized, restore it
+  chatWindow.classList.remove('minimized');
+  
+  // Focus the input
+  setTimeout(() => {
+    const chatInput = chatWindow.querySelector('.group-chat-input');
+    chatInput.focus();
+  }, 100);
+  
+  // Close the messaging panel on mobile
+  const dmPanel = document.getElementById('directMessagingPanel');
+  if (window.innerWidth < 768 && dmPanel) {
+    dmPanel.classList.remove('show');
+  }
+  
+  // Mark messages as read
+  markGroupMessagesAsRead(groupId);
+  
+  // Update the list item to clear unread count
+  const listItem = document.querySelector(`.group-chat-item[data-group-id="${groupId}"]`);
+  if (listItem) {
+    const badgeElement = listItem.querySelector('.group-chat-item-badge');
+    if (badgeElement) {
+      badgeElement.style.display = 'none';
+    }
+  }
+}
+
+async function loadGroupMessages(chatWindow, groupId) {
+  const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+  const loadingElement = chatWindow.querySelector('.group-chat-loading');
+  
+  // Show loading state
+  if (loadingElement) {
+    loadingElement.style.display = 'flex';
+  }
+  
+  try {
+    // Fetch messages from the server
+    const { messages, groupInfo } = await window.groupChat.getMessages(groupId);
+    
+    // Hide loading indicator
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
+    
+    // Update group name and participant count in the chat window
+    const groupChatName = chatWindow.querySelector('.group-chat-name');
+    const groupChatParticipants = chatWindow.querySelector('.group-chat-participants');
+    
+    if (groupChatName && groupInfo.name) {
+      groupChatName.textContent = groupInfo.name;
+    }
+    
+    if (groupChatParticipants && groupInfo.participant_count) {
+      groupChatParticipants.textContent = `${groupInfo.participant_count} participants`;
+    }
+    
+    // Clear existing messages
+    messagesContainer.innerHTML = '';
+    
+    // Display welcome message
+    const welcomeMessage = document.createElement('div');
+    welcomeMessage.className = 'group-message system-message';
+    welcomeMessage.innerHTML = `
+      <div class="group-message-content">
+        Welcome to ${groupInfo.name}
+      </div>
+    `;
+    messagesContainer.appendChild(welcomeMessage);
+    
+    // Display messages
+    // Display messages
+    if (messages && messages.length > 0) {
+      const currentUserId = getCurrentUserId();
+      
+      messages.forEach(message => {
+        const isOutgoing = message.sender_id === currentUserId;
+        
+        if (message.type === 'system') {
+          // Add system message
+          const systemMessage = document.createElement('div');
+          systemMessage.className = 'group-message system-message';
+          systemMessage.innerHTML = `
+            <div class="group-message-content">
+              ${message.content}
+            </div>
+          `;
+          messagesContainer.appendChild(systemMessage);
+        } else {
+          // Add regular message
+          addMessageToGroupChat(
+            chatWindow, 
+            message.content, 
+            message.sender_id,
+            message.sender_name,
+            message.sender_picture,
+            isOutgoing, 
+            message.timestamp
+          );
+        }
+      });
+    }
+    
+    // Scroll to the bottom
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+  } catch (error) {
+    console.error('Error loading group messages:', error);
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
+    
+    // Show error message
+    messagesContainer.innerHTML = `
+      <div class="group-message system-message error">
+        <div class="group-message-content">
+          <i class="bi bi-exclamation-circle"></i> Error loading messages. Please try again.
+        </div>
+      </div>
+    `;
+  }
+}
+
+async function sendGroupMessageHandler(groupId, messageText, chatWindow) {
+  // Find the WebSocket connection
+  const socket = window.groupChat ? Object.values(window.groupChat).find(s => s && s.groupId === groupId) : null;
+  
+  // Try to send message via WebSocket if available
+  if (socket && window.groupChat) {
+    const success = window.groupChat.sendMessage(
+      socket,
+      messageText
+    );
+    
+    if (success) {
+      // Message will be added to UI when received from server via WebSocket
+      return;
+    }
+    // If WebSocket send fails, fall back to AJAX
+  }
+  
+  // Send the message using AJAX as fallback
+  try {
+    const response = await window.groupChat.sendGroupMessage(groupId, messageText);
+    
+    if (response.success) {
+      // Get current user details
+      const currentUserId = getCurrentUserId();
+      
+      // Add the message to the UI as outgoing
+      addMessageToGroupChat(
+        chatWindow,
+        messageText,
+        currentUserId,
+        'You', // Current user is always "You" in outgoing messages
+        null,
+        true,
+        new Date()
+      );
+      
+      // Update the group chat list item
+      updateGroupChatListInUI(groupId, messageText);
+    } else {
+      showToast(response.error || "Failed to send message", 'error');
+    }
+  } catch (error) {
+    console.error('Error sending group message:', error);
+    showToast("Error sending message. Please try again.", 'error');
+  }
+}
+
+function updateGroupChatListInUI(groupId, lastMessage) {
+  // Find the group chat list item
+  const listItem = document.querySelector(`.group-chat-item[data-group-id="${groupId}"]`);
+  if (listItem) {
+    // Update last message
+    const messageElement = listItem.querySelector('.group-chat-item-last-message');
+    if (messageElement) {
+      messageElement.textContent = lastMessage;
+    }
+    
+    // Update time
+    const timeElement = listItem.querySelector('.group-chat-item-time');
+    if (timeElement) {
+      timeElement.textContent = 'Just now';
+    }
+    
+    // Clear sender prefix (since it's the current user)
+    const senderElement = listItem.querySelector('.group-chat-item-sender');
+    if (senderElement) {
+      senderElement.textContent = '';
+    }
+    
+    // Move to the top of the list
+    const dmPrimaryInboxList = document.getElementById('dmPrimaryInboxList');
+    if (dmPrimaryInboxList) {
+      dmPrimaryInboxList.insertBefore(listItem, dmPrimaryInboxList.firstChild);
+    }
+  }
+}
+
+async function markGroupMessagesAsRead(groupId) {
+  try {
+    // Use the API to mark messages as read
+    await window.groupChat.markAsRead(groupId);
+    
+    // Update the UI
+    const listItem = document.querySelector(`.group-chat-item[data-group-id="${groupId}"]`);
+    if (listItem) {
+      const badge = listItem.querySelector('.group-chat-item-badge');
+      if (badge) {
+        badge.style.display = 'none';
+      }
+    }
+    
+    // Update total unread count
+    updateTotalUnreadCount();
+  } catch (error) {
+    console.error('Error marking group messages as read:', error);
+  }
+}
+
+async function showGroupInfo(groupId) {
+  try {
+    // Show loading state first
+    const groupInfoModal = new bootstrap.Modal(document.getElementById('groupInfoModal'));
+    groupInfoModal.show();
+    
+    const groupParticipantsList = document.getElementById('groupParticipantsList');
+    groupParticipantsList.innerHTML = `
+      <div class="text-center py-3">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span class="ms-2">Loading group info...</span>
+      </div>
+    `;
+    
+    // Fetch group info and messages
+    const { groupInfo, messages } = await window.groupChat.getMessages(groupId);
+    
+    // Update modal with group info
+    document.getElementById('groupInfoName').textContent = groupInfo.name;
+    document.getElementById('participantCount').textContent = groupInfo.participant_count || 0;
+    
+    if (groupInfo.created_at) {
+      const createdDate = new Date(groupInfo.created_at);
+      document.getElementById('groupInfoCreated').textContent = `Created on ${createdDate.toLocaleDateString()}`;
+    }
+    
+    // Show/hide admin controls based on whether current user is the creator
+    const groupAdminSection = document.getElementById('groupAdminSection');
+    const currentUserId = getCurrentUserId();
+    
+    if (groupInfo.creator_id === currentUserId) {
+      groupAdminSection.style.display = 'block';
+    } else {
+      groupAdminSection.style.display = 'none';
+    }
+    
+    // Set up edit group name button
+    const editGroupNameBtn = document.getElementById('editGroupNameBtn');
+    if (editGroupNameBtn) {
+      editGroupNameBtn.onclick = function() {
+        // Hide the info modal
+        groupInfoModal.hide();
+        
+        // Show the edit name modal
+        const editNameModal = new bootstrap.Modal(document.getElementById('editGroupNameModal'));
+        
+        // Pre-fill the current name
+        document.getElementById('newGroupName').value = groupInfo.name;
+        
+        // Set up save button
+        document.getElementById('saveGroupNameBtn').onclick = async function() {
+          const newName = document.getElementById('newGroupName').value.trim();
+          if (newName) {
+            try {
+              await window.groupChat.updateInfo(groupId, { name: newName });
+              editNameModal.hide();
+              showToast('Group name updated', 'success');
+              
+              // Update UI
+              const groupChatName = document.querySelector(`.group-chat-window[data-group-id="${groupId}"] .group-chat-name`);
+              if (groupChatName) {
+                groupChatName.textContent = newName;
+              }
+              
+              // Update list item
+              const listItem = document.querySelector(`.group-chat-item[data-group-id="${groupId}"] .group-chat-item-name`);
+              if (listItem) {
+                listItem.textContent = newName;
+              }
+              
+            } catch (error) {
+              console.error('Error updating group name:', error);
+              showToast('Error updating group name', 'error');
+            }
+          }
+        };
+        
+        editNameModal.show();
+      };
+    }
+    
+    // Set up add participant button
+    const addParticipantBtn = document.getElementById('addParticipantBtn');
+    if (addParticipantBtn) {
+      addParticipantBtn.onclick = function() {
+        // Hide the info modal
+        groupInfoModal.hide();
+        
+        // Show the add participants modal
+        const addParticipantsModal = new bootstrap.Modal(document.getElementById('addParticipantsModal'));
+        
+        // Set up search button
+        document.getElementById('searchNewParticipantsBtn').onclick = function() {
+          const searchTerm = document.getElementById('addParticipantSearch').value.trim();
+          if (searchTerm) {
+            searchNewParticipants(searchTerm, groupId);
+          }
+        };
+        
+        // Set up add button
+        document.getElementById('confirmAddParticipantsBtn').onclick = async function() {
+          const selectedParticipants = getNewSelectedParticipants();
+          if (selectedParticipants.length > 0) {
+            try {
+              // Add each participant sequentially
+              for (const participant of selectedParticipants) {
+                await window.groupChat.addParticipant(groupId, participant.id);
+              }
+              
+              addParticipantsModal.hide();
+              showToast('Participants added to group', 'success');
+              
+              // Reload group info
+              setTimeout(() => {
+                showGroupInfo(groupId);
+              }, 1000);
+              
+            } catch (error) {
+              console.error('Error adding participants:', error);
+              showToast('Error adding participants', 'error');
+            }
+          }
+        };
+        
+        addParticipantsModal.show();
+      };
+    }
+    
+    // Set up leave group button
+    const leaveGroupBtn = document.getElementById('leaveGroupBtn');
+    if (leaveGroupBtn) {
+      leaveGroupBtn.onclick = async function() {
+        if (confirm('Are you sure you want to leave this group?')) {
+          try {
+            await window.groupChat.removeParticipant(groupId, currentUserId);
+            groupInfoModal.hide();
+            showToast('You left the group', 'success');
+            
+            // Close the chat window
+            const chatWindow = document.querySelector(`.group-chat-window[data-group-id="${groupId}"]`);
+            if (chatWindow) {
+              chatWindow.remove();
+            }
+            
+            // Remove from the list
+            const listItem = document.querySelector(`.group-chat-item[data-group-id="${groupId}"]`);
+            if (listItem) {
+              listItem.remove();
+            }
+            
+          } catch (error) {
+            console.error('Error leaving group:', error);
+            showToast('Error leaving group', 'error');
+          }
+        }
+      };
+    }
+    
+    // Get unique participants from messages
+    const participants = new Map();
+    
+    // If we have participants list already
+    if (groupInfo.participants && Array.isArray(groupInfo.participants)) {
+      groupInfo.participants.forEach(participant => {
+        participants.set(participant.id, participant);
+      });
+    }
+    
+    // Add any additional participants from messages
+    if (messages && Array.isArray(messages)) {
+      messages.forEach(message => {
+        if (message.sender_id && message.sender_name && !participants.has(message.sender_id)) {
+          participants.set(message.sender_id, {
+            id: message.sender_id,
+            name: message.sender_name,
+            profile_picture: message.sender_picture
+          });
+        }
+      });
+    }
+    
+    // Populate participants list
+    groupParticipantsList.innerHTML = '';
+    
+    if (participants.size === 0) {
+      groupParticipantsList.innerHTML = '<div class="text-center text-muted py-3">No participants found</div>';
+    } else {
+      // Convert Map to Array and sort alphabetically
+      const participantsArray = Array.from(participants.values()).sort((a, b) => {
+        // Put creator first
+        if (a.id === groupInfo.creator_id) return -1;
+        if (b.id === groupInfo.creator_id) return 1;
+        // Then sort by name
+        return a.name.localeCompare(b.name);
+      });
+      
+      participantsArray.forEach(participant => {
+        const participantItem = document.createElement('div');
+        participantItem.className = 'group-participant-item';
+        
+        // Highlight creator
+        const isCreator = participant.id === groupInfo.creator_id;
+        const isCurrentUser = participant.id === currentUserId;
+        
+        participantItem.innerHTML = `
+          <div class="group-participant-info">
+            <img src="${participant.profile_picture || '/static/images/default-avatar.jpg'}" 
+                alt="${participant.name}" class="group-participant-avatar">
+            <span class="group-participant-name">
+              ${participant.name}
+              ${isCurrentUser ? ' (You)' : ''}
+              ${isCreator ? ' <span class="badge bg-primary group-participant-badge">Admin</span>' : ''}
+            </span>
+          </div>
+          ${isCreator && !isCurrentUser && groupInfo.creator_id === currentUserId ? `
+            <div class="group-participant-actions">
+              <button type="button" class="group-participant-btn remove-participant-btn" data-user-id="${participant.id}" aria-label="Remove">
+                <i class="bi bi-person-x"></i>
+              </button>
+            </div>
+          ` : ''}
+        `;
+        
+        // Add event listener to remove button if present
+        const removeBtn = participantItem.querySelector('.remove-participant-btn');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', async function() {
+            const userId = this.dataset.userId;
+            if (confirm(`Remove ${participant.name} from the group?`)) {
+              try {
+                await window.groupChat.removeParticipant(groupId, userId);
+                participantItem.remove();
+                document.getElementById('participantCount').textContent = parseInt(document.getElementById('participantCount').textContent) - 1;
+                showToast(`${participant.name} removed from group`, 'success');
+              } catch (error) {
+                console.error('Error removing participant:', error);
+                showToast('Error removing participant', 'error');
+              }
+            }
+          });
+        }
+        
+        groupParticipantsList.appendChild(participantItem);
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error showing group info:', error);
+    const groupParticipantsList = document.getElementById('groupParticipantsList');
+    groupParticipantsList.innerHTML = `
+      <div class="text-center text-danger py-3">
+        <i class="bi bi-exclamation-circle me-2"></i>Error loading group information
+      </div>
+    `;
+  }
+}
+
+async function searchNewParticipants(searchTerm, groupId) {
+  try {
+    // Show loading state
+    const newParticipantResults = document.getElementById('newParticipantResults');
+    const noNewParticipantsFound = document.getElementById('noNewParticipantsFound');
+    
+    newParticipantResults.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><span class="ms-2">Searching...</span></div>';
+    noNewParticipantsFound.classList.add('d-none');
+    
+    // Get current group participants
+    const { groupInfo } = await window.groupChat.getMessages(groupId);
+    const currentParticipantIds = new Set();
+    
+    if (groupInfo.participants && Array.isArray(groupInfo.participants)) {
+      groupInfo.participants.forEach(participant => {
+        currentParticipantIds.add(participant.id);
+      });
+    }
+    
+    // Fetch users from the server
+    const response = await fetch('/search_users/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        search_term: searchTerm,
+        filter_type: 'all'
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      displayNewParticipantResults(data.users, currentParticipantIds);
+    } else {
+      throw new Error(data.error || 'Failed to search users');
+    }
+  } catch (error) {
+    console.error('Error searching participants:', error);
+    const newParticipantResults = document.getElementById('newParticipantResults');
+    newParticipantResults.innerHTML = `
+      <div class="text-center text-danger py-3">
+        <i class="bi bi-exclamation-circle me-2"></i>Error searching users
+      </div>
+    `;
+  }
+}
+
+function displayNewParticipantResults(users, currentParticipantIds) {
+  const newParticipantResults = document.getElementById('newParticipantResults');
+  const noNewParticipantsFound = document.getElementById('noNewParticipantsFound');
+  
+  // Clear results
+  newParticipantResults.innerHTML = '';
+  
+  // Filter out users who are already in the group
+  const filteredUsers = users.filter(user => !currentParticipantIds.has(user.id));
+  
+  if (!filteredUsers || filteredUsers.length === 0) {
+    noNewParticipantsFound.classList.remove('d-none');
+    return;
+  }
+  
+  noNewParticipantsFound.classList.add('d-none');
+  
+  // Get currently selected new participants
+  const selectedParticipants = getNewSelectedParticipants();
+  
+  // Display each user
+  filteredUsers.forEach(user => {
+    // Don't include current user
+    if (user.id === getCurrentUserId()) {
+      return;
+    }
+    
+    const participantItem = document.createElement('div');
+    participantItem.className = 'participant-item';
+    if (selectedParticipants.some(p => p.id === user.id)) {
+      participantItem.classList.add('selected');
+    }
+    
+    participantItem.dataset.userId = user.id;
+    participantItem.dataset.userName = user.name;
+    participantItem.dataset.userRole = user.role;
+    participantItem.dataset.userPicture = user.profile_picture || '';
+    
+    participantItem.innerHTML = `
+      <img src="${user.profile_picture || '/static/images/default-avatar.jpg'}" 
+           alt="${user.name}" class="participant-avatar">
+      <div class="participant-info">
+        <div class="participant-name">${user.name}</div>
+        <div class="participant-role">${user.role}</div>
+      </div>
+      <div class="participant-select">
+        <i class="bi bi-plus-circle"></i>
+      </div>
+    `;
+    
+    // Add click handler
+    participantItem.addEventListener('click', function() {
+      toggleNewParticipantSelection(this);
+    });
+    
+    newParticipantResults.appendChild(participantItem);
+  });
+}
+
+function toggleNewParticipantSelection(participantElement) {
+  const userId = participantElement.dataset.userId;
+  const userName = participantElement.dataset.userName;
+  const userPicture = participantElement.dataset.userPicture;
+  
+  // Toggle selected class
+  participantElement.classList.toggle('selected');
+  
+  // Add or remove from selected participants
+  const selectedParticipantsContainer = document.getElementById('newSelectedParticipants');
+  const noNewParticipantsSelected = document.getElementById('noNewParticipantsSelected');
+  
+  if (participantElement.classList.contains('selected')) {
+    // Hide "no participants" message
+    noNewParticipantsSelected.style.display = 'none';
+    
+    // Add to selected participants
+    const selectedParticipant = document.createElement('div');
+    selectedParticipant.className = 'selected-participant';
+    selectedParticipant.dataset.userId = userId;
+    
+    selectedParticipant.innerHTML = `
+      <img src="${userPicture || '/static/images/default-avatar.jpg'}" alt="${userName}" class="selected-participant-avatar">
+      <span class="selected-participant-name">${userName}</span>
+      <button type="button" class="remove-participant-btn" aria-label="Remove participant">
+        <i class="bi bi-x"></i>
+      </button>
+    `;
+    
+    // Add remove handler
+    const removeBtn = selectedParticipant.querySelector('.remove-participant-btn');
+    removeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      removeNewSelectedParticipant(userId);
+      
+      // Find and deselect in the search results
+      const searchItem = document.querySelector(`#newParticipantResults .participant-item[data-user-id="${userId}"]`);
+      if (searchItem) {
+        searchItem.classList.remove('selected');
+      }
+    });
+    
+    selectedParticipantsContainer.appendChild(selectedParticipant);
+  } else {
+    // Remove from selected participants
+    removeNewSelectedParticipant(userId);
+  }
+  
+  // Update add button state
+  updateAddParticipantsButtonState();
+}
+
+function removeNewSelectedParticipant(userId) {
+  const selectedParticipant = document.querySelector(`#newSelectedParticipants .selected-participant[data-user-id="${userId}"]`);
+  if (selectedParticipant) {
+    selectedParticipant.remove();
+  }
+  
+  // Show "no participants" message if none selected
+  const selectedParticipants = document.querySelectorAll('#newSelectedParticipants .selected-participant');
+  const noNewParticipantsSelected = document.getElementById('noNewParticipantsSelected');
+  
+  if (selectedParticipants.length === 0 && noNewParticipantsSelected) {
+    noNewParticipantsSelected.style.display = 'block';
+  }
+  
+  // Update add button state
+  updateAddParticipantsButtonState();
+}
+
+function getNewSelectedParticipants() {
+  const selectedParticipants = [];
+  const participantElements = document.querySelectorAll('#newSelectedParticipants .selected-participant');
+  
+  participantElements.forEach(element => {
+    selectedParticipants.push({
+      id: element.dataset.userId,
+      name: element.querySelector('.selected-participant-name').textContent
+    });
+  });
+  
+  return selectedParticipants;
+}
+
+function updateAddParticipantsButtonState() {
+  const addParticipantsBtn = document.getElementById('confirmAddParticipantsBtn');
+  const selectedParticipants = getNewSelectedParticipants();
+  
+  // Enable button if at least one participant is selected
+  if (addParticipantsBtn) {
+    addParticipantsBtn.disabled = selectedParticipants.length === 0;
+  }
+}
+
+// Add event listener to search input in add participants modal
+document.addEventListener('DOMContentLoaded', function() {
+  const addParticipantSearch = document.getElementById('addParticipantSearch');
+  if (addParticipantSearch) {
+    addParticipantSearch.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        const searchBtn = document.getElementById('searchNewParticipantsBtn');
+        if (searchBtn) {
+          searchBtn.click();
+        }
+      }
+    });
+  }
+});
+
+// Helper function to show toast notifications
+function showToast(message, type = 'info') {
+  // Create toast container if it doesn't exist
+  let toastContainer = document.getElementById('toastContainer');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toastContainer';
+    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    document.body.appendChild(toastContainer);
+  }
+  
+  // Create toast element
+  const toastId = 'toast-' + Date.now();
+  const toast = document.createElement('div');
+  toast.id = toastId;
+  toast.className = `toast ${type === 'error' ? 'bg-danger' : type === 'success' ? 'bg-success' : type === 'warning' ? 'bg-warning' : 'bg-info'} text-white`;
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.setAttribute('aria-atomic', 'true');
+  
+  toast.innerHTML = `
+    <div class="toast-header">
+      <strong class="me-auto">${type.charAt(0).toUpperCase() + type.slice(1)}</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+      ${message}
+    </div>
+  `;
+  
+  toastContainer.appendChild(toast);
+  
+  // Initialize Bootstrap toast
+  const bsToast = new bootstrap.Toast(toast, {
+    autohide: true,
+    delay: 3000
+  });
+  
+  // Show the toast
+  bsToast.show();
+  
+  // Remove the toast after it's hidden
+  toast.addEventListener('hidden.bs.toast', function() {
+    toast.remove();
+  });
+}
+</script>

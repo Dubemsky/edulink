@@ -440,6 +440,9 @@ def get_conversations(request):
         connection_list = []
         request_list = []
         
+        # Get list of users that the current user is connected with
+        connected_users = get_user_following(current_user_id)
+        
         for conversation in conversations:
             conversation_data = conversation.to_dict()
             
@@ -453,9 +456,9 @@ def get_conversations(request):
                 user = user_ref.get()
                 user_data = user.to_dict() if user.exists else {}
                 
-                # Determine if this is a connection or request
-                connection_status = conversation_data.get('connection_status', 'connected')  # Default to connected for backwards compatibility
-                connection_initiator = conversation_data.get('connection_initiator')
+                # Determine if this is a connection or request based on connection status
+                # Check if the other participant is in the user's connections
+                is_connected = other_participant_id in connected_users
                 
                 # Create conversation object
                 conversation_obj = {
@@ -467,14 +470,13 @@ def get_conversations(request):
                     'last_message': conversation_data.get('last_message', ''),
                     'last_message_time': conversation_data.get('last_message_time'),
                     'unread_count': conversation_data.get(f'unread_count_{current_user_id}', 0),
-                    'connection_status': connection_status,
+                    'connection_status': 'connected' if is_connected else 'pending',
                 }
                 
-                # Check if this is a mutual connection or the current user initiated it
-                if connection_status == 'connected' or (connection_status == 'pending' and connection_initiator == current_user_id):
+                # Place in the appropriate list based on connection status
+                if is_connected:
                     connection_list.append(conversation_obj)
                 else:
-                    # This is a message request TO the current user
                     request_list.append(conversation_obj)
         
         # Sort conversations by last message time (newest first)
