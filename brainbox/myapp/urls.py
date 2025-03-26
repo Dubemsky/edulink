@@ -35,8 +35,9 @@ urlpatterns = [
     path('students-dashboard/student-profile/activity-contribution',student_profile_page_activity_contribution,name='student_profile_page_activity_contribution'),
 
 
+
+
     # Teachers section paths
-    path('send_invite',send_invite,name='send_invite'),
     path('teachers-dashboard/', teachers_homepage, name='teachers_homepage'),
     path('teachers-create-hub/', teachers_create_hub, name='teachers_create_hub'),
     path('room-analytics/<str:room_id>/', get_room_analytics, name='room-analitics'),
@@ -64,8 +65,6 @@ urlpatterns = [
     path('get_suggestions/', get_suggestions, name='get_suggestions'),
     path('check-poll-votes/', check_poll_votes, name='check_poll_votes'),
     path('summarize-replies/',summarize_replies, name='summarize_replies'),
-
-
     path('bookmark-questions/',bookmark_questions,name="bookmark_questions"),
     path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
@@ -87,6 +86,9 @@ urlpatterns = [
     path('remove_group_participant/', remove_group_participant, name='remove_group_participant'),
     path('update_group_info/', update_group_info, name='update_group_info'),
   
+path('send-invite/', send_invite, name='send_invite'),
+    path('search-students/', search_students, name='search_students'),
+    path('respond-to-invite/', respond_to_invite, name='respond_to_invite'),
 
     # Add these URL patterns to your urls.py file
 

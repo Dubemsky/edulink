@@ -30,6 +30,183 @@
   <link href="{% static 'css/hub_room.css' %}" rel="stylesheet">
   <link href="{% static 'css/private_message.css' %}" rel="stylesheet">
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+
+  <style>
+    
+
+/* Add these styles to your CSS file */
+
+/* Invite Modal Styles */
+.student-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 10px;
+  padding: 5px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.student-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  text-align: left;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.student-button:hover {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
+.student-button.active {
+  background-color: #e3f2fd;
+  border-color: #90caf9;
+}
+
+.student-profile-pic {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+}
+
+.student-info {
+  flex: 1;
+}
+
+.student-name {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.student-email {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.searching-indicator {
+  text-align: center;
+  padding: 10px;
+  color: #6c757d;
+}
+
+.no-results {
+  text-align: center;
+  padding: 15px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.error {
+  color: #dc3545;
+  padding: 10px;
+  text-align: center;
+}
+
+/* Notification Styles */
+.notification-card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 15px;
+  margin-bottom: 15px;
+  transition: opacity 0.3s, height 0.3s;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.notification-icon {
+  width: 32px;
+  height: 32px;
+  background-color: #e3f2fd;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.notification-icon i {
+  color: #2196f3;
+  font-size: 1rem;
+}
+
+.notification-title {
+  font-weight: 600;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.notification-content {
+  margin-bottom: 15px;
+  color: #212529;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.notification-actions button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.accept-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.accept-btn:hover {
+  background-color: #3d8b40;
+}
+
+.reject-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.reject-btn:hover {
+  background-color: #d32f2f;
+}
+
+.notification-timestamp {
+  font-size: 0.75rem;
+  color: #6c757d;
+  text-align: right;
+  margin-top: 5px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .notification-actions {
+      flex-direction: column;
+      gap: 5px;
+  }
+  
+  .notification-actions button {
+      width: 100%;
+  }
+}
+
+  </style>
 </head>
 
 <body class="index-page teacher-view">
@@ -327,35 +504,38 @@
   </div>
 
   <!-- Invite Students Modal -->
-  <div class="modal fade" id="inviteStudentModal" tabindex="-1" aria-labelledby="inviteStudentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="inviteStudentModalLabel">Invite Students to {{ hub }}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form id="inviteForm">
-            <div class="mb-3">
-              <label for="studentEmail" class="form-label">Student Email</label>
-              <input type="email" class="form-control" id="studentEmail" placeholder="Enter student name">
+<!-- Update the Invite Students Modal in teachers_view_hub_room.html -->
+
+<!-- Invite Students Modal -->
+<div class="modal fade" id="inviteStudentModal" tabindex="-1" aria-labelledby="inviteStudentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="inviteStudentModalLabel">Invite Students to {{ hub }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="inviteForm">
+          <div class="mb-3">
+            <label for="studentEmail" class="form-label">Search Student</label>
+            <input type="text" class="form-control" id="studentEmail" placeholder="Enter student name or email">
+            <small class="form-text text-muted">Search for students to invite to this hub</small>
+          </div>
+          <div class="mb-3">
+            <h6>Available Students</h6>
+            <div id="studentButtonsDiv" class="student-list">
+              <!-- Student buttons will be populated dynamically -->
             </div>
-            <div class="mb-3">
-              <h6>Available Students</h6>
-              <div id="studentButtonsDiv" class="student-list">
-                <!-- Student buttons will be populated dynamically -->
-              </div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" id="sendInviteBtn">Send Invite</button>
-        </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="sendInviteBtn">Send Invite</button>
       </div>
     </div>
   </div>
-
+</div>
 
 
 
@@ -839,37 +1019,11 @@
   <script src="{% static 'js/main.js' %}"></script>
   <script src="{% static 'js/summarize.js' %}"></script>
   <script src="{% static 'js/livestream.js' %}"></script> 
+  <script src="{% static 'js/invite_students.js' %}"></script> 
   <script src="{% static 'js/room-analytics.js' %}"></script> 
   <script>
 
-document.getElementById("sendInviteBtn").addEventListener("click", function () {
-      let content = document.getElementById("studentEmail").value;
-      
-      if (!studentEmail) {
-          alert("Please enter a student email.");
-          return;
-      }
 
-      fetch("{% url 'send_invite' %}", { 
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": "{{ csrf_token }}"
-          },
-          body: JSON.stringify({
-              content: content
-          })
-      })
-      .then(response => response.json())
-      .then(data => {
-          if (data.success) {
-              alert("Invite sent successfully!");
-          } else {
-              alert("Error sending invite.");
-          }
-      })
-      .catch(error => console.error("Error:", error));
-  });
     
     const currentRoomId = "{{ room_id|escapejs }}";
     const currentUserName = "{{ current_teachers_name|escapejs }}";

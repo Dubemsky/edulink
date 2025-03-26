@@ -12,6 +12,7 @@ class EncryptionManager:
         
         # If no key is found, generate one (for development - in production, this should be set in settings)
         if key is None:
+            
             # Generate a key for development use only
             # In production, this key should be stored securely and consistently
             self.key = Fernet.generate_key()

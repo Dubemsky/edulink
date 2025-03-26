@@ -939,33 +939,213 @@ def get_user_votes(request):
     
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
+# Add to views_hub_room.py
 
+@csrf_exempt
 def send_invite(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            content = data.get("content")
+            student_email = data.get("student_email")
+            room_id = data.get("room_id")
+            teacher_name = request.session.get("teachers_name")
+            
+            if not all([student_email, room_id, teacher_name]):
+                print(" This is the issue here\n\n")
+                return JsonResponse({"success": False, "error": "Missing required parameters"}, status=400)
+                
+            # Get the room details
+            try:
+                room = Teachers_created_hub.objects.get(room_url=room_id)
+                room_name = room.hub_name
+            except Teachers_created_hub.DoesNotExist:
+                print(" This is the issue here\n\n 1111")
+                return JsonResponse({"success": False, "error": "Room not found"}, status=404)
+            
+            # Find the student by email in Firebase
+            students_ref = db.collection("users_profile")
+            query = students_ref.where("email", "==", student_email).where("role", "==", "student").limit(1)
+            students = list(query.stream())
+            
+            if not students:
+                return JsonResponse({"success": False, "error": "Student not found"}, status=404)
+                
+            student_data = students[0].to_dict()
+            student_name = student_data.get("name")
+            
+            # Create notification in Firestore
+            notification_data = {
+                "username": student_name,
+                "message": encryption_manager.encrypt(f"{teacher_name} invited you to join {room_name}"),
+                "type": "room_invite",
+                "room_id": room_id,
+                "room_name": room_name,
+                "sender": teacher_name,
+                "timestamp": datetime.utcnow(),
+                "status": "pending",  # pending, accepted, or rejected
+            }
+            
+            # Add notification to Firestore
+            notification_ref = db.collection("notifications").add(notification_data)
+            notification_id = notification_ref[1].id
+            print(f" I invited {student_name} to the room\n\n")
+            
+            return JsonResponse({
+                "success": True, 
+                "message": f"Invite sent to {student_name}",
+                "notification_id": notification_id
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            print(f"Error sending invite: {e}")
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
 
-            print(f"Student Email: {content}")
+    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
-
+@csrf_exempt
+def search_students(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            search_term = data.get("search_term", "").strip().lower()
+            room_id = data.get("room_id")
+            
+            if not search_term:
+                return JsonResponse({"success": False, "error": "Search term is required"}, status=400)
+                
+            # Get existing room members to exclude them
+            existing_members = set(get_members_by_hub_url(room_id))
+            
+            # Search for students in Firebase
             students_ref = db.collection("users_profile")
             query = students_ref.where("role", "==", "student").stream()
-
+            
+            # Filter students whose name or email contains the search term
+            # and who are not already members of the room
             results = []
             for student in query:
                 student_data = student.to_dict()
-                if content in student_data.get("name", "").lower(): 
+                student_name = student_data.get("name", "").lower()
+                student_email = student_data.get("email", "").lower()
+                
+                if (search_term in student_name or search_term in student_email) and student_name not in existing_members:
                     results.append({
                         "id": student.id,
                         "name": student_data.get("name", ""),
-                        "profile_pic": student_data.get("profile_pic", "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png")  
+                        "email": student_data.get("email", ""),
+                        "profile_picture": student_data.get("profile_picture", 
+                            "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png")
                     })
-
-            print(f"These are the students {results}")
-
-            return JsonResponse({"success": True, "message": "Invite sent successfully!"})
+            
+            # Limit to 10 results for performance
+            results = results[:10]
+            
+            return JsonResponse({
+                "success": True,
+                "students": results,
+                "count": len(results)
+            })
+            
         except json.JSONDecodeError:
             return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            print(f"Error searching students: {e}")
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+            
+    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
+@csrf_exempt
+def respond_to_invite(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            notification_id = data.get("notification_id")
+            response = data.get("response")  # "accept" or "reject"
+            student_name = request.session.get("students_name")
+            
+            if not all([notification_id, response, student_name]):
+                return JsonResponse({"success": False, "error": "Missing required parameters"}, status=400)
+            
+            # Get the notification details
+            notification_ref = db.collection("notifications").document(notification_id)
+            notification = notification_ref.get()
+            
+            if not notification.exists:
+                return JsonResponse({"success": False, "error": "Notification not found"}, status=404)
+                
+            notification_data = notification.to_dict()
+            
+            # Verify this notification is for the current student
+            if notification_data.get("username") != student_name:
+                return JsonResponse({"success": False, "error": "This notification is not for you"}, status=403)
+                
+            # Verify this is a room invite notification
+            if notification_data.get("type") != "room_invite":
+                return JsonResponse({"success": False, "error": "This is not a room invite notification"}, status=400)
+                
+            # Get room details
+            room_id = notification_data.get("room_id")
+            room_name = notification_data.get("room_name")
+            sender = notification_data.get("sender")
+            
+            if response == "accept":
+                # Add student to the room
+                try:
+                    # Get the room details
+                    room = Teachers_created_hub.objects.get(room_url=room_id)
+                    
+                    # Check if student is already a member
+                    if Students_joined_hub.objects.filter(student=student_name, hub=room).exists():
+                        return JsonResponse({"success": False, "error": "You are already a member of this room"}, status=400)
+                    
+                    # Add student to the room
+                    new_member = Students_joined_hub(
+                        student=student_name,
+                        hub=room,
+                        hub_owner=room.hub_owner,
+                        hub_url=room_id
+                    )
+                    new_member.save()
+                    
+                    # Update notification status
+                    notification_ref.update({
+                        "status": "accepted",
+                        "response_time": datetime.utcnow()
+                    })
+                    
+                    return JsonResponse({
+                        "success": True,
+                        "message": f"You have joined {room_name}",
+                        "room_id": room_id
+                    })
+                    
+                except Teachers_created_hub.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Room not found"}, status=404)
+                except Exception as e:
+                    print(f"Error accepting invite: {e}")
+                    return JsonResponse({"success": False, "error": str(e)}, status=500)
+                    
+            elif response == "reject":
+                # Update notification status
+                notification_ref.update({
+                    "status": "rejected",
+                    "response_time": datetime.utcnow()
+                })
+                
+                return JsonResponse({
+                    "success": True,
+                    "message": f"You have declined the invitation to {room_name}"
+                })
+                
+            else:
+                return JsonResponse({"success": False, "error": "Invalid response"}, status=400)
+                
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            print(f"Error responding to invite: {e}")
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+            
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)

@@ -11,6 +11,7 @@ def add_message(role, room_id, sender, content, message_type="text", file_url=No
     try:
         now_utc = datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S')
 
+
         # Get embedding from original content before encryption
         embedding = get_remote_embedding(content)
         print(f"These are the embeddings {embedding}")
@@ -160,6 +161,13 @@ def get_notifications_by_username(username):
                 "message": result,
                 "timestamp": notification_data.get("created_at"),
                 "read": notification_data.get("read"),
+            })
+            
+        elif notification_data.get("type") == "room_invite":
+            notification_item.update({
+                "room_name": notification_data.get("room_name"),
+                "sender": notification_data.get("sender"),
+                "status": notification_data.get("status", "pending"),
             })
 
         # Append the notification data to the list

@@ -85,30 +85,63 @@
       </div>
     </div>
     
-    <div class="additional-content-box" data-aos="fade-up" data-aos-delay="200">
-      <div class="hub-header">
-        <h3>Notifications ({{ number_of_nofications }}</span>)</h3>
-      </div>
-      <div class="hub-ction">
-        {% if notifications %}
-          <ul class="notifications-list">
-            {% for notification in notifications %}
-              <li data-aos="fade-left" data-aos-delay="{{ forloop.counter|add:200 }}">
-                <button class="notification-btn" data-notification-id="{{notification.notification_id}}" data-room-id="{{ notification.room_id }}" data-question-id="{{ notification.question_id }}">
-                    <span>{{ notification.message }}</span>
-                    <small><i class="bi bi-clock"></i> {{ notification.timestamp }}</small>
+    <!-- Modify the notifications section in students_homepage.html -->
+<div class="additional-content-box" data-aos="fade-up" data-aos-delay="200">
+  <div class="hub-header">
+    <h3>Notifications (<span id="notificationCount">{{ number_of_nofications }}</span>)</h3>
+  </div>
+  <div class="hub-ction">
+    {% if notifications %}
+      <ul class="notifications-list">
+        {% for notification in notifications %}
+          {% if notification.type == "room_invite" %}
+            <!-- Room Invite Notification Template -->
+            <li data-aos="fade-left" data-aos-delay="{{ forloop.counter|add:200 }}" class="notification-card">
+              <div class="notification-header">
+                <div class="notification-icon">
+                  <i class="bi bi-envelope-plus"></i>
+                </div>
+                <h4 class="notification-title">Room Invitation</h4>
+              </div>
+              <div class="notification-content">
+                {{ notification.message }}
+              </div>
+              <div class="notification-actions">
+                <button class="reject-btn invite-response-btn" data-notification-id="{{ notification.notification_id }}" data-response="reject">
+                  Reject
                 </button>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <div class="empty-state" data-aos="fade-in">
-              <i class="bi bi-bell"></i>
-              <p>Notifications will appear here</p>
-          </div>
-        {% endif %}
+                <button class="accept-btn invite-response-btn" data-notification-id="{{ notification.notification_id }}" data-response="accept">
+                  Accept
+                </button>
+              </div>
+              <div class="notification-timestamp">
+                {{ notification.timestamp }}
+              </div>
+            </li>
+          {% else %}
+            <!-- Regular Notification Template -->
+            <li data-aos="fade-left" data-aos-delay="{{ forloop.counter|add:200 }}">
+              <button class="notification-btn" data-notification-id="{{notification.notification_id}}" data-room-id="{{ notification.room_id }}" data-question-id="{{ notification.question_id }}">
+                <span>{{ notification.message }}</span>
+                <small><i class="bi bi-clock"></i> {{ notification.timestamp }}</small>
+              </button>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-state" data-aos="fade-in">
+        <i class="bi bi-bell"></i>
+        <p>Notifications will appear here</p>
       </div>
-    </div>
+    {% endif %}
+  </div>
+</div>
+
+
+
+
+
   </section>
 
   <!-- Vendor JS Files -->

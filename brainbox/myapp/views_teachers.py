@@ -81,7 +81,7 @@ def teachers_create_hub(request):
             hub_image = request.FILES.get('hubImage',"none")
 
             # Debugging 
-            logger.debug(f"""Owner: {current_teacher}
+            print(f"""Owner: {current_teacher}
                       NAME: {hub_name}
                       Description: {description}
                       Image: {hub_image}

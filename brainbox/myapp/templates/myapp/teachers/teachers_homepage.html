@@ -202,11 +202,6 @@
       formData.append("hubName", hubName);
       formData.append("description", document.getElementById("description").value);
       
-      // Check if there's a file and add it
-      const hubImageInput = document.getElementById("hubImage");
-      if (hubImageInput.files.length > 0) {
-        formData.append("hubImage", hubImageInput.files[0]);
-      }
       
       formData.append("privacySetting", document.getElementById("privacySetting").value);
     

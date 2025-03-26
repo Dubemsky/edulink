@@ -7,101 +7,38 @@ from .firebase import *
 from datetime import datetime
 from .community_page import *
 
-
-
-# Add this to your private_messages.py file
-
-def create_or_update_connection(sender_id, recipient_id, status='pending'):
-    """
-    Create or update a connection between two users
-    
-    Args:
-        sender_id: The ID of the user initiating the connection
-        recipient_id: The ID of the recipient user
-        status: The status of the connection ('pending', 'accepted', 'declined')
-        
-    Returns:
-        dict: Result with success status and message
-    """
-    try:
-        # Reference to connections collection
-        connections_ref = db.collection('user_connections')
-        
-        # Create a unique connection ID
-        connection_id = f"{sender_id}_to_{recipient_id}"
-        
-        # Check if the connection already exists
-        connection_doc = connections_ref.document(connection_id).get()
-        
-        if connection_doc.exists:
-            connection_data = connection_doc.to_dict()
-            current_status = connection_data.get('status')
-            
-            # Only update if the new status is different
-            if current_status != status:
-                connections_ref.document(connection_id).update({
-                    'status': status,
-                    'updated_at': firestore.SERVER_TIMESTAMP
-                })
-                
-            return {
-                'success': True,
-                'message': f'Connection updated to {status}',
-                'status': status
-            }
-        else:
-            # Create new connection
-            connections_ref.document(connection_id).set({
-                'sender_id': sender_id,
-                'recipient_id': recipient_id,
-                'status': status,
-                'created_at': firestore.SERVER_TIMESTAMP,
-                'updated_at': firestore.SERVER_TIMESTAMP
-            })
-            
-            return {
-                'success': True,
-                'message': f'Connection created with status {status}',
-                'status': status
-            }
-            
-    except Exception as e:
-        print(f"Error creating/updating connection: {e}")
-        return {
-            'success': False,
-            'message': f"Error: {str(e)}"
-        }
-
 def get_connection_status(user1_id, user2_id):
     """
-    Get the connection status between two users
+    Get the connection status between two users based on follow relationships
     
     Args:
         user1_id: First user ID
         user2_id: Second user ID
         
     Returns:
-        str: Connection status ('pending', 'accepted', 'declined', None if no connection)
+        str: Connection status ('connected', 'pending', None if no connection)
     """
     try:
-        # Check both directions
-        connections_ref = db.collection('user_connections')
+        # Check both directions of follow relationship
+        follows_ref = db.collection('user_follows')
         
-        # Check if user1 initiated a connection to user2
-        connection1_id = f"{user1_id}_to_{user2_id}"
-        connection1 = connections_ref.document(connection1_id).get()
+        # Check if user1 follows user2
+        follow1_id = f"{user1_id}_follows_{user2_id}"
+        follow1 = follows_ref.document(follow1_id).get()
         
-        if connection1.exists:
-            return connection1.to_dict().get('status')
-            
-        # Check if user2 initiated a connection to user1
-        connection2_id = f"{user2_id}_to_{user1_id}"
-        connection2 = connections_ref.document(connection2_id).get()
+        # Check if user2 follows user1
+        follow2_id = f"{user2_id}_follows_{user1_id}"
+        follow2 = follows_ref.document(follow2_id).get()
         
-        if connection2.exists:
-            return connection2.to_dict().get('status')
-            
-        # No connection found
+        # Both users follow each other - they are connected
+        if follow1.exists and follow2.exists:
+            return 'connected'
+        
+        # One-way follow relationship - pending connection
+        elif follow1.exists or follow2.exists:
+            return 'pending'
+        
+        # No follow relationship found
         return None
         
     except Exception as e:
@@ -110,7 +47,7 @@ def get_connection_status(user1_id, user2_id):
 
 def is_mutually_connected(user1_id, user2_id):
     """
-    Check if two users have mutually accepted connections
+    Check if two users are mutually connected (both follow each other)
     
     Args:
         user1_id: First user ID
@@ -120,22 +57,7 @@ def is_mutually_connected(user1_id, user2_id):
         bool: True if users are mutually connected, False otherwise
     """
     try:
-        connections_ref = db.collection('user_connections')
-        
-        # Check for connection from user1 to user2
-        connection1_id = f"{user1_id}_to_{user2_id}"
-        connection1 = connections_ref.document(connection1_id).get()
-        
-        # Check for connection from user2 to user1
-        connection2_id = f"{user2_id}_to_{user1_id}"
-        connection2 = connections_ref.document(connection2_id).get()
-        
-        # Both users have accepted each other's connection requests
-        if (connection1.exists and connection1.to_dict().get('status') == 'accepted' and
-            connection2.exists and connection2.to_dict().get('status') == 'accepted'):
-            return True
-            
-        # Check for following relationship (backwards compatibility)
+        # Check for following relationship in both directions
         follows_ref = db.collection('user_follows')
         follow1_id = f"{user1_id}_follows_{user2_id}"
         follow2_id = f"{user2_id}_follows_{user1_id}"
@@ -143,6 +65,7 @@ def is_mutually_connected(user1_id, user2_id):
         follow1 = follows_ref.document(follow1_id).get()
         follow2 = follows_ref.document(follow2_id).get()
         
+        # Both users follow each other
         if follow1.exists and follow2.exists:
             return True
             
@@ -151,9 +74,27 @@ def is_mutually_connected(user1_id, user2_id):
     except Exception as e:
         print(f"Error checking mutual connection: {e}")
         return False
-    
 
+# Helper function to check if one user is following another
+def is_following(follower_id, followed_id):
+    """
+    Check if a user is following another user
     
+    Args:
+        follower_id: ID of the user who might be following
+        followed_id: ID of the user who might be followed
+        
+    Returns:
+        bool: True if follower is following followed, False otherwise
+    """
+    try:
+        follows_ref = db.collection('user_follows')
+        follow_doc_id = f"{follower_id}_follows_{followed_id}"
+        
+        return follows_ref.document(follow_doc_id).get().exists
+    except Exception as e:
+        print(f"Error checking if {follower_id} follows {followed_id}: {e}")
+        return False
 
 def get_current_user_id(request):
     """
@@ -239,10 +180,6 @@ def get_messages(request):
             'error': str(e)
         }, status=500)
 
-
-
-
-
 @csrf_exempt
 def send_message(request):
     """
@@ -287,15 +224,22 @@ def send_message(request):
         message_ref = db.collection('private_messages').document(conversation_id).collection('messages').document()
         message_ref.set(message)
         
-        # Check if the users have a mutual connection
+        # Check if the users have a mutual connection (both follow each other)
         mutual_connection = is_mutually_connected(current_user_id, recipient_id)
         
-        # If not, create a connection request if one doesn't exist already
+        # If current user doesn't already follow the recipient, create a follow relationship
+        # This replaces the connection request functionality
         if not mutual_connection:
-            # Create or update connection status (sender initiating a connection)
-            create_or_update_connection(current_user_id, recipient_id, status='pending')
+            # Check if user already follows recipient
+            follows_ref = db.collection('user_follows')
+            follow_doc_id = f"{current_user_id}_follows_{recipient_id}"
+            follow_doc = follows_ref.document(follow_doc_id).get()
+            
+            if not follow_doc.exists:
+                # Follow the recipient (create the one-way connection)
+                follow_user(current_user_id, recipient_id)
         
-        # Update conversation metadata with pending status information
+        # Update conversation metadata
         conversation_ref = db.collection('private_messages').document(conversation_id)
         
         conversation_data = {
@@ -333,7 +277,6 @@ def send_message(request):
             'success': False,
             'error': str(e)
         }, status=500)
-
 
 @csrf_exempt
 def mark_messages_read(request):
@@ -412,9 +355,6 @@ def mark_messages_read(request):
         print(f"🚨 Unexpected Error: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-
-
-
 @csrf_exempt
 def get_conversations(request):
     """
@@ -440,8 +380,8 @@ def get_conversations(request):
         connection_list = []
         request_list = []
         
-        # Get list of users that the current user is connected with
-        connected_users = get_user_following(current_user_id)
+        # Get list of users that the current user is following
+        following_ids = get_user_following(current_user_id)
         
         for conversation in conversations:
             conversation_data = conversation.to_dict()
@@ -456,9 +396,11 @@ def get_conversations(request):
                 user = user_ref.get()
                 user_data = user.to_dict() if user.exists else {}
                 
-                # Determine if this is a connection or request based on connection status
-                # Check if the other participant is in the user's connections
-                is_connected = other_participant_id in connected_users
+                # Check if the other participant also follows the current user
+                follows_user = is_following(other_participant_id, current_user_id)
+                
+                # Determine if this is a connection or request
+                is_connected = other_participant_id in following_ids and follows_user
                 
                 # Create conversation object
                 conversation_obj = {
@@ -495,13 +437,6 @@ def get_conversations(request):
             'success': False,
             'error': str(e)
         }, status=500)
-    
-
-
-
-
-
-# Add this to your private_messages.py file
 
 @csrf_exempt
 def start_direct_chat(request):
@@ -600,14 +535,10 @@ def start_direct_chat(request):
             'error': str(e)
         }, status=500)
 
-
-
-# Add these functions to private_messages.py
-
 @csrf_exempt
 def accept_connection_request(request):
     """
-    Accept a connection request from another user
+    Accept a connection request from another user by following them back
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Only POST method is allowed'}, status=405)
@@ -631,8 +562,8 @@ def accept_connection_request(request):
                 'error': 'Sender ID is required'
             }, status=400)
         
-        # Create or update connection from current user to sender (accepting the request)
-        result = create_or_update_connection(current_user_id, sender_id, status='accepted')
+        # Follow the user (this creates the connection in user_follows)
+        result = follow_user(current_user_id, sender_id)
         
         if not result['success']:
             return JsonResponse({
@@ -694,15 +625,9 @@ def decline_connection_request(request):
                 'error': 'Sender ID is required'
             }, status=400)
         
-        # Create or update connection from current user to sender (declining the request)
-        result = create_or_update_connection(current_user_id, sender_id, status='declined')
+        # For declining, we don't need to change user_follows
+        # We just update the conversation to show it was declined
         
-        if not result['success']:
-            return JsonResponse({
-                'success': False,
-                'error': result['message']
-            }, status=500)
-            
         # Update the conversation status
         conversation_id = create_conversation_id(current_user_id, sender_id)
         conversation_ref = db.collection('private_messages').document(conversation_id)

@@ -1140,12 +1140,17 @@ function createRequestItem(request) {
   return item;
 }
 
+
+// Add these functions to make accept/decline buttons work
+
 /**
  * Accept a connection request
  * 
  * @param {string} senderId - The ID of the user who sent the request
  */
 function acceptConnectionRequest(senderId) {
+  console.log(`Accepting connection request from user ${senderId}`);
+  
   fetch('/accept_connection_request/', {
     method: 'POST',
     headers: {
@@ -1158,25 +1163,41 @@ function acceptConnectionRequest(senderId) {
   })
   .then(response => {
     if (!response.ok) {
+      console.error(`Server responded with status: ${response.status}`);
       throw new Error(`Server responded with status: ${response.status}`);
     }
     return response.json();
   })
   .then(data => {
+    console.log('Accept response:', data);
     if (data.success) {
       // Find and remove the request from the requests list
       const requestItem = document.querySelector(`.dm-chat-request[data-user-id="${senderId}"]`);
       if (requestItem && requestItem.parentElement) {
-        requestItem.parentElement.removeChild(requestItem);
+        requestItem.classList.add('accepted');
+        setTimeout(() => {
+          requestItem.parentElement.removeChild(requestItem);
+          
+          // If no more requests, show empty state
+          const requestsList = document.getElementById('dmMessageRequestsList');
+          if (requestsList && !requestsList.querySelector('.dm-chat-request')) {
+            requestsList.innerHTML = `
+              <div class="dm-empty-state">
+                <i class="bi bi-envelope"></i>
+                <p>No pending message requests.</p>
+              </div>
+            `;
+          }
+          
+          // Refresh the connections list to show the new connection
+          initializeConnectionsList();
+        }, 500);
       }
-      
-      // Refresh the conversation lists
-      initializeConnectionsList();
       
       // Show success message
       showNotification('Connection request accepted', 'success');
     } else {
-      showNotification('Failed to accept connection request', 'error');
+      showNotification(data.error || 'Failed to accept connection request', 'error');
     }
   })
   .catch(error => {
@@ -1191,6 +1212,8 @@ function acceptConnectionRequest(senderId) {
  * @param {string} senderId - The ID of the user who sent the request
  */
 function declineConnectionRequest(senderId) {
+  console.log(`Declining connection request from user ${senderId}`);
+  
   fetch('/decline_connection_request/', {
     method: 'POST',
     headers: {
@@ -1203,16 +1226,32 @@ function declineConnectionRequest(senderId) {
   })
   .then(response => {
     if (!response.ok) {
+      console.error(`Server responded with status: ${response.status}`);
       throw new Error(`Server responded with status: ${response.status}`);
     }
     return response.json();
   })
   .then(data => {
+    console.log('Decline response:', data);
     if (data.success) {
       // Find and remove the request from the requests list
       const requestItem = document.querySelector(`.dm-chat-request[data-user-id="${senderId}"]`);
       if (requestItem && requestItem.parentElement) {
-        requestItem.parentElement.removeChild(requestItem);
+        requestItem.classList.add('declined');
+        setTimeout(() => {
+          requestItem.parentElement.removeChild(requestItem);
+          
+          // If no more requests, show empty state
+          const requestsList = document.getElementById('dmMessageRequestsList');
+          if (requestsList && !requestsList.querySelector('.dm-chat-request')) {
+            requestsList.innerHTML = `
+              <div class="dm-empty-state">
+                <i class="bi bi-envelope"></i>
+                <p>No pending message requests.</p>
+              </div>
+            `;
+          }
+        }, 500);
       }
       
       // Update counts
@@ -1225,17 +1264,6 @@ function declineConnectionRequest(senderId) {
           // Hide badge if no more requests
           if (currentCount - 1 === 0) {
             requestsBadgeElement.classList.remove('active');
-            
-            // Show empty state in requests tab
-            const requestsInboxList = document.getElementById('dmMessageRequestsList');
-            if (requestsInboxList) {
-              requestsInboxList.innerHTML = `
-                <div class="dm-empty-state">
-                  <i class="bi bi-envelope"></i>
-                  <p>No pending message requests.</p>
-                </div>
-              `;
-            }
           }
         }
       }
@@ -1243,13 +1271,92 @@ function declineConnectionRequest(senderId) {
       // Show success message
       showNotification('Connection request declined', 'success');
     } else {
-      showNotification('Failed to decline connection request', 'error');
+      showNotification(data.error || 'Failed to decline connection request', 'error');
     }
   })
   .catch(error => {
     console.error('Error declining connection request:', error);
     showNotification('Error declining connection request', 'error');
   });
+}
+
+/**
+ * Create a DOM element for a message request item with proper event handlers
+ * 
+ * @param {Object} request - The request data
+ * @returns {HTMLElement} The request item element
+ */
+function createRequestItem(request) {
+  // Get the template
+  const template = document.getElementById('dmChatItemTemplate');
+  if (!template) {
+    console.error('Chat item template not found');
+    return document.createElement('div');
+  }
+  
+  const clone = document.importNode(template.content, true);
+  
+  // Fill in the template with request data
+  const item = clone.querySelector('.dm-chat-item');
+  const img = clone.querySelector('.dm-chat-item-img');
+  const name = clone.querySelector('.dm-chat-item-name');
+  const message = clone.querySelector('.dm-chat-item-last-message');
+  const time = clone.querySelector('.dm-chat-item-time');
+  
+  // Set the request data
+  item.setAttribute('data-user-id', request.user_id);
+  item.classList.add('dm-chat-request');
+  img.src = request.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+  img.alt = request.name;
+  name.textContent = request.name;
+  message.textContent = request.last_message || 'New message request';
+  time.textContent = formatMessageTime(request.last_message_time) || 'Now';
+  
+  // Add unread badge if there are unread messages
+  if (request.unread_count && request.unread_count > 0) {
+    const unreadBadge = document.createElement('span');
+    unreadBadge.className = 'dm-unread-badge';
+    unreadBadge.textContent = request.unread_count;
+    item.appendChild(unreadBadge);
+  }
+  
+  // Add accept/decline buttons
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'dm-request-actions';
+  
+  const acceptBtn = document.createElement('button');
+  acceptBtn.className = 'dm-accept-btn';
+  acceptBtn.innerHTML = '<i class="bi bi-check-lg"></i>';
+  acceptBtn.title = 'Accept';
+  
+  const declineBtn = document.createElement('button');
+  declineBtn.className = 'dm-decline-btn';
+  declineBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+  declineBtn.title = 'Decline';
+  
+  // Add proper event listeners with explicit stopPropagation
+  acceptBtn.addEventListener('click', function(e) {
+    e.stopPropagation(); // Prevent opening chat
+    console.log('Accept button clicked for user:', request.user_id);
+    acceptConnectionRequest(request.user_id);
+  });
+  
+  declineBtn.addEventListener('click', function(e) {
+    e.stopPropagation(); // Prevent opening chat
+    console.log('Decline button clicked for user:', request.user_id);
+    declineConnectionRequest(request.user_id);
+  });
+  
+  actionsDiv.appendChild(acceptBtn);
+  actionsDiv.appendChild(declineBtn);
+  item.appendChild(actionsDiv);
+  
+  // Add click handler to view the request
+  item.addEventListener('click', function() {
+    openChatWithUser(request);
+  });
+  
+  return item;
 }
 
 /**
@@ -1313,3 +1420,139 @@ function showNotification(message, type = 'info') {
     }, 300);
   }, 5000);
 }
+
+// Add some CSS styles to the document for notifications and transitions
+document.addEventListener('DOMContentLoaded', function() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .dm-notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .dm-notification {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 350px;
+      animation: slideIn 0.3s ease forwards;
+      opacity: 1;
+      transform: translateX(0);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    
+    .dm-notification-hidden {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    
+    .dm-notification i {
+      font-size: 18px;
+    }
+    
+    .dm-notification-success i {
+      color: #28a745;
+    }
+    
+    .dm-notification-error i {
+      color: #dc3545;
+    }
+    
+    .dm-notification-info i {
+      color: #17a2b8;
+    }
+    
+    .dm-notification span {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .dm-notification-close {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      color: #6c757d;
+      font-size: 14px;
+    }
+    
+    .dm-notification-close:hover {
+      color: #343a40;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(30px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .dm-chat-request.accepted {
+      background-color: rgba(40, 167, 69, 0.1);
+      transition: background-color 0.3s, opacity 0.3s, transform 0.3s;
+      opacity: 0.8;
+      transform: translateX(30px);
+    }
+    
+    .dm-chat-request.declined {
+      background-color: rgba(220, 53, 69, 0.1);
+      transition: background-color 0.3s, opacity 0.3s, transform 0.3s;
+      opacity: 0.8;
+      transform: translateX(30px);
+    }
+    
+    .dm-request-actions {
+      display: flex;
+      gap: 5px;
+      margin-left: auto;
+    }
+    
+    .dm-accept-btn, .dm-decline-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .dm-accept-btn {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .dm-accept-btn:hover {
+      background-color: #218838;
+      transform: scale(1.1);
+    }
+    
+    .dm-decline-btn {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    .dm-decline-btn:hover {
+      background-color: #c82333;
+      transform: scale(1.1);
+    }
+  `;
+  document.head.appendChild(style);
+});
