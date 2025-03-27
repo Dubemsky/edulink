@@ -399,11 +399,14 @@ def student_profile_page_securty_settings(request):
         return redirect('first_page')
     
     user_id = details.get('uid')
+    users_ref = db.collection('users_profile')
+    user_doc = users_ref.document(user_id).get()
     
     # Get verification status
     verification_status = check_account_verification_status(user_id)
     
     # Default privacy settings (can be loaded from database in the future)
+    
     privacy = {
         'profile_visibility': 'public',
         'activity_visibility': 'public',
