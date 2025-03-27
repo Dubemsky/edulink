@@ -544,6 +544,8 @@
 
   <script>
   
+ 
+
   // Connect message button in user profile modal to direct messaging system
   document.addEventListener('DOMContentLoaded', function() {
     const messageButton = document.getElementById('messageButton');
@@ -711,6 +713,11 @@ function getCsrfToken() {
 }
 
 
+
+
+
+
+
 /**
  * Enhanced Live Search Functionality
  * - Shows matching users as you type
@@ -721,6 +728,17 @@ function getCsrfToken() {
 
 // This code should be added to your existing script at the end of community_page.html
 
+/**
+ * Fix for the community page search functionality
+ */
+
+// Define the missing function that's being called on page load
+function initEnhancedSearchFunctionality() {
+  // Call the existing search implementation
+  initLiveSearchFunctionality();
+}
+
+// Enhanced Live Search Functionality
 function initLiveSearchFunctionality() {
   const searchInput = document.getElementById('userSearchInput');
   const searchSuggestions = document.getElementById('searchSuggestions');
@@ -882,6 +900,98 @@ function initLiveSearchFunctionality() {
     });
   }
   
+
+
+  function tryShowProfileModal(user) {
+  // Check if the modal element exists
+  const modalElement = document.getElementById('userProfileModal');
+  if (!modalElement) {
+    console.error('User profile modal element not found');
+    return;
+  }
+  
+  try {
+    // Try to populate the modal with user data
+    document.getElementById('modalProfileImg').src = user.profile_picture || '/static/images/default_profile.jpg';
+    document.getElementById('modalProfileName').textContent = user.name || '';
+    
+    const roleBadge = document.getElementById('modalRoleBadge');
+    if (roleBadge) {
+      roleBadge.textContent = user.role || '';
+      roleBadge.className = 'role-badge modal-role-badge ' + 
+                         (user.role && user.role.toLowerCase() === 'teacher' || 
+                          user.role && user.role.toLowerCase() === 'lecturer' ? 
+                          'teacher' : 'student');
+    }
+    
+    // Set other modal fields if they exist
+    if (document.getElementById('modalFollowers')) {
+      document.getElementById('modalFollowers').textContent = user.followers || 0;
+    }
+    
+    if (document.getElementById('modalFollowing')) {
+      document.getElementById('modalFollowing').textContent = user.followings || 0;
+    }
+    
+    if (document.getElementById('modalBio')) {
+      document.getElementById('modalBio').textContent = user.bio || 'No bio available';
+    }
+    
+    if (document.getElementById('modalCreatedAt')) {
+      document.getElementById('modalCreatedAt').textContent = user.created_at || 'Unknown';
+    }
+    
+    // Handle websites if they exist
+    const websitesList = document.getElementById('websitesList');
+    const websitesSection = document.getElementById('websitesSection');
+    
+    if (websitesList && websitesSection) {
+      websitesList.innerHTML = '';
+      
+      if (user.websites && user.websites.length > 0) {
+        websitesSection.style.display = 'block';
+        user.websites.forEach(website => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = website.startsWith('http') ? website : 'https://' + website;
+          a.textContent = website;
+          a.target = '_blank';
+          li.appendChild(a);
+          websitesList.appendChild(li);
+        });
+      } else {
+        websitesSection.style.display = 'none';
+      }
+    }
+    
+    // Set up connect button if it exists
+    const connectButton = document.getElementById('connectButton');
+    if (connectButton) {
+      connectButton.dataset.userId = user.id;
+      
+      // Check if we're already connected with this user
+      const isConnected = window.connectedUsers && window.connectedUsers.has(user.id);
+      
+      if (isConnected) {
+        connectButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
+        connectButton.classList.add('connected');
+      } else {
+        connectButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
+        connectButton.classList.remove('connected');
+      }
+    }
+    
+    // Show the modal using Bootstrap
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+  } catch (error) {
+    console.error('Error showing profile modal:', error);
+  }
+}
+
+
+
   /**
    * Display search suggestions in the dropdown
    */
@@ -996,6 +1106,122 @@ function initLiveSearchFunctionality() {
     return text.replace(regex, match => `<span class="highlight">${match}</span>`);
   }
 }
+
+/**
+ * Perform a full search and display results in the main grid
+ */
+function performFullSearch(searchTerm, filterType) {
+  console.log(`Performing full search for: "${searchTerm}" with filter: ${filterType}`);
+  
+  // Show loading spinner
+  const userGrid = document.getElementById('user-grid');
+  const loadingSpinner = document.getElementById('loading-spinner');
+  
+  if (!userGrid || !loadingSpinner) {
+    console.error('Required DOM elements not found for search display');
+    return;
+  }
+  
+  userGrid.innerHTML = '';
+  loadingSpinner.style.display = 'flex';
+  
+  // Fetch search results from the server
+  // Fetch search results from the server
+  fetch("/search_users/", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({ 
+      search_term: searchTerm,
+      filter_type: filterType
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    // Hide loading spinner
+    loadingSpinner.style.display = 'none';
+    
+    console.log(`Full search results received: ${data.users ? data.users.length : 0} users found`);
+    
+    if (data.success) {
+      // Render search results
+      if (window.renderUsers) {
+        window.renderUsers(data.users);
+      } else if (typeof renderUsers === 'function') {
+        renderUsers(data.users);
+      } else {
+        console.error('renderUsers function not found');
+        userGrid.innerHTML = '<div class="error-message">Could not display search results</div>';
+      }
+      
+      // Update filter buttons to match current filter
+      document.querySelectorAll('.filter-button').forEach(btn => {
+        if (btn.getAttribute('data-filter') === data.filter_type) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      
+      // Show search stats
+      if (window.showSearchStats) {
+        window.showSearchStats(data.search_term, data.count || (data.users ? data.users.length : 0), data.filter_type);
+      } else if (typeof showSearchStats === 'function') {
+        showSearchStats(data.search_term, data.count || (data.users ? data.users.length : 0), data.filter_type);
+      }
+      
+      // Fetch connection status for the users if function exists
+      if (window.fetchConnectionStatus) {
+        window.fetchConnectionStatus();
+      } else if (typeof fetchConnectionStatus === 'function') {
+        fetchConnectionStatus();
+      }
+    } else {
+      // Show error
+      if (window.showToast) {
+        window.showToast(data.error || 'Failed to search users', 'error');
+      } else {
+        console.error(data.error || 'Failed to search users');
+        userGrid.innerHTML = `<div class="error-message">Search error: ${data.error || 'Failed to search users'}</div>`;
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    loadingSpinner.style.display = 'none';
+    
+    // Show error
+    if (window.showToast) {
+      window.showToast('Error connecting to server', 'error');
+    } else {
+      userGrid.innerHTML = '<div class="error-message">Error connecting to server</div>';
+    }
+  });
+}
+
+/**
+ * Helper function to get the CSRF token
+ */
+function getCsrfToken() {
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='))
+    ?.split('=')[1];
+  return cookieValue || '';
+}
+
+// Make the performFullSearch function available globally
+window.performFullSearch = performFullSearch;
+
+
+
 
 // Make the performSearch function available globally for the "See all results" button
 window.performSearch = function(searchTerm, filterType) {
@@ -1129,8 +1355,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-// Main functionality for community page
-document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function() {
   // Initialize AOS animations
   AOS.init({
     duration: 800,
@@ -1142,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const userGrid = document.getElementById('user-grid');
   const loadingSpinner = document.getElementById('loading-spinner');
   const filterButtons = document.querySelectorAll('.filter-button');
-  const currentUsername = "{{ current_student_name }}";
+  const currentUsername = "{{ current_teacher_name }}";
   
   // Track which users we're connected with
   const connectedUsers = new Set();
@@ -1174,7 +1399,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadingSpinner.style.display = 'flex';
     
     // Fetch users from the server
-    fetch("{% url 'community_page' %}", {
+    fetch("{% url 'teachers_community_page' %}", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1204,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Function to render user cards
-  window.renderUsers = function(users) {
+  function renderUsers(users) {
     userGrid.innerHTML = '';
     
     if (users.length === 0) {
@@ -1261,7 +1486,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       userGrid.appendChild(card);
     });
-  };
+  }
   
   // Function to show user profile modal
   function showUserProfileModal(user) {
@@ -1331,8 +1556,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // Enhanced functions for frontend connection logic
-
   // 1. Function to connect with a user
   function connectWithUser(userId) {
     // Show loading state
@@ -1465,97 +1688,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-
-  function tryShowProfileModal(user) {
-  // Check if the modal element exists
-  const modalElement = document.getElementById('userProfileModal');
-  if (!modalElement) {
-    console.error('User profile modal element not found');
-    return;
-  }
-  
-  try {
-    // Try to populate the modal with user data
-    document.getElementById('modalProfileImg').src = user.profile_picture || '/static/images/default_profile.jpg';
-    document.getElementById('modalProfileName').textContent = user.name || '';
-    
-    const roleBadge = document.getElementById('modalRoleBadge');
-    if (roleBadge) {
-      roleBadge.textContent = user.role || '';
-      roleBadge.className = 'role-badge modal-role-badge ' + 
-                         (user.role && user.role.toLowerCase() === 'teacher' || 
-                          user.role && user.role.toLowerCase() === 'lecturer' ? 
-                          'teacher' : 'student');
-    }
-    
-    // Set other modal fields if they exist
-    if (document.getElementById('modalFollowers')) {
-      document.getElementById('modalFollowers').textContent = user.followers || 0;
-    }
-    
-    if (document.getElementById('modalFollowing')) {
-      document.getElementById('modalFollowing').textContent = user.followings || 0;
-    }
-    
-    if (document.getElementById('modalBio')) {
-      document.getElementById('modalBio').textContent = user.bio || 'No bio available';
-    }
-    
-    if (document.getElementById('modalCreatedAt')) {
-      document.getElementById('modalCreatedAt').textContent = user.created_at || 'Unknown';
-    }
-    
-    // Handle websites if they exist
-    const websitesList = document.getElementById('websitesList');
-    const websitesSection = document.getElementById('websitesSection');
-    
-    if (websitesList && websitesSection) {
-      websitesList.innerHTML = '';
-      
-      if (user.websites && user.websites.length > 0) {
-        websitesSection.style.display = 'block';
-        user.websites.forEach(website => {
-          const li = document.createElement('li');
-          const a = document.createElement('a');
-          a.href = website.startsWith('http') ? website : 'https://' + website;
-          a.textContent = website;
-          a.target = '_blank';
-          li.appendChild(a);
-          websitesList.appendChild(li);
-        });
-      } else {
-        websitesSection.style.display = 'none';
-      }
-    }
-    
-    // Set up connect button if it exists
-    const connectButton = document.getElementById('connectButton');
-    if (connectButton) {
-      connectButton.dataset.userId = user.id;
-      
-      // Check if we're already connected with this user
-      const isConnected = window.connectedUsers && window.connectedUsers.has(user.id);
-      
-      if (isConnected) {
-        connectButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
-        connectButton.classList.add('connected');
-      } else {
-        connectButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
-        connectButton.classList.remove('connected');
-      }
-    }
-    
-    // Show the modal using Bootstrap
-    const modal = new bootstrap.Modal(modalElement);
-    modal.show();
-    
-  } catch (error) {
-    console.error('Error showing profile modal:', error);
-  }
-}
-
   // 3. Function to fetch user's connection list
-  window.fetchConnectionStatus = function() {
+  function fetchConnectionStatus() {
     fetch("/get_following/")
     .then(response => {
       if (!response.ok) {
@@ -1585,7 +1719,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('Error fetching connection status:', error);
       // Continue without connection data, but log the error
     });
-  };
+  }
 
   // 4. Enhanced toast notification function
   window.showToast = function(message, type = 'default', duration = 3000) {
@@ -1694,10 +1828,67 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     </style>
   `);
+
+  // Make global functions available
+  window.fetchConnectionStatus = fetchConnectionStatus;
 });
 
-
-
+// Add this CSS for the search stats
+document.head.insertAdjacentHTML('beforeend', `
+  <style>
+    .search-stats {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      padding: 0 20px;
+      text-align: center;
+    }
+    
+    .search-results-info {
+      background-color: #e3f2fd;
+      padding: 10px 15px;
+      border-radius: 8px;
+      display: inline-block;
+      color: #0d47a1;
+      font-size: 0.95rem;
+    }
+    
+    .search-results-info.empty {
+      background-color: #fff3e0;
+      color: #e65100;
+    }
+    
+    .search-count {
+      font-weight: 700;
+      color: #1565c0;
+    }
+    
+    .search-term {
+      font-weight: 700;
+      color: #0d47a1;
+    }
+    
+    .filter-type {
+      font-style: italic;
+    }
+    
+    .reset-search-btn {
+      margin-top: 10px;
+      background-color: #ff7043;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+    
+    .reset-search-btn:hover {
+      background-color: #f4511e;
+    }
+  </style>
+`);
 
   </script>
 
