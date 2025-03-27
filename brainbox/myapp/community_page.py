@@ -662,10 +662,6 @@ def get_following_list(request):
         }, status=500)
     
 
-
-
-# Add this search function to your community_page.py file
-
 @csrf_exempt
 def search_users(request):
     """
@@ -679,6 +675,9 @@ def search_users(request):
         data = json.loads(request.body)
         search_term = data.get('search_term', '').strip()
         filter_type = data.get('filter_type', 'all').lower()
+        
+        # Log the search request for debugging
+        print(f"Search request: term='{search_term}', filter='{filter_type}'")
         
         if not search_term:
             return JsonResponse({
@@ -698,20 +697,19 @@ def search_users(request):
             # For 'all', we use the default query without filters
             query = users_ref
         
-        # Get all users for the current filter (Firestore doesn't support 
-        # case-insensitive search or partial matches in queries)
+        # Get all users for the current filter
         users = query.stream()
         
         # Perform client-side filtering for the search term
         users_list = []
-        search_term_lower = search_term.upper()
+        search_term_lower = search_term.lower()  # Fix: convert to lowercase consistently
         
         for user in users:
             user_data = user.to_dict()
             user_name = user_data.get('name', '')
             
             # Check if search term is in the name (case-insensitive)
-            if search_term_lower in user_name.lower():
+            if search_term_lower in user_name.lower():  # Fix: compare lowercase to lowercase
                 user_doc_id = user.id
                 
                 users_list.append({

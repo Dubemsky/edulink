@@ -294,6 +294,10 @@ function fetchUserDetails(userIds) {
  * 
  * @param {Object} user - The user to chat with
  */
+
+// This function should be added to private_messaging_connection.js
+
+// Modify the openChatWithUser function to update the conversation list
 function openChatWithUser(user) {
   // Get the chat windows container
   const chatWindowsContainer = document.getElementById('dmChatWindowsContainer');
@@ -397,6 +401,9 @@ function openChatWithUser(user) {
         sendButton.click();
       }
     });
+    
+    // *** NEW CODE: Add user to the conversation list if not already there ***
+    addUserToConversationList(user);
   }
   
   // If minimized, restore it
@@ -815,11 +822,9 @@ function getCsrfToken() {
 // Add to window object so it can be accessed globally
 window.privateMessagingConnections = {
   initialize: initializeConnectionsList,
-  openChatWithUser: openChatWithUser
+  openChatWithUser: openChatWithUser,
+  addUserToConversationList: addUserToConversationList  // Add this line
 };
-
-
-
 
 
 
@@ -1421,6 +1426,83 @@ function showNotification(message, type = 'info') {
   }, 5000);
 }
 
+
+// Add this function to the bottom of private_messaging_connection.js
+
+// Function to add a user to the conversation list
+// New function to add a user to the conversation list
+function addUserToConversationList(user) {
+  // Check if the user is already in the conversation list
+  const primaryInboxList = document.getElementById('dmPrimaryInboxList');
+  const existingItem = primaryInboxList.querySelector(`.dm-chat-item[data-user-id="${user.id}"]`);
+  
+  if (existingItem) {
+    // If the user already exists in the list, do nothing or update it if needed
+    return;
+  }
+  
+  // Check if primaryInboxList has the loading indicator or empty state
+  const loadingElement = primaryInboxList.querySelector('.dm-loading-chats');
+  const emptyStateElement = primaryInboxList.querySelector('.dm-empty-state');
+  
+  if (loadingElement) {
+    loadingElement.style.display = 'none';
+  }
+  
+  if (emptyStateElement) {
+    primaryInboxList.removeChild(emptyStateElement);
+  }
+  
+  // Create a new conversation item
+  const template = document.getElementById('dmChatItemTemplate');
+  if (!template) {
+    console.error('Chat item template not found');
+    return;
+  }
+  
+  const clone = document.importNode(template.content, true);
+  const item = clone.querySelector('.dm-chat-item');
+  
+  // Set user data
+  item.setAttribute('data-user-id', user.id);
+  
+  const img = item.querySelector('.dm-chat-item-img');
+  img.src = user.profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+  img.alt = user.name;
+  
+  const name = item.querySelector('.dm-chat-item-name');
+  name.textContent = user.name;
+  
+  const message = item.querySelector('.dm-chat-item-last-message');
+  message.textContent = 'Click to start chatting';
+  
+  const time = item.querySelector('.dm-chat-item-time');
+  time.textContent = 'Now';
+  
+  // Add click handler
+  item.addEventListener('click', function() {
+    openChatWithUser(user);
+  });
+  
+  // Add the item to the top of the list
+  if (primaryInboxList.firstChild) {
+    primaryInboxList.insertBefore(item, primaryInboxList.firstChild);
+  } else {
+    primaryInboxList.appendChild(item);
+  }
+  
+  // Update badge count
+  const badgeElement = document.getElementById('dmPrimaryInboxBadge');
+  if (badgeElement) {
+    const currentCount = parseInt(badgeElement.textContent) || 0;
+    badgeElement.textContent = currentCount + 1;
+  }
+}
+
+// Add function to window object so it can be accessed globally
+window.addUserToConversationList = addUserToConversationList;
+
+
 // Add some CSS styles to the document for notifications and transitions
 document.addEventListener('DOMContentLoaded', function() {
   const style = document.createElement('style');
@@ -1556,3 +1638,4 @@ document.addEventListener('DOMContentLoaded', function() {
   `;
   document.head.appendChild(style);
 });
+

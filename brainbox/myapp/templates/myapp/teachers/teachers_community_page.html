@@ -541,8 +541,6 @@
 <script>
 
 
-
-  
   // Connect message button in user profile modal to direct messaging system
   document.addEventListener('DOMContentLoaded', function() {
     const messageButton = document.getElementById('messageButton');
@@ -566,56 +564,62 @@
     
     // Function to start or open a direct chat
     function startDirectChat(userId, userName, userRole, userImg) {
-      // Show loading state
-      showToast('Connecting...', 'info');
+  // Show loading state
+  showToast('Connecting...', 'info');
+  
+  // Call the API to create or get a chat room
+  fetch('/start_direct_chat/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({
+      recipient_id: userId
+    })
+  })
+  .then(response => {
+    if (!response.ok) throw new Error('Network response was not ok');
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Open the direct messaging panel if not already open
+      const directMessagingButton = document.getElementById('directMessagingButton');
+      const directMessagingPanel = document.getElementById('directMessagingPanel');
       
-      // Call the API to create or get a chat room
-      fetch('/start_direct_chat/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify({
-          recipient_id: userId
-        })
-      })
-      .then(response => {
-        if (!response.ok) throw new Error('Network response was not ok');
-        return response.json();
-      })
-      .then(data => {
-        if (data.success) {
-          // Open the direct messaging panel if not already open
-          const directMessagingButton = document.getElementById('directMessagingButton');
-          const directMessagingPanel = document.getElementById('directMessagingPanel');
-          
-          if (!directMessagingPanel.classList.contains('show')) {
-            directMessagingButton.click();
-          }
-          
-          // Open the direct chat window using our WebSocket-enabled system
-          if (window.privateMessagingConnections) {
-            window.privateMessagingConnections.openChatWithUser({
-              id: userId,
-              name: userName,
-              role: userRole,
-              profile_picture: userImg
-            });
-          } else {
-            showToast('Messaging system not initialized', 'error');
-          }
-        } else {
-          showToast(data.error || 'Failed to start conversation', 'error');
+      if (!directMessagingPanel.classList.contains('show')) {
+        directMessagingButton.click();
+      }
+      
+      // Create user object with all necessary data
+      const userObject = {
+        id: userId,
+        name: userName,
+        role: userRole,
+        profile_picture: userImg
+      };
+      
+      // Open the direct chat window using our WebSocket-enabled system
+      if (window.privateMessagingConnections) {
+        window.privateMessagingConnections.openChatWithUser(userObject);
+        
+        // Explicitly add the user to the conversation list
+        if (window.addUserToConversationList) {
+          window.addUserToConversationList(userObject);
         }
-      })
-      .catch(error => {
-        console.error('Error starting direct chat:', error);
-        showToast('Connection error. Please try again.', 'error');
-      });
-
-
+      } else {
+        showToast('Messaging system not initialized', 'error');
+      }
+    } else {
+      showToast(data.error || 'Failed to start conversation', 'error');
     }
+  })
+  .catch(error => {
+    console.error('Error starting direct chat:', error);
+    showToast('Connection error. Please try again.', 'error');
+  });
+}
 
 
 
@@ -719,12 +723,29 @@ function getCsrfToken() {
 
 // This code should be added to your existing script at the end of community_page.html
 
+/**
+ * Fix for the community page search functionality
+ */
+
+// Define the missing function that's being called on page load
+function initEnhancedSearchFunctionality() {
+  // Call the existing search implementation
+  initLiveSearchFunctionality();
+}
+
+// Enhanced Live Search Functionality
 function initLiveSearchFunctionality() {
   const searchInput = document.getElementById('userSearchInput');
   const searchSuggestions = document.getElementById('searchSuggestions');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const searchBar = searchInput.closest('.search-bar');
   const searchLoadingIndicator = document.querySelector('.search-loading');
+  
+  // Check if elements exist before continuing
+  if (!searchInput || !searchBar) {
+    console.error('Search elements not found in the DOM');
+    return;
+  }
   
   // Track current filter type
   let currentFilterType = 'all';
@@ -752,43 +773,69 @@ function initLiveSearchFunctionality() {
       searchBar.classList.add('has-text');
     } else {
       searchBar.classList.remove('has-text');
-      hideSuggestions();
+      if (searchSuggestions) {
+        hideSuggestions();
+      }
       return;
     }
     
     // Show loading indicator
-    searchLoadingIndicator.classList.add('active');
+    if (searchLoadingIndicator) {
+      searchLoadingIndicator.classList.add('active');
+    }
     
-    // Debounce search with a short delay (150ms is responsive yet prevents too many requests)
+    // Debounce search with a short delay
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
       // Show suggestions even with a single character
       if (searchTerm.length >= 1) {
         fetchSearchSuggestions(searchTerm, currentFilterType);
       } else {
-        hideSuggestions();
+        if (searchSuggestions) {
+          hideSuggestions();
+        }
       }
     }, 150);
   });
   
-  // Handle clicking outside to close suggestions
-  document.addEventListener('click', function(event) {
-    if (!searchBar.contains(event.target) && !searchSuggestions.contains(event.target)) {
-      hideSuggestions();
+  // Handle pressing Enter to perform full search
+  searchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      const searchTerm = this.value.trim();
+      if (searchTerm) {
+        performFullSearch(searchTerm, currentFilterType);
+        if (searchSuggestions) {
+          hideSuggestions();
+        }
+      }
+      e.preventDefault();
     }
   });
   
+  // Handle clicking outside to close suggestions
+  if (searchSuggestions) {
+    document.addEventListener('click', function(event) {
+      if (!searchBar.contains(event.target) && !searchSuggestions.contains(event.target)) {
+        hideSuggestions();
+      }
+    });
+  }
+  
   // Handle clear button click
-  clearSearchBtn.addEventListener('click', function() {
-    searchInput.value = '';
-    searchBar.classList.remove('has-text');
-    hideSuggestions();
-    
-    // Reset to show all users for current filter
-    if (window.loadUsers) {
-      window.loadUsers(currentFilterType);
-    }
-  });
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', function() {
+      searchInput.value = '';
+      searchBar.classList.remove('has-text');
+      if (searchSuggestions) {
+        hideSuggestions();
+      }
+      
+      // Reset to show all users for current filter
+      if (window.loadUsers) {
+        window.loadUsers(currentFilterType);
+      }
+    });
+  }
   
   // Focus search input when clicking on search bar
   searchBar.addEventListener('click', function(event) {
@@ -797,21 +844,12 @@ function initLiveSearchFunctionality() {
     }
   });
   
-  // Handle search form submission
-  searchInput.closest('form')?.addEventListener('submit', function(event) {
-    event.preventDefault();
-    const searchTerm = searchInput.value.trim();
-    
-    if (searchTerm) {
-      performFullSearch(searchTerm, currentFilterType);
-      hideSuggestions();
-    }
-  });
-  
   /**
    * Fetch search suggestions from the server
    */
   function fetchSearchSuggestions(searchTerm, filterType) {
+    console.log(`Fetching search suggestions for: "${searchTerm}" with filter: ${filterType}`);
+    
     fetch("/search_users/", {
       method: 'POST',
       headers: {
@@ -831,148 +869,223 @@ function initLiveSearchFunctionality() {
     })
     .then(data => {
       // Hide loading indicator
-      searchLoadingIndicator.classList.remove('active');
+      if (searchLoadingIndicator) {
+        searchLoadingIndicator.classList.remove('active');
+      }
       
-      if (data.success) {
+      console.log(`Search results received: ${data.users ? data.users.length : 0} users found`);
+      
+      if (data.success && searchSuggestions) {
         displaySearchSuggestions(data.users, searchTerm);
       } else {
         console.error(data.error || 'Failed to fetch search suggestions');
-        hideSuggestions();
+        if (searchSuggestions) {
+          hideSuggestions();
+        }
       }
     })
     .catch(error => {
       console.error('Error fetching search suggestions:', error);
-      searchLoadingIndicator.classList.remove('active');
-      hideSuggestions();
+      if (searchLoadingIndicator) {
+        searchLoadingIndicator.classList.remove('active');
+      }
+      if (searchSuggestions) {
+        hideSuggestions();
+      }
     });
   }
   
+
+
+  function tryShowProfileModal(user) {
+  // Check if the modal element exists
+  const modalElement = document.getElementById('userProfileModal');
+  if (!modalElement) {
+    console.error('User profile modal element not found');
+    return;
+  }
+  
+  try {
+    // Try to populate the modal with user data
+    document.getElementById('modalProfileImg').src = user.profile_picture || '/static/images/default_profile.jpg';
+    document.getElementById('modalProfileName').textContent = user.name || '';
+    
+    const roleBadge = document.getElementById('modalRoleBadge');
+    if (roleBadge) {
+      roleBadge.textContent = user.role || '';
+      roleBadge.className = 'role-badge modal-role-badge ' + 
+                         (user.role && user.role.toLowerCase() === 'teacher' || 
+                          user.role && user.role.toLowerCase() === 'lecturer' ? 
+                          'teacher' : 'student');
+    }
+    
+    // Set other modal fields if they exist
+    if (document.getElementById('modalFollowers')) {
+      document.getElementById('modalFollowers').textContent = user.followers || 0;
+    }
+    
+    if (document.getElementById('modalFollowing')) {
+      document.getElementById('modalFollowing').textContent = user.followings || 0;
+    }
+    
+    if (document.getElementById('modalBio')) {
+      document.getElementById('modalBio').textContent = user.bio || 'No bio available';
+    }
+    
+    if (document.getElementById('modalCreatedAt')) {
+      document.getElementById('modalCreatedAt').textContent = user.created_at || 'Unknown';
+    }
+    
+    // Handle websites if they exist
+    const websitesList = document.getElementById('websitesList');
+    const websitesSection = document.getElementById('websitesSection');
+    
+    if (websitesList && websitesSection) {
+      websitesList.innerHTML = '';
+      
+      if (user.websites && user.websites.length > 0) {
+        websitesSection.style.display = 'block';
+        user.websites.forEach(website => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = website.startsWith('http') ? website : 'https://' + website;
+          a.textContent = website;
+          a.target = '_blank';
+          li.appendChild(a);
+          websitesList.appendChild(li);
+        });
+      } else {
+        websitesSection.style.display = 'none';
+      }
+    }
+    
+    // Set up connect button if it exists
+    const connectButton = document.getElementById('connectButton');
+    if (connectButton) {
+      connectButton.dataset.userId = user.id;
+      
+      // Check if we're already connected with this user
+      const isConnected = window.connectedUsers && window.connectedUsers.has(user.id);
+      
+      if (isConnected) {
+        connectButton.innerHTML = '<i class="bi bi-person-check-fill me-2"></i>Connected';
+        connectButton.classList.add('connected');
+      } else {
+        connectButton.innerHTML = '<i class="bi bi-person-plus me-2"></i>Connect';
+        connectButton.classList.remove('connected');
+      }
+    }
+    
+    // Show the modal using Bootstrap
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+  } catch (error) {
+    console.error('Error showing profile modal:', error);
+  }
+}
+
+
+
   /**
    * Display search suggestions in the dropdown
    */
-  function displaySearchSuggestions(users, searchTerm) {
-    // Clear previous suggestions
-    searchSuggestions.innerHTML = '';
+   function displaySearchSuggestions(users, searchTerm) {
+  if (!searchSuggestions) return;
+  
+  // Clear previous suggestions
+  searchSuggestions.innerHTML = '';
+  
+  if (!users || users.length === 0) {
+    searchSuggestions.innerHTML = `
+      <div class="no-suggestions">
+        No users found matching "${searchTerm}"
+      </div>
+    `;
+    showSuggestions();
+    return;
+  }
+  
+  // Display maximum 6 suggestions to keep dropdown manageable
+  const maxSuggestions = 6;
+  const displayUsers = users.slice(0, maxSuggestions);
+  
+  // Create suggestion items
+  displayUsers.forEach(user => {
+    const suggestionItem = document.createElement('div');
+    suggestionItem.className = 'suggestion-item';
     
-    if (users.length === 0) {
-      searchSuggestions.innerHTML = `
-        <div class="no-suggestions">
-          No users found matching "${searchTerm}"
-        </div>
-      `;
-      showSuggestions();
-      return;
-    }
+    // Highlight matching text in name
+    const userName = user.name || '';
+    const highlightedName = highlightMatch(userName, searchTerm);
     
-    // Display maximum 6 suggestions to keep dropdown manageable
-    const maxSuggestions = 6;
-    const displayUsers = users.slice(0, maxSuggestions);
+    suggestionItem.innerHTML = `
+      <img src="${user.profile_picture || '/static/images/default_profile.jpg'}" 
+           alt="${userName}" class="suggestion-avatar">
+      <div class="suggestion-info">
+        <div class="suggestion-name">${highlightedName}</div>
+        <div class="suggestion-role">${user.role || ''}</div>
+      </div>
+    `;
     
-    // Create suggestion items
-    displayUsers.forEach(user => {
-      const suggestionItem = document.createElement('div');
-      suggestionItem.className = 'suggestion-item';
+    // Handle click to show user profile modal
+    suggestionItem.addEventListener('click', () => {
+      // Hide the suggestions dropdown
+      hideSuggestions();
       
-      // Highlight matching text in name
-      const userName = user.name;
-      const highlightedName = highlightMatch(userName, searchTerm);
-      
-      suggestionItem.innerHTML = `
-        <img src="${user.profile_picture || '/static/images/default_profile.jpg'}" 
-             alt="${userName}" class="suggestion-avatar">
-        <div class="suggestion-info">
-          <div class="suggestion-name">${highlightedName}</div>
-          <div class="suggestion-role">${user.role}</div>
-        </div>
-      `;
-      
-      // Handle click to show user details
-      suggestionItem.addEventListener('click', () => {
-        hideSuggestions();
+      // Show the user profile modal 
+      if (typeof showUserProfileModal === 'function') {
         showUserProfileModal(user);
-      });
-      
-      searchSuggestions.appendChild(suggestionItem);
+      } else if (window.showUserProfileModal) {
+        window.showUserProfileModal(user);
+      } else {
+        console.error('showUserProfileModal function not found');
+        
+        // Fallback: Try to manually create a modal if function is not available
+        tryShowProfileModal(user);
+      }
     });
     
-    // Add "See all results" if there are more users
-    if (users.length > maxSuggestions) {
-      const seeAllItem = document.createElement('div');
-      seeAllItem.className = 'suggestion-item see-all-item';
-      seeAllItem.innerHTML = `
-        <div class="see-all-text">
-          <i class="bi bi-search me-2"></i>
-          See all ${users.length} results
-        </div>
-      `;
-      
-      seeAllItem.addEventListener('click', () => {
-        performFullSearch(searchTerm, currentFilterType);
-        hideSuggestions();
-      });
-      
-      searchSuggestions.appendChild(seeAllItem);
-    }
+    searchSuggestions.appendChild(suggestionItem);
+  });
+  
+  // Add "See all results" if there are more users
+  if (users.length > maxSuggestions) {
+    const seeAllItem = document.createElement('div');
+    seeAllItem.className = 'suggestion-item see-all-item';
+    seeAllItem.innerHTML = `
+      <div class="see-all-text">
+        <i class="bi bi-search me-2"></i>
+        See all ${users.length} results
+      </div>
+    `;
     
-    showSuggestions();
+    seeAllItem.addEventListener('click', () => {
+      performFullSearch(searchTerm, currentFilterType);
+      hideSuggestions();
+    });
+    
+    searchSuggestions.appendChild(seeAllItem);
+  }
+  
+  showSuggestions();
+}
+  
+  /**
+   * Show suggestions dropdown
+   */
+  function showSuggestions() {
+    if (searchSuggestions) {
+      searchSuggestions.classList.add('active');
+    }
   }
   
   /**
-   * Perform a full search and display results in the main grid
+   * Hide suggestions dropdown
    */
-  function performFullSearch(searchTerm, filterType) {
-    // We can use the existing search function
-    if (window.performSearch) {
-      window.performSearch(searchTerm, filterType);
-    } else {
-      // Fallback implementation if window.performSearch doesn't exist
-      const userGrid = document.getElementById('user-grid');
-      const loadingSpinner = document.getElementById('loading-spinner');
-      
-      // Show loading spinner
-      userGrid.innerHTML = '';
-      loadingSpinner.style.display = 'flex';
-      
-      fetch("/search_users/", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify({ 
-          search_term: searchTerm,
-          filter_type: filterType
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        loadingSpinner.style.display = 'none';
-        
-        if (data.success) {
-          window.renderUsers(data.users);
-          
-          // Update filter buttons
-          document.querySelectorAll('.filter-button').forEach(btn => {
-            if (btn.getAttribute('data-filter') === filterType) {
-              btn.classList.add('active');
-            } else {
-              btn.classList.remove('active');
-            }
-          });
-          
-          // Show search stats if we have the function
-          if (window.showSearchStats) {
-            window.showSearchStats(searchTerm, data.users.length, filterType);
-          }
-        } else {
-          showToast(data.error || 'Failed to search users', 'error');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        loadingSpinner.style.display = 'none';
-        showToast('Error connecting to server', 'error');
-      });
+  function hideSuggestions() {
+    if (searchSuggestions) {
+      searchSuggestions.classList.remove('active');
     }
   }
   
@@ -980,28 +1093,130 @@ function initLiveSearchFunctionality() {
    * Helper function to highlight matching text
    */
   function highlightMatch(text, query) {
-    if (!query) return text;
+    if (!query || !text) return text || '';
     
     const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(escapedQuery, 'gi');
     
     return text.replace(regex, match => `<span class="highlight">${match}</span>`);
   }
-  
-  /**
-   * Show suggestions dropdown
-   */
-  function showSuggestions() {
-    searchSuggestions.classList.add('active');
-  }
-  
-  /**
-   * Hide suggestions dropdown
-   */
-  function hideSuggestions() {
-    searchSuggestions.classList.remove('active');
-  }
 }
+
+/**
+ * Perform a full search and display results in the main grid
+ */
+function performFullSearch(searchTerm, filterType) {
+  console.log(`Performing full search for: "${searchTerm}" with filter: ${filterType}`);
+  
+  // Show loading spinner
+  const userGrid = document.getElementById('user-grid');
+  const loadingSpinner = document.getElementById('loading-spinner');
+  
+  if (!userGrid || !loadingSpinner) {
+    console.error('Required DOM elements not found for search display');
+    return;
+  }
+  
+  userGrid.innerHTML = '';
+  loadingSpinner.style.display = 'flex';
+  
+  // Fetch search results from the server
+  // Fetch search results from the server
+  fetch("/search_users/", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({ 
+      search_term: searchTerm,
+      filter_type: filterType
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    // Hide loading spinner
+    loadingSpinner.style.display = 'none';
+    
+    console.log(`Full search results received: ${data.users ? data.users.length : 0} users found`);
+    
+    if (data.success) {
+      // Render search results
+      if (window.renderUsers) {
+        window.renderUsers(data.users);
+      } else if (typeof renderUsers === 'function') {
+        renderUsers(data.users);
+      } else {
+        console.error('renderUsers function not found');
+        userGrid.innerHTML = '<div class="error-message">Could not display search results</div>';
+      }
+      
+      // Update filter buttons to match current filter
+      document.querySelectorAll('.filter-button').forEach(btn => {
+        if (btn.getAttribute('data-filter') === data.filter_type) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      
+      // Show search stats
+      if (window.showSearchStats) {
+        window.showSearchStats(data.search_term, data.count || (data.users ? data.users.length : 0), data.filter_type);
+      } else if (typeof showSearchStats === 'function') {
+        showSearchStats(data.search_term, data.count || (data.users ? data.users.length : 0), data.filter_type);
+      }
+      
+      // Fetch connection status for the users if function exists
+      if (window.fetchConnectionStatus) {
+        window.fetchConnectionStatus();
+      } else if (typeof fetchConnectionStatus === 'function') {
+        fetchConnectionStatus();
+      }
+    } else {
+      // Show error
+      if (window.showToast) {
+        window.showToast(data.error || 'Failed to search users', 'error');
+      } else {
+        console.error(data.error || 'Failed to search users');
+        userGrid.innerHTML = `<div class="error-message">Search error: ${data.error || 'Failed to search users'}</div>`;
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    loadingSpinner.style.display = 'none';
+    
+    // Show error
+    if (window.showToast) {
+      window.showToast('Error connecting to server', 'error');
+    } else {
+      userGrid.innerHTML = '<div class="error-message">Error connecting to server</div>';
+    }
+  });
+}
+
+/**
+ * Helper function to get the CSRF token
+ */
+function getCsrfToken() {
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='))
+    ?.split('=')[1];
+  return cookieValue || '';
+}
+
+// Make the performFullSearch function available globally
+window.performFullSearch = performFullSearch;
+
+
+
 
 // Make the performSearch function available globally for the "See all results" button
 window.performSearch = function(searchTerm, filterType) {
