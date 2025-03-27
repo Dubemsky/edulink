@@ -284,7 +284,7 @@ def get_student_analytics(request, room_id):
                     content = "Encrypted content"
                     
             student_messages_with_votes.append({
-                'content': content,
+                'content': encryption_manager.decrypt(content),
                 'votes': msg.get('upvotes', 0) - msg.get('downvotes', 0),
                 'type': 'message',
                 'timestamp': msg.get('timestamp', '')
@@ -300,7 +300,7 @@ def get_student_analytics(request, room_id):
                     content = "Encrypted content"
                     
             student_replies_with_votes.append({
-                'content': content,
+                'content': encryption_manager.decrypt(content),
                 'votes': reply.get('upvotes', 0) - reply.get('downvotes', 0),
                 'type': 'reply',
                 'timestamp': reply.get('timestamp', '')

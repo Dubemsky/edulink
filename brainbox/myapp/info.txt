@@ -66,12 +66,13 @@ Can be able to make a groupchat and chat with 3 or more people
 
 
 ##############  additional ########################
-code editor# Ideas for Improvement
-deployment
-intigration with educational platforms like D2L
+code editor
 gamification
-groupchat
 users can select their prefered languages
+groupchat
+
+intigration with educational platforms like D2L
+deployment
 
 
 
