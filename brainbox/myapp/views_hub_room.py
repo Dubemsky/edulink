@@ -794,6 +794,98 @@ def check_poll_votes(request):
 
 
 
+def get_filtered_content(request):
+    """API endpoint to get filtered content for the hub resources based on filter type"""
+    if request.method != 'GET':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+    
+    try:
+        # Get the room ID and filter type from query parameters
+        room_id = request.GET.get('room_id')
+        filter_type = request.GET.get('filter_type', 'text')  # Default to 'text' instead of 'all'
+        
+        if not room_id:
+            return JsonResponse({'success': False, 'error': 'Room ID is required'}, status=400)
+        
+        # Reference to the messages collection
+        messages_ref = db.collection('hub_messages')
+        
+        # Apply filters based on filter_type
+        if filter_type == 'text':
+            # For 'text', get messages with message_type 'text'
+            query = messages_ref.where('room_id', '==', room_id).where('message_type', '==', 'text')
+            docs = query.stream()
+        elif filter_type == 'docs':
+            # Filter for documents (files)
+            query = messages_ref.where('room_id', '==', room_id).where('message_type', '==', 'file')
+            docs = query.stream()
+        elif filter_type == 'media':
+            # For media, we need to make multiple queries since we can't do OR conditions in Firestore
+            image_query = messages_ref.where('room_id', '==', room_id).where('message_type', '==', 'image')
+            video_query = messages_ref.where('room_id', '==', room_id).where('message_type', '==', 'video')
+            
+            # Execute both queries
+            image_docs = list(image_query.stream())
+            video_docs = list(video_query.stream())
+            
+            # Combine results
+            docs = image_docs + video_docs
+        elif filter_type == 'polls':
+            # Filter for polls
+            query = messages_ref.where('room_id', '==', room_id).where('is_poll', '==', True)
+            docs = query.stream()
+        else:
+            # Default case for unknown filter types - return text messages
+            query = messages_ref.where('room_id', '==', room_id).where('message_type', '==', 'text')
+            docs = query.stream()
+        
+        # Process the results
+        messages = []
+        for doc in docs:
+            message = doc.to_dict()
+            
+            # Remove embedding field to reduce payload size
+            if 'embedding' in message:
+                del message['embedding']
+            
+            # Add the document ID to the message dictionary
+            message['message_id'] = doc.id
+            
+            # Decrypt the content
+            encrypted_content = message.get('content')
+            if encrypted_content:
+                message['content'] = encryption_manager.decrypt(encrypted_content)
+            
+            # Decrypt poll options if present
+            if message.get('is_poll') and message.get('poll_options'):
+                decrypted_poll_options = []
+                for option in message.get('poll_options', []):
+                    decrypted_option = {
+                        'option': encryption_manager.decrypt(option.get('option')),
+                        'votes': option.get('votes', 0)
+                    }
+                    decrypted_poll_options.append(decrypted_option)
+                message['poll_options'] = decrypted_poll_options
+            
+            # Format timestamp
+            timestamp = message.get('timestamp', None)
+            if isinstance(timestamp, str):  
+                timestamp = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                message['timestamp'] = timestamp.strftime('%H:%M')
+            else:
+                message['timestamp'] = "Unknown"
+            
+            messages.append(message)
+        
+        return JsonResponse({
+            'success': True,
+            'messages': messages,
+            'filter_type': filter_type
+        }, safe=False)
+        
+    except Exception as e:
+        print(f"Error getting filtered content: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 

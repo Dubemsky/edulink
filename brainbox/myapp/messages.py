@@ -242,6 +242,9 @@ def get_messages_by_room(room_id):
         print(f"Error retrieving messages: {e}")
         return []
     
+
+    
+    
 def get_questions_with_top_replies(room_id):
     try:
         # Step 1: Get all questions for the specified room

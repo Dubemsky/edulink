@@ -71,7 +71,7 @@ urlpatterns = [
     path('get_conversations/', get_conversations, name='get_conversations'),
     path('start_direct_chat/', start_direct_chat, name='start_direct_chat'),
     path('mark_messages_read/', mark_messages_read, name='mark_messages_read'),
-
+    path('get-filtered-content/',get_filtered_content, name='get_filtered_content'),
     path('get_group_chats/', get_group_chats, name='get_group_chats'),
     path('create_group_chat/', create_group_chat, name='create_group_chat'),
     path('send_group_message/', send_group_message, name='send_group_message'),

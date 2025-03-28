@@ -413,60 +413,65 @@
           </aside>
 
           <!-- Right Sidebar -->
-          <aside class="right-sidebar">
-            <div class="user-head">
-              <h3>Hub Resources</h3>
-              <div class="tabs">
-                <button class="tab-button active" id="membersBtn" data-tab="members">Members</button>
-                <button class="tab-button" id="bookmarksBtn" data-tab="bookmarks">Bookmarks</button>
-                <button class="tab-button" id="streamsBtn" data-tab="streams">Streams</button>
-              </div>
-            </div>
-            
-            <!-- Tab Content -->
-            <div class="tab-content" id="members" style="display:block;">
-              <h4>Members ({{ members|length }})</h4>
-              <ul class="members-list">
-                {% if members %}
-                  {% for member in members %}
-                    <li>{{ member }}</li>
-                  {% endfor %}
-                {% else %}
-                  <li class="no-members">No members have joined this hub yet.</li>
-                {% endif %}
-              </ul>
-            </div>
-        
-            <div class="tab-content" id="bookmarks">
-              <h4>Bookmarks</h4>
-              <ul class="bookmarks-list">
-                {% if bookmarks %}
-                  {% for bookmark in bookmarks %}
-                    <div class="bookmark-item">
-                      <button class="bookmark-button" onclick="openSidePanel('{{ bookmark.message }}', '{{ bookmark.question_id }}')">{{ bookmark.message }}</button>
-                    </div>
-                  {% endfor %}
-                {% else %}
-                  <div class="no-bookmarks">
-                    No bookmarks available.
-                  </div>
-                {% endif %}
-              </ul>
-            </div>
-        
-            <div class="tab-content" id="streams">
-              <h4>Streams</h4>
-              <ul class="streams-list">
-                {% if streams %}
-                  {% for stream in streams %}
-                    <li>{{ stream }}</li>
-                  {% endfor %}
-                {% else %}
-                  <li class="no-streams">No streams available.</li>
-                {% endif %}
-              </ul>
-            </div>
-          </aside>
+          <!-- Updated Right Sidebar with Filters -->
+<aside class="right-sidebar">
+  <div class="user-head">
+    <h3>Hub Resources</h3>
+    <div class="tabs">
+      <button class="tab-button active" id="filtersBtn" data-tab="filters">Filter(s)</button>
+      <button class="tab-button" id="bookmarksBtn" data-tab="bookmarks">Bookmarks</button>
+      <button class="tab-button" id="streamsBtn" data-tab="streams">Streams</button>
+    </div>
+  </div>
+  
+  <!-- Tab Content -->
+  <div class="tab-content" id="filters" style="display:block;">
+    <h4>Filters</h4>
+    <div class="filter-buttons">
+      <button class="filter-button active" data-filter="all">Text</button>
+      <button class="filter-button" data-filter="docs">Docs</button>
+      <button class="filter-button" data-filter="media">Media</button>
+      <button class="filter-button" data-filter="polls">Polls</button>
+    </div>
+    <div class="filter-results">
+      <ul class="filtered-items-list">
+        <!-- Items will be populated by JavaScript -->
+        <li class="no-items">Select a filter to see content</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tab-content" id="bookmarks">
+    <h4>Bookmarks</h4>
+    <ul class="bookmarks-list">
+      {% if bookmarks %}
+        {% for bookmark in bookmarks %}
+          <div class="bookmark-item">
+            <button class="bookmark-button" onclick="openSidePanel('{{ bookmark.message }}', '{{ bookmark.question_id }}')">{{ bookmark.message }}</button>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="no-bookmarks">
+          No bookmarks available.
+        </div>
+      {% endif %}
+    </ul>
+  </div>
+
+  <div class="tab-content" id="streams">
+    <h4>Streams</h4>
+    <ul class="streams-list">
+      {% if streams %}
+        {% for stream in streams %}
+          <li>{{ stream }}</li>
+        {% endfor %}
+      {% else %}
+        <li class="no-streams">No streams available.</li>
+      {% endif %}
+    </ul>
+  </div>
+</aside>
+
         </div>
       </div>
     </div>
@@ -1350,95 +1355,206 @@
     
     
     
-    document.addEventListener("DOMContentLoaded", function () {
-        const tabButtons = document.querySelectorAll(".tab-button");
-        const tabContents = document.querySelectorAll(".tab-content");
-        const roomId = "{{ room_id|escapejs }}";
-        const currentStudentName = "{{ current_teachers_name|escapejs }}";
-    
-        tabButtons.forEach(button => {
-            button.addEventListener("click", function () {
-                const tabName = this.getAttribute("data-tab");
-                sendTabClickData(tabName, roomId, currentStudentName);
-    
-                tabContents.forEach(content => {
-                    content.style.display = "none";
-                });
-    
-                document.getElementById(tabName).style.display = "block";
-    
-                tabButtons.forEach(btn => btn.classList.remove("active"));
-                this.classList.add("active");
-    
-                if (tabName === "bookmarks") {
-                    fetchBookmarks(roomId, currentStudentName);
-                }
-            });
-        });
-    
-        function sendTabClickData(tabName, room_id, username) {
-            fetch("/log-tab-click/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken"),
-                },
-                body: JSON.stringify({ tab_name: tabName, roomId: room_id, username: username })
-            })
-            .then(response => response.json())
-            .then(data => console.log("Tab click logged:", data))
-            .catch(error => console.error("Error logging tab click:", error));
-        }
-    
-        function fetchBookmarks(room_id, username) {
-            fetch("/log-tab-click/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken"),
-                },
-                body: JSON.stringify({ tab_name: "bookmarked", roomId: room_id, username: username })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success" && data.bookmarked_messages) {
-                    updateBookmarksUI(data.bookmarked_messages);
-                } else {
-                    console.error("Error fetching bookmarks:", data.message);
-                }
-            })
-            .catch(error => console.error("Fetch error:", error));
-        }
-    
-        function updateBookmarksUI(bookmarks) {
-            const bookmarksList = document.querySelector(".bookmarks-list");
-            bookmarksList.innerHTML = ""; // Clear previous content
-    
-            if (bookmarks.length > 0) {
-                bookmarks.forEach(bookmark => {
-                    const listItem = document.createElement("li");
-                    const button = document.createElement("button");
-                    button.textContent = bookmark.message;
-                    button.classList.add("bookmark-button");
-                    button.onclick = function() {
-                        openSidePanel(bookmark.message, bookmark.question_id);
-                    };
-                    listItem.appendChild(button);
-                    bookmarksList.appendChild(listItem);
-                });
-            } else {
-                bookmarksList.innerHTML = "<li>No bookmarks available.</li>";
-            }
-        }
-    
-        function getCookie(name) {
-            const cookies = document.cookie.split("; ");
-            for (let cookie of cookies) {
-                let [key, value] = cookie.split("=");
-                if (key === name) return decodeURIComponent(value);
-            }
-        }
+    // Filter functionality for hub resources
+// Filter functionality for hub resources
+document.addEventListener("DOMContentLoaded", function () {
+  const tabButtons = document.querySelectorAll(".tab-button");
+  const tabContents = document.querySelectorAll(".tab-content");
+  const filterButtons = document.querySelectorAll(".filter-button");
+  const roomId = document.getElementById("room-id-data").dataset.roomId;
+  const currentStudentName = document.getElementById("room-id-data").dataset.username;
+  
+  // Set up tab switching
+  tabButtons.forEach(button => {
+    button.addEventListener("click", function () {
+      const tabName = this.getAttribute("data-tab");
+      sendTabClickData(tabName, roomId, currentStudentName);
+      
+      tabContents.forEach(content => {
+        content.style.display = "none";
+      });
+      
+      document.getElementById(tabName).style.display = "block";
+      
+      tabButtons.forEach(btn => btn.classList.remove("active"));
+      this.classList.add("active");
+      
+      if (tabName === "bookmarks") {
+        fetchBookmarks(roomId, currentStudentName);
+      } else if (tabName === "filters") {
+        // Get the active filter button
+        const activeFilter = document.querySelector(".filter-button.active");
+        const filterType = activeFilter ? activeFilter.getAttribute("data-filter") : "all";
+        
+        // Load content for the active filter (or 'all' by default)
+        fetchFilteredContent(filterType);
+      }
     });
+  });
+  
+  // Set up filter buttons
+  filterButtons.forEach(button => {
+    button.addEventListener("click", function() {
+      const filterType = this.getAttribute("data-filter");
+      
+      // Update active button
+      filterButtons.forEach(btn => btn.classList.remove("active"));
+      this.classList.add("active");
+      
+      // Fetch and display filtered content
+      fetchFilteredContent(filterType);
+    });
+  });
+  
+  function fetchFilteredContent(filterType) {
+    displayLoading();
+    
+    // Fetch from server with the specific filter type
+    fetch(`/get-filtered-content/?room_id=${roomId}&filter_type=${filterType}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          displayFilteredContent(filterType, data.messages);
+        } else {
+          displayError(data.error || "Failed to load content");
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching filtered content:", error);
+        displayError("Network error while loading content");
+      });
+  }
+  
+  // Add this update to the displayFilteredContent function
+
+function displayFilteredContent(filterType, messages) {
+  const resultsList = document.querySelector(".filtered-items-list");
+  resultsList.innerHTML = "";
+  
+  // Display filtered items
+  if (messages.length === 0) {
+    resultsList.innerHTML = `<li class="no-items">No ${filterType === 'all' ? 'content' : filterType} found</li>`;
+    return;
+  }
+  
+  messages.forEach(item => {
+    const listItem = document.createElement("li");
+    listItem.className = "filtered-item";
+    
+    // Create a button to open the message in the side panel
+    const button = document.createElement("button");
+    button.className = "filter-item-button";
+    
+    // Add the full content as a title attribute for tooltip hover effect
+    if (item.content) {
+      button.title = item.content;
+    }
+    
+    button.onclick = function() {
+      openSidePanel(item.content, item.message_id);
+    };
+    
+    // Create appropriate content preview based on type
+    if (item.is_poll) {
+      button.innerHTML = `<i class="fa fa-bar-chart"></i> <span>${item.content || "Poll"}</span>`;
+      button.classList.add("poll-item");
+    } else if (item.file_url) {
+      button.innerHTML = `<i class="fa fa-file"></i> <span>${item.content || "File"}</span>`;
+      button.classList.add("doc-item");
+    } else if (item.image_url) {
+      button.innerHTML = `<i class="fa fa-image"></i> <span>${item.content || "Image"}</span>`;
+      button.classList.add("image-item");
+    } else if (item.video_url) {
+      button.innerHTML = `<i class="fa fa-video-camera"></i> <span>${item.content || "Video"}</span>`;
+      button.classList.add("video-item");
+    } else {
+      button.innerHTML = `<i class="fa fa-comment"></i> <span>${item.content || "Message"}</span>`;
+    }
+    
+    listItem.appendChild(button);
+    resultsList.appendChild(listItem);
+  });
+}
+  
+  function displayLoading() {
+    const resultsList = document.querySelector(".filtered-items-list");
+    resultsList.innerHTML = "<li class='loading-items'>Loading content...</li>";
+  }
+  
+  function displayError(message) {
+    const resultsList = document.querySelector(".filtered-items-list");
+    resultsList.innerHTML = `<li class='error-message'>${message}</li>`;
+  }
+  
+  function sendTabClickData(tabName, room_id, username) {
+    fetch("/log-tab-click/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: JSON.stringify({ tab_name: tabName, roomId: room_id, username: username })
+    })
+    .then(response => response.json())
+    .then(data => console.log("Tab click logged:", data))
+    .catch(error => console.error("Error logging tab click:", error));
+  }
+  
+  function fetchBookmarks(room_id, username) {
+    fetch("/log-tab-click/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: JSON.stringify({ tab_name: "bookmarked", roomId: room_id, username: username })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === "success" && data.bookmarked_messages) {
+        updateBookmarksUI(data.bookmarked_messages);
+      } else {
+        console.error("Error fetching bookmarks:", data.message);
+      }
+    })
+    .catch(error => console.error("Fetch error:", error));
+  }
+  
+  function updateBookmarksUI(bookmarks) {
+    const bookmarksList = document.querySelector(".bookmarks-list");
+    bookmarksList.innerHTML = ""; // Clear previous content
+    
+    if (bookmarks.length > 0) {
+      bookmarks.forEach(bookmark => {
+        const listItem = document.createElement("li");
+        const button = document.createElement("button");
+        button.textContent = bookmark.message;
+        button.classList.add("bookmark-button");
+        button.onclick = function() {
+          openSidePanel(bookmark.message, bookmark.question_id);
+        };
+        listItem.appendChild(button);
+        bookmarksList.appendChild(listItem);
+      });
+    } else {
+      bookmarksList.innerHTML = "<li>No bookmarks available.</li>";
+    }
+  }
+  
+  // Helper function to get cookies
+  function getCookie(name) {
+    const cookies = document.cookie.split("; ");
+    for (let cookie of cookies) {
+      let [key, value] = cookie.split("=");
+      if (key === name) return decodeURIComponent(value);
+    }
+  }
+  
+  // Load default filter (all) on initial page load
+  if (document.getElementById("filters").style.display === "block") {
+    fetchFilteredContent('all');
+  }
+});
     
     
     
