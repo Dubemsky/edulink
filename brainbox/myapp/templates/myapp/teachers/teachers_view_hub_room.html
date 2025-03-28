@@ -287,7 +287,7 @@
                     {% if message.file_url %}
                     <div class="message-file">
                       <a href="{{ message.file_url }}" target="_blank">
-                        <img src="https://cdn-icons-png.flaticon.com/512/337/337946.png" alt="File">
+                        <img src="/static/images/files.png" alt="File" style="width: 100px; height: 90px;">
                         <span>
                           {% if message.content and message.content != "my file" %}
                             {{ message.content }}
@@ -1050,6 +1050,7 @@
     
     // Function to submit a poll vote
     function submitPollVote(messageId, roomId) {
+      console.log(" I am here now i want to cast my vote")
         const form = document.getElementById(`poll-form-${messageId}`);
         const selectedOption = form.querySelector(`input[name="poll-option-${messageId}"]:checked`);
         const voteButton = document.getElementById(`poll-vote-${messageId}`);
@@ -1960,7 +1961,7 @@
             fileLink.target = "_blank";
     
             const fileIcon = document.createElement("img");
-            fileIcon.src = "https://cdn-icons-png.flaticon.com/512/337/337946.png";
+            fileIcon.src = "/static/images/files.png";
             fileIcon.alt = "File";
             fileIcon.style.width = "100px";
             fileIcon.style.height = "100px";

@@ -661,6 +661,7 @@ def poll_voting(request):
             username = data.get('username')
             
             if not all([message_id, selected_option, username]):
+                print(f"Error 1 in poll voting:")
                 return JsonResponse({'success': False, 'error': 'Missing required fields'}, status=400)
                 
             # Reference to the poll message
@@ -685,11 +686,15 @@ def poll_voting(request):
             
             if poll_message and poll_message.get('is_poll'):
                 poll_options = poll_message.get('poll_options', [])
-                
+
+                print(f" These are the option {poll_options}")
+
+
                 # Find the selected option and increment its vote count
                 option_found = False
                 for option in poll_options:
-                    if option.get('option') == selected_option:
+                    
+                    if encryption_manager.decrypt(option.get('option') ) == selected_option:
                         option_found = True
                         # Increment the vote count
                         current_votes = option.get('votes', 0)
@@ -734,7 +739,6 @@ def poll_voting(request):
                 }, status=404)
                 
         except Exception as e:
-            print(f"Error in poll voting: {e}")
             return JsonResponse({
                 'success': False, 
                 'error': str(e)
@@ -801,8 +805,10 @@ def check_poll_votes(request):
 @csrf_exempt
 def vote_reply(request):
     if request.method == "POST":
+        print(" \n\n\nI am here")
         try:
             # Get data from the request
+            
             data = json.loads(request.body)
             reply_id = data.get("reply_id")
             vote_type = data.get("vote_type")  # "up" or "down" or null (for remove)
@@ -819,6 +825,8 @@ def vote_reply(request):
             
             if not reply_doc.exists:
                 return JsonResponse({"success": False, "error": "Reply not found"}, status=404)
+            
+
             
             # Get current vote data
             reply_data = reply_doc.to_dict()
@@ -903,6 +911,7 @@ def vote_reply(request):
         except Exception as e:
             print(f"Error updating vote: {e}")
             return JsonResponse({"success": False, "error": str(e)}, status=500)
+        
     
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 

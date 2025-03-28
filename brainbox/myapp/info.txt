@@ -1,13 +1,6 @@
 # More ideas to Add
 
 
-
-
-
-
-
-
-
 - message are encrypted and stored in database
 - Bookmark : allows people to follow up with conversations
 - Notifications : will show replies, tags
@@ -63,6 +56,10 @@ OLLAMA
 It will make use of the 
 so it will be grouped into 2 sections. Primary Inbox (Both follows eachother), Message Request (U dont follow them)
 Can be able to make a groupchat and chat with 3 or more people
+
+
+group chat
+private calls
 
 
 ##############  additional ########################
