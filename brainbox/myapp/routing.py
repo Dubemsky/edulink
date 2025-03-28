@@ -1,7 +1,6 @@
 from django.urls import re_path
 from .consumer import *
 from .private_message_consumer import DirectChatConsumer
-from .group_chat_consumer import GroupChatConsumer
 
 wsPattern = [
     # General messages
@@ -15,7 +14,6 @@ wsPattern = [
 
     re_path(r'ws/direct-chat/(?P<user_id>[^/]+)/(?P<recipient_id>[^/]+)/$', DirectChatConsumer.as_asgi()),
 
-    re_path(r'ws/group-chat/<str:group_id>/<str:user_id>/', GroupChatConsumer.as_asgi()),
     
 
 

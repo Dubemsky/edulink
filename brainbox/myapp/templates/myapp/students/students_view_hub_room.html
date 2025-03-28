@@ -987,12 +987,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Filter functionality for hub resources
 // Filter functionality for hub resources
+// This function runs when the document is fully loaded
 document.addEventListener("DOMContentLoaded", function () {
   const tabButtons = document.querySelectorAll(".tab-button");
   const tabContents = document.querySelectorAll(".tab-content");
   const filterButtons = document.querySelectorAll(".filter-button");
   const roomId = document.getElementById("room-id-data").dataset.roomId;
   const currentStudentName = document.getElementById("room-id-data").dataset.username;
+  
+  // Add the pulse animation style
+  addPulseStyle();
   
   // Set up tab switching
   tabButtons.forEach(button => {
@@ -1036,6 +1040,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
   
+  // Function to fetch filtered content from the server
   function fetchFilteredContent(filterType) {
     displayLoading();
     
@@ -1055,67 +1060,19 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   }
   
-  // Add this update to the displayFilteredContent function
-
-function displayFilteredContent(filterType, messages) {
-  const resultsList = document.querySelector(".filtered-items-list");
-  resultsList.innerHTML = "";
-  
-  // Display filtered items
-  if (messages.length === 0) {
-    resultsList.innerHTML = `<li class="no-items">No ${filterType === 'all' ? 'content' : filterType} found</li>`;
-    return;
-  }
-  
-  messages.forEach(item => {
-    const listItem = document.createElement("li");
-    listItem.className = "filtered-item";
-    
-    // Create a button to open the message in the side panel
-    const button = document.createElement("button");
-    button.className = "filter-item-button";
-    
-    // Add the full content as a title attribute for tooltip hover effect
-    if (item.content) {
-      button.title = item.content;
-    }
-    
-    button.onclick = function() {
-      openSidePanel(item.content, item.message_id);
-    };
-    
-    // Create appropriate content preview based on type
-    if (item.is_poll) {
-      button.innerHTML = `<i class="fa fa-bar-chart"></i> <span>${item.content || "Poll"}</span>`;
-      button.classList.add("poll-item");
-    } else if (item.file_url) {
-      button.innerHTML = `<i class="fa fa-file"></i> <span>${item.content || "File"}</span>`;
-      button.classList.add("doc-item");
-    } else if (item.image_url) {
-      button.innerHTML = `<i class="fa fa-image"></i> <span>${item.content || "Image"}</span>`;
-      button.classList.add("image-item");
-    } else if (item.video_url) {
-      button.innerHTML = `<i class="fa fa-video-camera"></i> <span>${item.content || "Video"}</span>`;
-      button.classList.add("video-item");
-    } else {
-      button.innerHTML = `<i class="fa fa-comment"></i> <span>${item.content || "Message"}</span>`;
-    }
-    
-    listItem.appendChild(button);
-    resultsList.appendChild(listItem);
-  });
-}
-  
+  // Function to show loading state
   function displayLoading() {
     const resultsList = document.querySelector(".filtered-items-list");
     resultsList.innerHTML = "<li class='loading-items'>Loading content...</li>";
   }
   
+  // Function to display error messages
   function displayError(message) {
     const resultsList = document.querySelector(".filtered-items-list");
     resultsList.innerHTML = `<li class='error-message'>${message}</li>`;
   }
   
+  // Function to log tab click data
   function sendTabClickData(tabName, room_id, username) {
     fetch("/log-tab-click/", {
       method: "POST",
@@ -1130,6 +1087,7 @@ function displayFilteredContent(filterType, messages) {
     .catch(error => console.error("Error logging tab click:", error));
   }
   
+  // Function to fetch bookmarks
   function fetchBookmarks(room_id, username) {
     fetch("/log-tab-click/", {
       method: "POST",
@@ -1150,6 +1108,7 @@ function displayFilteredContent(filterType, messages) {
     .catch(error => console.error("Fetch error:", error));
   }
   
+  // Function to update bookmarks UI
   function updateBookmarksUI(bookmarks) {
     const bookmarksList = document.querySelector(".bookmarks-list");
     bookmarksList.innerHTML = ""; // Clear previous content
@@ -1161,7 +1120,7 @@ function displayFilteredContent(filterType, messages) {
         button.textContent = bookmark.message;
         button.classList.add("bookmark-button");
         button.onclick = function() {
-          openSidePanel(bookmark.message, bookmark.question_id);
+          navigateToMessage(bookmark.question_id, bookmark.message);
         };
         listItem.appendChild(button);
         bookmarksList.appendChild(listItem);
@@ -1185,9 +1144,217 @@ function displayFilteredContent(filterType, messages) {
     fetchFilteredContent('all');
   }
 });
+
+// Function to add pulse animation style
+function addPulseStyle() {
+  if (!document.querySelector('style[data-pulse-style]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-pulse-style', 'true');
+    style.textContent = `
+      @keyframes message-pulse {
+        0% { 
+          box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+          background-color: rgba(0, 123, 255, 0.1); 
+        }
+        70% { 
+          box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+          background-color: rgba(0, 123, 255, 0.2); 
+        }
+        100% { 
+          box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+          background-color: rgba(0, 123, 255, 0.1); 
+        }
+      }
+      
+      .message-highlight-pulse {
+        animation: message-pulse 2s infinite;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+// This function will scroll to the message and open the side panel
+function navigateToMessage(messageId, messageContent) {
+  // Find the message in the chat
+  const messageElement = document.querySelector(`.message-box[data-message-id="${messageId}"]`);
+  const chatContainer = document.getElementById("chatMessages");
+  
+  if (messageElement) {
+    // First check if the message is already visible in the viewport
+    const messageRect = messageElement.getBoundingClientRect();
+    const containerRect = chatContainer.getBoundingClientRect();
     
+    const isVisible = (
+      messageRect.top >= containerRect.top &&
+      messageRect.bottom <= containerRect.bottom
+    );
     
+    if (!isVisible) {
+      // Determine if we need to scroll up or down
+      if (messageRect.top < containerRect.top) {
+        // Message is above viewport, scroll up
+        console.log("Scrolling up to find message");
+      } else {
+        // Message is below viewport, scroll down
+        console.log("Scrolling down to find message");
+      }
+      
+      // Perform the scroll with smooth behavior
+      messageElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }
     
+    // Add a visual pulse effect to make the message stand out
+    messageElement.classList.add('message-highlight-pulse');
+    
+    // Apply highlight styling
+    messageElement.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+    messageElement.style.boxShadow = '0 0 15px rgba(0, 123, 255, 0.7)';
+    
+    // Remove the highlight and pulse after a few seconds
+    setTimeout(() => {
+      messageElement.style.backgroundColor = '';
+      messageElement.style.boxShadow = '';
+      messageElement.classList.remove('message-highlight-pulse');
+    }, 3000);
+    
+    // Open the side panel with this message
+    openSidePanel(messageContent, messageId);
+  } else {
+    console.error(`Message with ID ${messageId} not found in the chat`);
+    
+    // Try to fetch messages in case they're not loaded yet
+    alert("That message could not be found in the current view. Opening in side panel instead.");
+    
+    // Still try to open the side panel even if we can't find the message
+    openSidePanel(messageContent, messageId);
+  }
+}
+
+// Update the displayFilteredContent function to use the improved navigation
+function displayFilteredContent(filterType, messages) {
+  const resultsList = document.querySelector(".filtered-items-list");
+  resultsList.innerHTML = "";
+  
+  // Display filtered items
+  if (messages.length === 0) {
+    resultsList.innerHTML = `<li class="no-items">No ${filterType === 'all' ? 'content' : filterType} found</li>`;
+    return;
+  }
+  
+  messages.forEach(item => {
+    const listItem = document.createElement("li");
+    listItem.className = "filtered-item";
+    
+    // Create a button to open the message in the side panel
+    const button = document.createElement("button");
+    button.className = "filter-item-button";
+    
+    // Add the full content as a title attribute for tooltip hover effect
+    if (item.content) {
+      button.title = item.content;
+    }
+    
+    // Set click handler to navigate to the message in chat
+    button.onclick = function() {
+      // Add a small loading indicator on the button
+      const originalContent = button.innerHTML;
+      button.innerHTML = '<i class="fa fa-circle-o-notch fa-spin"></i> Finding...';
+      
+      // Use setTimeout to allow the UI to update before navigation
+      setTimeout(() => {
+        navigateToMessage(item.message_id, item.content);
+        // Restore the button's original content
+        button.innerHTML = originalContent;
+      }, 200);
+    };
+    
+    // Create appropriate content preview based on type
+    if (item.is_poll) {
+      button.innerHTML = `<i class="fa fa-bar-chart"></i> <span>${item.content || "Poll"}</span>`;
+      button.classList.add("poll-item");
+    } else if (item.file_url) {
+      button.innerHTML = `<i class="fa fa-file"></i> <span>${item.content || "File"}</span>`;
+      button.classList.add("doc-item");
+    } else if (item.image_url) {
+      button.innerHTML = `<i class="fa fa-image"></i> <span>${item.content || "Image"}</span>`;
+      button.classList.add("image-item");
+    } else if (item.video_url) {
+      button.innerHTML = `<i class="fa fa-video-camera"></i> <span>${item.content || "Video"}</span>`;
+      button.classList.add("video-item");
+    } else {
+      button.innerHTML = `<i class="fa fa-comment"></i> <span>${item.content || "Message"}</span>`;
+    }
+    
+    listItem.appendChild(button);
+    resultsList.appendChild(listItem);
+  });
+  
+  // Add styles for the filter items
+  const style = document.createElement('style');
+  style.textContent = `
+    .filtered-item {
+      margin-bottom: 8px;
+    }
+    
+    .filter-item-button {
+      width: 100%;
+      text-align: left;
+      padding: 8px 12px;
+      background-color: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .filter-item-button:hover {
+      background-color: #e9f0ff;
+      border-color: #c0d6ff;
+    }
+    
+    .filter-item-button i {
+      margin-right: 8px;
+      font-size: 14px;
+    }
+    
+    .filter-item-button.poll-item i {
+      color: #dc3545;
+    }
+    
+    .filter-item-button.doc-item i {
+      color: #007bff;
+    }
+    
+    .filter-item-button.image-item i {
+      color: #28a745;
+    }
+    
+    .filter-item-button.video-item i {
+      color: #fd7e14;
+    }
+    
+    .filter-item-button span {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  `;
+  
+  // Only add the style once
+  if (!document.querySelector('style[data-filter-styles]')) {
+    style.setAttribute('data-filter-styles', 'true');
+    document.head.appendChild(style);
+  }
+}
     
     
     

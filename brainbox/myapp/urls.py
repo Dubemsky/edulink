@@ -1,7 +1,6 @@
 from .views import *
 from .analitics import *
 from .summarise import *
-from .group_chat import *
 from django.urls import path
 from .views_teachers import *
 from .views_students import *
@@ -72,20 +71,12 @@ urlpatterns = [
     path('start_direct_chat/', start_direct_chat, name='start_direct_chat'),
     path('mark_messages_read/', mark_messages_read, name='mark_messages_read'),
     path('get-filtered-content/',get_filtered_content, name='get_filtered_content'),
-    path('get_group_chats/', get_group_chats, name='get_group_chats'),
-    path('create_group_chat/', create_group_chat, name='create_group_chat'),
-    path('send_group_message/', send_group_message, name='send_group_message'),
-    path('update_group_info/', update_group_info, name='update_group_info'),
-  
     path('send-invite/', send_invite, name='send_invite'),
     path('search-students/', search_students, name='search_students'),
     path('respond-to-invite/', respond_to_invite, name='respond_to_invite'),
 
     path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
-        path('get_group_messages/<str:group_id>/', get_group_messages, name='get_group_messages'),
-    path('mark_group_messages_read/', mark_group_messages_read, name='mark_group_messages_read'),
-    path('remove_group_participant/', remove_group_participant, name='remove_group_participant'),
     path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
     path('accept_connection_request/', accept_connection_request, name='accept_connection_request'),
     path('decline_connection_request/', decline_connection_request, name='decline_connection_request'),
