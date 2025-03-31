@@ -203,3 +203,18 @@ window.directMessagingWebSocket = {
   sendMessage: sendMessageViaWebSocket,
   closeConnection: closeWebSocketConnection
 };
+// Add this to the end of your existing private_messaging.js file
+
+// Load CSS for group chat functionality
+function loadGroupChatStyles() {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = '/static/css/group_chat.css';
+  document.head.appendChild(link);
+  
+}
+
+// Initialize group chat functionality
+document.addEventListener('DOMContentLoaded', function() {
+  loadGroupChatStyles();
+});

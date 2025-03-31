@@ -91,6 +91,147 @@ def get_student_analytics(request, room_id):
             for hour, count in sorted(hour_activity.items())
         ]
         
+        # ------------------- DETAILED ACTIVITY TRACKING -------------------
+        
+        # Track all student activities in chronological order
+        student_activities = []
+        
+        # Track messages
+        for msg in student_messages:
+            activity_type = "question"
+            if msg.get('is_poll'):
+                activity_type = "poll_creation"
+                
+            timestamp = msg.get('timestamp', '')
+            try:
+                if isinstance(timestamp, str):
+                    date_obj = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    formatted_time = date_obj.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    formatted_time = str(timestamp)
+                    
+                student_activities.append({
+                    'type': activity_type,
+                    'timestamp': formatted_time,
+                    'content': msg.get('content', ''),
+                    'message_id': msg.get('message_id', ''),
+                    'upvotes': msg.get('upvotes', 0),
+                    'downvotes': msg.get('downvotes', 0)
+                })
+            except (ValueError, TypeError):
+                pass
+                
+        # Track replies
+        for reply in student_replies:
+            timestamp = reply.get('timestamp', '')
+            try:
+                if isinstance(timestamp, str):
+                    date_obj = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    formatted_time = date_obj.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    formatted_time = str(timestamp)
+                    
+                # Determine if reply was to a teacher
+                is_teacher_reply = False
+                question_id = reply.get('question_id')
+                for msg in message_data:
+                    if msg.get('message_id') == question_id and msg.get('role', '').lower() == 'teacher':
+                        is_teacher_reply = True
+                        break
+                
+                student_activities.append({
+                    'type': 'reply' if not is_teacher_reply else 'teacher_reply',
+                    'timestamp': formatted_time,
+                    'content': reply.get('reply_content', ''),
+                    'reply_id': reply.get('reply_id', ''),
+                    'question_id': reply.get('question_id', ''),
+                    'upvotes': reply.get('upvotes', 0),
+                    'downvotes': reply.get('downvotes', 0)
+                })
+            except (ValueError, TypeError):
+                pass
+                
+        # Track votes given by student
+        user_votes_ref = db.collection('user_votes').where('username', '==', student_username)
+        user_votes = list(user_votes_ref.stream())
+        
+        for vote in user_votes:
+            vote_data = vote.to_dict()
+            vote_type = vote_data.get('vote_type')
+            content_id = vote_data.get('content_id', '')
+            timestamp = vote_data.get('timestamp', '')
+            
+            try:
+                if isinstance(timestamp, str):
+                    date_obj = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    formatted_time = date_obj.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    formatted_time = str(timestamp)
+                    
+                student_activities.append({
+                    'type': f'{vote_type}vote',
+                    'timestamp': formatted_time,
+                    'content_id': content_id
+                })
+            except (ValueError, TypeError):
+                pass
+                
+        # Track poll votes by student
+        poll_votes_ref = db.collection('poll_votes').where('username', '==', student_username)
+        poll_votes = list(poll_votes_ref.stream())
+        
+        for vote in poll_votes:
+            vote_data = vote.to_dict()
+            poll_id = vote_data.get('poll_id', '')
+            option = vote_data.get('option', '')
+            timestamp = vote_data.get('timestamp', '')
+            
+            try:
+                if isinstance(timestamp, str):
+                    date_obj = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    formatted_time = date_obj.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    formatted_time = str(timestamp)
+                    
+                student_activities.append({
+                    'type': 'poll_vote',
+                    'timestamp': formatted_time,
+                    'poll_id': poll_id,
+                    'option': option
+                })
+            except (ValueError, TypeError):
+                pass
+                
+        # Track bookmark activities
+        bookmarks_ref = db.collection('bookmarked_messages').where('username', '==', student_username).where('room_id', '==', room_id)
+        bookmarks = list(bookmarks_ref.stream())
+        
+        for bookmark in bookmarks:
+            bookmark_data = bookmark.to_dict()
+            question_id = bookmark_data.get('question_id', '')
+            timestamp = bookmark_data.get('timestamp', '')
+            
+            try:
+                if isinstance(timestamp, str):
+                    date_obj = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    formatted_time = date_obj.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    formatted_time = str(timestamp)
+                    
+                student_activities.append({
+                    'type': 'bookmark',
+                    'timestamp': formatted_time,
+                    'question_id': question_id
+                })
+            except (ValueError, TypeError):
+                pass
+                
+        # Sort activities by timestamp
+        student_activities.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        # Calculate activity frequencies by type
+        activity_types = Counter([activity['type'] for activity in student_activities])
+        
         # ------------------- CONTENT ANALYTICS -------------------
         
         # Message types the student has used
@@ -139,17 +280,8 @@ def get_student_analytics(request, room_id):
         response_rate = (messages_with_replies / max(student_message_count, 1)) * 100
         
         # Get reactions/votes given by this student
-        upvotes_given = 0
-        downvotes_given = 0
-        user_votes_ref = db.collection('user_votes').where('username', '==', student_username)
-        user_votes = list(user_votes_ref.stream())
-        
-        for vote in user_votes:
-            vote_data = vote.to_dict()
-            if vote_data.get('vote_type') == 'up':
-                upvotes_given += 1
-            elif vote_data.get('vote_type') == 'down':
-                downvotes_given += 1
+        upvotes_given = activity_types.get('upvote', 0)
+        downvotes_given = activity_types.get('downvote', 0)
         
         # Get reactions received on student's messages and replies
         upvotes_received = sum(msg.get('upvotes', 0) for msg in student_messages)
@@ -162,11 +294,7 @@ def get_student_analytics(request, room_id):
         net_contribution_score = upvotes_received - downvotes_received
         
         # Teacher interaction rate
-        teacher_interactions = 0
-        for reply in student_replies:
-            question_id = reply.get('question_id')
-            if any(msg.get('message_id') == question_id and msg.get('role', '').lower() == 'teacher' for msg in message_data):
-                teacher_interactions += 1
+        teacher_interactions = activity_types.get('teacher_reply', 0)
         
         # Also count replies to student messages from teachers
         for msg in student_messages:
@@ -186,9 +314,7 @@ def get_student_analytics(request, room_id):
         bookmark_count = len(bookmarks)
         
         # Poll participation
-        poll_votes_ref = db.collection('poll_votes').where('username', '==', student_username)
-        poll_votes = list(poll_votes_ref.stream())
-        poll_vote_count = len(poll_votes)
+        poll_vote_count = activity_types.get('poll_vote', 0)
         
         # Poll participation rate
         total_polls = sum(1 for msg in message_data if msg.get('is_poll'))
@@ -315,60 +441,107 @@ def get_student_analytics(request, room_id):
         
         # ------------------- ACTIONABLE INSIGHTS -------------------
         
-        # Generate engagement insights
+        # Generate focused, actionable insights (3-5 total)
         insights = []
         
-        # Participation insights
+        # 1. Low participation insight (high priority)
         if participation_percentage < 5:
             insights.append({
                 'type': 'participation',
-                'message': 'Your participation is quite low. Consider contributing more to discussions.',
-                'importance': 'high'
+                'message': 'Your participation is very low compared to the class. Try to contribute at least 3 times per week to improve your learning experience.',
+                'importance': 'high',
+                'action': 'Post at least one question or reply 3 times per week'
             })
         elif participation_percentage < 15:
             insights.append({
                 'type': 'participation',
-                'message': 'Your participation is below average. Try to engage more often.',
-                'importance': 'medium'
+                'message': 'Your participation is below average. More engagement would help you get more value from the discussions.',
+                'importance': 'medium',
+                'action': 'Increase your weekly contributions by 30%'
             })
             
-        # Content type diversity
-        if len(message_types) <= 1 and student_message_count > 5:
+        # 2. Content diversity insight
+        content_types_used = sum(1 for count in message_types.values() if count > 0)
+        if content_types_used <= 1 and student_message_count > 5:
             insights.append({
                 'type': 'content',
-                'message': 'You\'re mostly using one type of content. Try diversifying with images, files, or polls.',
-                'importance': 'medium'
+                'message': 'You mainly use one type of content in your posts. Try sharing images, files, or creating polls to enhance your contributions.',
+                'importance': 'medium',
+                'action': 'Use at least one different content type in your next 3 posts'
             })
             
-        # Poll participation
-        if poll_participation_rate < 50 and total_polls > 0:
+        # 3. Interaction balance insight
+        if reading_writing_ratio < 0.5 and writing_activity > 5:
+            insights.append({
+                'type': 'engagement',
+                'message': 'You\'re posting more than you\'re engaging with others\' content. Try upvoting helpful posts and bookmarking useful resources.',
+                'importance': 'medium',
+                'action': 'Upvote, bookmark, or reply to at least 5 other students\' posts this week'
+            })
+        elif reading_writing_ratio > 5 and viewing_activity > 10:
+            insights.append({
+                'type': 'engagement',
+                'message': 'You\'re mostly observing rather than contributing. The community would benefit from your thoughts and questions.',
+                'importance': 'medium',
+                'action': 'Post at least one new question or reply each week'
+            })
+            
+        # 4. Teacher interaction insight
+        if teacher_interaction_rate < 10 and len(teacher_messages) > 5:
+            insights.append({
+                'type': 'teacher_interaction',
+                'message': 'You have limited interaction with your teacher. Engaging with teacher posts can provide valuable learning opportunities.',
+                'importance': 'high',
+                'action': 'Reply to at least one teacher post this week'
+            })
+            
+        # 5. Poll participation insight
+        if poll_participation_rate < 50 and total_polls >= 3:
             insights.append({
                 'type': 'polls',
-                'message': 'You\'ve participated in less than half of the polls. Polls are a good way to engage.',
-                'importance': 'low'
+                'message': 'You\'ve participated in less than half of class polls. Polls help gauge understanding and provide valuable feedback to the teacher.',
+                'importance': 'low',
+                'action': 'Make sure to vote in every new poll posted by your teacher'
             })
             
-        # Reading vs writing balance
-        if reading_writing_ratio < 0.5:
-            insights.append({
-                'type': 'engagement',
-                'message': 'You\'re posting content more than engaging with others. Try to read and respond to more messages.',
-                'importance': 'medium'
-            })
-        elif reading_writing_ratio > 5:
-            insights.append({
-                'type': 'engagement',
-                'message': 'You\'re mostly observing rather than contributing. Consider sharing your thoughts more often.',
-                'importance': 'medium'
-            })
-            
-        # Consistency insight
-        if consistency_score < 30 and len(active_days) > 3:
+        # 6. Consistency insight
+        if consistency_score < 30 and len(active_days) > 3 and total_days > 10:
             insights.append({
                 'type': 'consistency',
-                'message': 'Your participation is inconsistent. Regular engagement helps with learning.',
-                'importance': 'medium'
+                'message': 'Your participation is inconsistent. Regular engagement helps build stronger learning habits and better knowledge retention.',
+                'importance': 'medium',
+                'action': 'Set aside 10-15 minutes at the same time each day to check and engage with the class'
             })
+            
+        # 7. Question quality insight (if enough questions asked)
+        if student_message_count > 5 and upvotes_received < student_message_count:
+            insights.append({
+                'type': 'question_quality',
+                'message': 'Your questions could generate more engagement. Try asking open-ended, specific questions that invite discussion.',
+                'importance': 'medium',
+                'action': 'Format your questions to be more specific and include relevant context'
+            })
+            
+        # Limit to 3-5 most important insights
+        # Sort by importance (high, medium, low) and limit to 5
+        importance_order = {'high': 0, 'medium': 1, 'low': 2}
+        insights.sort(key=lambda x: importance_order.get(x['importance'], 3))
+        insights = insights[:5]  # Limit to 5 insights
+        
+        # ------------------- ACTIVITY SUMMARY -------------------
+        
+        # Create an activity summary with percentages by type
+        total_activities = len(student_activities)
+        activity_summary = {}
+        
+        if total_activities > 0:
+            for activity_type, count in activity_types.items():
+                activity_summary[activity_type] = {
+                    'count': count,
+                    'percentage': round((count / total_activities) * 100, 1)
+                }
+                
+        # ------------------- COMPILE ANALYTICS -------------------
         
         # Compile analytics data
         analytics = {
@@ -380,6 +553,11 @@ def get_student_analytics(request, room_id):
                 "participation_percentage": round(participation_percentage, 2),
                 "active_days": len(active_days),
                 "active_times": active_times
+            },
+            "activity_tracking": {
+                "recent_activities": student_activities[:20],  # Get 20 most recent activities
+                "activity_summary": activity_summary,
+                "total_activities": total_activities
             },
             "content_analytics": {
                 "message_types": dict(message_types),
@@ -415,7 +593,6 @@ def get_student_analytics(request, room_id):
                 "total_polls": total_polls
             }
         }
-        print(f"\n\nThese is what i am passing still {analytics}\n\n")
         
         return JsonResponse({
             "success": True,
