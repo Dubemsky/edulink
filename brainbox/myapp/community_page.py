@@ -83,12 +83,12 @@ def community_page(request):
 
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
+
 def teachers_community_page(request):
     current_teacher_name = request.session.get("teachers_name")
     teacher_name = get_teacher_user_id(request)
     details = get_user_by_name(teacher_name)
-    user_id = details.get('uid') 
-    
+    user_id = details.get('uid')     
     if request.method == 'GET':
         # When loading the page, fetch all users for initial display
         users_ref = db.collection('users_profile')

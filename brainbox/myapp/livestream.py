@@ -2,19 +2,7 @@ from .firebase import *
 from .views_hub_room import *
 
 def schedule_livestream(teacher, room_id, title, description, scheduled_time):
-    """
-    Schedule a new livestream in Firebase
-    
-    Args:
-        teacher (str): Teacher's name/username
-        room_id (str): Room ID for the livestream
-        title (str): Title of the livestream
-        description (str): Description of the livestream
-        scheduled_time (str): ISO formatted datetime string for when the livestream is scheduled
-        
-    Returns:
-        str: The ID of the newly created livestream document
-    """
+   
     try:
         # Reference to the scheduled livestreams collection
         livestreams_ref = db.collection('scheduled_livestreams')

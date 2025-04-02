@@ -75,7 +75,9 @@ def get_upcoming_livestreams_view(request):
         
         # Get upcoming livestreams for the room
         livestreams = get_upcoming_livestreams_for_room(room_id)
-        
+
+
+        print(f"These are my livestreams {livestreams}")
         return JsonResponse({
             'success': True,
             'livestreams': livestreams

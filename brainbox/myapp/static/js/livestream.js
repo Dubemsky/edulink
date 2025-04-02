@@ -1,3 +1,5 @@
+// Streamlined and improved livestream management code
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log("DOM Content Loaded - Setting up livestream management");
   
@@ -5,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const manageLivestreamsModal = document.getElementById('manageLivestreamsModal');
   if (manageLivestreamsModal) {
     console.log("Found manageLivestreamsModal, setting up event listeners");
-    manageLivestreamsModal.addEventListener('show.bs.modal', loadTeacherLivestreams);
     
     // Add event listeners for tab changes
     const upcomingTab = document.getElementById('upcoming-tab');
@@ -13,19 +14,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const pastTab = document.getElementById('past-tab');
     
     if (upcomingTab) {
-      upcomingTab.addEventListener('shown.bs.tab', function() {
+      upcomingTab.addEventListener('click', function() {
+        console.log("Upcoming tab clicked");
         loadUpcomingLivestreams();
       });
     }
     
     if (liveTab) {
-      liveTab.addEventListener('shown.bs.tab', function() {
+      liveTab.addEventListener('click', function() {
+        console.log("Live tab clicked");
         loadLiveLivestreams();
       });
     }
     
     if (pastTab) {
-      pastTab.addEventListener('shown.bs.tab', function() {
+      pastTab.addEventListener('click', function() {
+        console.log("Past tab clicked");
         loadPastLivestreams();
       });
     }
@@ -279,11 +283,12 @@ function loadUpcomingLivestreams() {
     .then(data => {
       console.log("API response data:", data);
       
+      // Clear the container
+      container.innerHTML = '';
+      
+      // Process the response data
       if (data.success && data.livestreams && data.livestreams.length > 0) {
         console.log(`Found ${data.livestreams.length} upcoming livestreams`);
-        
-        // Clear the container
-        container.innerHTML = '';
         
         // Hide the "no livestreams" message
         if (noLivestreamsMessage) {
@@ -305,8 +310,6 @@ function loadUpcomingLivestreams() {
         console.log("No upcoming livestreams found or error in response");
         
         // No upcoming livestreams
-        container.innerHTML = '';
-        
         if (noLivestreamsMessage) {
           noLivestreamsMessage.style.display = 'block';
         } else {
@@ -359,10 +362,10 @@ function loadLiveLivestreams() {
     .then(data => {
       console.log("Live streams API response:", data);
       
+      // Clear the container
+      container.innerHTML = '';
+      
       if (data.success && data.livestreams && data.livestreams.length > 0) {
-        // Clear the container
-        container.innerHTML = '';
-        
         // Hide the "no livestreams" message
         if (noLivestreamsMessage) {
           noLivestreamsMessage.style.display = 'none';
@@ -375,8 +378,6 @@ function loadLiveLivestreams() {
         });
       } else {
         // No live livestreams
-        container.innerHTML = '';
-        
         if (noLivestreamsMessage) {
           noLivestreamsMessage.style.display = 'block';
         } else {
@@ -385,7 +386,7 @@ function loadLiveLivestreams() {
       }
     })
     .catch(error => {
-      console.error('Error:', error);
+      console.error('Error fetching live livestreams:', error);
       container.innerHTML = '<div class="error-message">Error checking for active livestreams. Please try again.</div>';
     });
 }
@@ -427,10 +428,10 @@ function loadPastLivestreams() {
     .then(data => {
       console.log("Past streams API response:", data);
       
+      // Clear the container
+      container.innerHTML = '';
+      
       if (data.success && data.livestreams && data.livestreams.length > 0) {
-        // Clear the container
-        container.innerHTML = '';
-        
         // Hide the "no livestreams" message
         if (noLivestreamsMessage) {
           noLivestreamsMessage.style.display = 'none';
@@ -448,8 +449,6 @@ function loadPastLivestreams() {
         });
       } else {
         // No past livestreams
-        container.innerHTML = '';
-        
         if (noLivestreamsMessage) {
           noLivestreamsMessage.style.display = 'block';
         } else {
@@ -458,13 +457,15 @@ function loadPastLivestreams() {
       }
     })
     .catch(error => {
-      console.error('Error:', error);
+      console.error('Error fetching past livestreams:', error);
       container.innerHTML = '<div class="error-message">Error loading past livestreams. Please try again.</div>';
     });
 }
 
 // Function to create a livestream item for teachers
 function createTeacherLivestreamItem(livestream, type) {
+  console.log(`Creating ${type} livestream item:`, livestream);
+  
   const item = document.createElement('div');
   item.className = 'livestream-item';
   item.dataset.id = livestream.id;
@@ -491,7 +492,7 @@ function createTeacherLivestreamItem(livestream, type) {
   if (type === 'upcoming') {
     item.innerHTML = `
       <div class="livestream-header">
-        <h5 class="livestream-title">${livestream.title}</h5>
+        <h5 class="livestream-title">${livestream.title || 'Untitled Livestream'}</h5>
         <span class="livestream-status ${isUpcomingSoon ? 'status-soon' : 'status-scheduled'}">
           ${isUpcomingSoon ? 'Starting Soon' : 'Scheduled'}
         </span>
@@ -518,31 +519,33 @@ function createTeacherLivestreamItem(livestream, type) {
       </div>
     `;
     
-    // Add event listeners
-    const startBtn = item.querySelector('.start-livestream-btn');
-    if (startBtn) {
-      startBtn.addEventListener('click', function() {
-        startLivestream(livestream.id);
-      });
-    }
-    
-    const editBtn = item.querySelector('.edit-livestream-btn');
-    if (editBtn) {
-      editBtn.addEventListener('click', function() {
-        openEditLivestreamModal(livestream);
-      });
-    }
-    
-    const cancelBtn = item.querySelector('.cancel-livestream-btn');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', function() {
-        cancelLivestream(livestream.id);
-      });
-    }
+    // Add event listeners after the item is added to the DOM
+    setTimeout(() => {
+      const startBtn = item.querySelector('.start-livestream-btn');
+      if (startBtn) {
+        startBtn.addEventListener('click', function() {
+          startLivestream(livestream.id);
+        });
+      }
+      
+      const editBtn = item.querySelector('.edit-livestream-btn');
+      if (editBtn) {
+        editBtn.addEventListener('click', function() {
+          openEditLivestreamModal(livestream);
+        });
+      }
+      
+      const cancelBtn = item.querySelector('.cancel-livestream-btn');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+          cancelLivestream(livestream.id);
+        });
+      }
+    }, 0);
   } else if (type === 'live') {
     item.innerHTML = `
       <div class="livestream-header">
-        <h5 class="livestream-title"><span class="live-indicator"></span> ${livestream.title}</h5>
+        <h5 class="livestream-title"><span class="live-indicator"></span> ${livestream.title || 'Untitled Livestream'}</h5>
         <span class="livestream-status status-live">LIVE NOW</span>
       </div>
       <div class="livestream-details">
@@ -565,19 +568,21 @@ function createTeacherLivestreamItem(livestream, type) {
     `;
     
     // Add event listeners
-    const joinBtn = item.querySelector('.join-livestream-btn');
-    if (joinBtn) {
-      joinBtn.addEventListener('click', function() {
-        joinLivestream(livestream.id);
-      });
-    }
-    
-    const endBtn = item.querySelector('.end-livestream-btn');
-    if (endBtn) {
-      endBtn.addEventListener('click', function() {
-        endLivestream(livestream.id);
-      });
-    }
+    setTimeout(() => {
+      const joinBtn = item.querySelector('.join-livestream-btn');
+      if (joinBtn) {
+        joinBtn.addEventListener('click', function() {
+          joinLivestream(livestream.id);
+        });
+      }
+      
+      const endBtn = item.querySelector('.end-livestream-btn');
+      if (endBtn) {
+        endBtn.addEventListener('click', function() {
+          endLivestream(livestream.id);
+        });
+      }
+    }, 0);
   } else if (type === 'past') {
     const viewerCount = livestream.stats?.viewer_count || 0;
     const duration = livestream.stats?.duration_minutes || 0;
@@ -585,7 +590,7 @@ function createTeacherLivestreamItem(livestream, type) {
     
     item.innerHTML = `
       <div class="livestream-header">
-        <h5 class="livestream-title">${livestream.title}</h5>
+        <h5 class="livestream-title">${livestream.title || 'Untitled Livestream'}</h5>
         <span class="livestream-status ${livestream.status === 'completed' ? 'status-completed' : 'status-cancelled'}">
           ${livestream.status === 'completed' ? 'Completed' : 'Cancelled'}
         </span>
@@ -620,12 +625,14 @@ function createTeacherLivestreamItem(livestream, type) {
     `;
     
     // Add event listeners
-    const duplicateBtn = item.querySelector('.duplicate-livestream-btn');
-    if (duplicateBtn) {
-      duplicateBtn.addEventListener('click', function() {
-        duplicateLivestream(livestream.id);
-      });
-    }
+    setTimeout(() => {
+      const duplicateBtn = item.querySelector('.duplicate-livestream-btn');
+      if (duplicateBtn) {
+        duplicateBtn.addEventListener('click', function() {
+          duplicateLivestream(livestream.id);
+        });
+      }
+    }, 0);
   }
   
   return item;
@@ -633,9 +640,13 @@ function createTeacherLivestreamItem(livestream, type) {
 
 // Function to open the edit livestream modal
 function openEditLivestreamModal(livestream) {
+  console.log("Opening edit modal for livestream:", livestream);
+  
   // Hide the manage livestreams modal
   const manageModal = bootstrap.Modal.getInstance(document.getElementById('manageLivestreamsModal'));
-  manageModal.hide();
+  if (manageModal) {
+    manageModal.hide();
+  }
   
   // Get edit modal elements
   const editModal = new bootstrap.Modal(document.getElementById('editLivestreamModal'));
@@ -655,7 +666,7 @@ function openEditLivestreamModal(livestream) {
   
   // Set the form values
   livestreamIdInput.value = livestream.id;
-  titleInput.value = livestream.title;
+  titleInput.value = livestream.title || '';
   descriptionInput.value = livestream.description || '';
   dateTimeInput.value = formattedDateTime;
   
@@ -749,12 +760,13 @@ function startLivestream(livestreamId) {
         livestream_id: livestreamId
       })
     })
-    .then(response => response.json())
     .then(data => {
       if (data.success) {
         // Hide the manage modal
         const manageModal = bootstrap.Modal.getInstance(document.getElementById('manageLivestreamsModal'));
-        manageModal.hide();
+        if (manageModal) {
+          manageModal.hide();
+        }
         
         // Redirect to the livestream page
         window.location.href = data.livestream_url;
@@ -778,7 +790,9 @@ function joinLivestream(livestreamId) {
       if (data.success) {
         // Hide the manage modal
         const manageModal = bootstrap.Modal.getInstance(document.getElementById('manageLivestreamsModal'));
-        manageModal.hide();
+        if (manageModal) {
+          manageModal.hide();
+        }
         
         // Redirect to the livestream page
         window.location.href = data.livestream_url;
@@ -867,7 +881,9 @@ function duplicateLivestream(livestreamId) {
       if (data.success && data.livestream) {
         // Hide the manage modal
         const manageModal = bootstrap.Modal.getInstance(document.getElementById('manageLivestreamsModal'));
-        manageModal.hide();
+        if (manageModal) {
+          manageModal.hide();
+        }
         
         // Populate the schedule form with the details
         const livestream = data.livestream;
@@ -902,6 +918,243 @@ function duplicateLivestream(livestreamId) {
     .catch(error => {
       console.error('Error:', error);
       showToast("An error occurred. Please try again.", "error");
+    });
+}
+
+// Add a visual debug helper to show the API calls and responses
+function addDebugPanel() {
+  // Create debug container if it doesn't exist
+  let debugContainer = document.getElementById('livestream-debug-container');
+  
+  if (!debugContainer) {
+    debugContainer = document.createElement('div');
+    debugContainer.id = 'livestream-debug-container';
+    debugContainer.style.cssText = `
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      max-width: 500px;
+      max-height: 300px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #00ff00;
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 9999;
+      overflow: auto;
+      display: none;
+    `;
+    
+    // Add toggle button
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = 'Debug';
+    toggleBtn.style.cssText = `
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 5px 10px;
+      cursor: pointer;
+      z-index: 9998;
+    `;
+    
+    toggleBtn.addEventListener('click', function() {
+      const display = debugContainer.style.display;
+      debugContainer.style.display = display === 'none' ? 'block' : 'none';
+      toggleBtn.style.display = display === 'none' ? 'none' : 'block';
+    });
+    
+    document.body.appendChild(toggleBtn);
+    document.body.appendChild(debugContainer);
+    
+    // Add close button to debug container
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.style.cssText = `
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 3px 8px;
+      cursor: pointer;
+      float: right;
+    `;
+    
+    closeBtn.addEventListener('click', function() {
+      debugContainer.style.display = 'none';
+      toggleBtn.style.display = 'block';
+    });
+    
+    debugContainer.appendChild(closeBtn);
+    
+    // Add clear button
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = 'Clear';
+    clearBtn.style.cssText = `
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 3px 8px;
+      cursor: pointer;
+      float: right;
+      margin-right: 5px;
+    `;
+    
+    clearBtn.addEventListener('click', function() {
+      const logContainer = document.getElementById('debug-log');
+      if (logContainer) {
+        logContainer.innerHTML = '';
+      }
+    });
+    
+    debugContainer.appendChild(clearBtn);
+    
+    // Add heading
+    const heading = document.createElement('h4');
+    heading.textContent = 'Livestream Debug';
+    heading.style.cssText = `
+      margin: 0 0 10px 0;
+      color: white;
+      clear: both;
+      padding-top: 10px;
+    `;
+    
+    debugContainer.appendChild(heading);
+    
+    // Add log container
+    const logContainer = document.createElement('div');
+    logContainer.id = 'debug-log';
+    
+    debugContainer.appendChild(logContainer);
+    
+    // Override fetch to log API calls
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      if (typeof url === 'string' && url.includes('livestream')) {
+        logDebug(`API Call: ${url}`, 'info');
+        
+        // Add the same URL to the DOM for easy inspection
+        const debugUrl = document.createElement('div');
+        debugUrl.className = 'debug-url';
+        debugUrl.textContent = `GET ${url}`;
+        debugUrl.style.cssText = `
+          margin: 5px 0;
+          padding: 5px;
+          background-color: #343a40;
+          border-radius: 3px;
+          cursor: pointer;
+        `;
+        
+        // Make it clickable to copy to clipboard
+        debugUrl.addEventListener('click', function() {
+          navigator.clipboard.writeText(url).then(() => {
+            logDebug('URL copied to clipboard', 'success');
+          });
+        });
+        
+        const logContainer = document.getElementById('debug-log');
+        if (logContainer) {
+          logContainer.appendChild(debugUrl);
+          logContainer.scrollTop = logContainer.scrollHeight;
+        }
+      }
+      
+      return originalFetch.apply(this, arguments)
+        .then(response => {
+          if (typeof url === 'string' && url.includes('livestream')) {
+            logDebug(`API Response: ${response.status}`, response.ok ? 'success' : 'error');
+            
+            // Clone the response so we can inspect it
+            const clone = response.clone();
+            clone.json().then(data => {
+              logDebug(`Response data: ${JSON.stringify(data).substring(0, 100)}...`, 'info');
+            }).catch(e => {
+              logDebug(`Error parsing response: ${e}`, 'error');
+            });
+          }
+          return response;
+        })
+        .catch(error => {
+          if (typeof url === 'string' && url.includes('livestream')) {
+            logDebug(`API Error: ${error}`, 'error');
+          }
+          throw error;
+        });
+    };
+  }
+  
+  // Visual log function
+  window.logDebug = function(message, type = 'info') {
+    const logContainer = document.getElementById('debug-log');
+    if (!logContainer) return;
+    
+    const logEntry = document.createElement('div');
+    logEntry.style.cssText = `
+      margin: 2px 0;
+      font-size: 12px;
+      line-height: 1.3;
+    `;
+    
+    switch (type) {
+      case 'error':
+        logEntry.style.color = '#ff5555';
+        break;
+      case 'success':
+        logEntry.style.color = '#50fa7b';
+        break;
+      case 'warning':
+        logEntry.style.color = '#ffb86c';
+        break;
+      default:
+        logEntry.style.color = '#8be9fd';
+    }
+    
+    const timestamp = new Date().toLocaleTimeString();
+    logEntry.textContent = `[${timestamp}] ${message}`;
+    
+    logContainer.appendChild(logEntry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+    
+    // Also log to console for developers
+    console.log(`[DEBUG] ${message}`);
+  };
+}
+
+// Add API testing functions
+function testApiEndpoints() {
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement || !roomIdElement.dataset.roomId) {
+    console.error("Room ID not found");
+    return;
+  }
+  
+  const roomId = roomIdElement.dataset.roomId;
+  
+  // Test the teacher livestreams endpoint
+  fetch(`/get-teacher-livestreams/?room_id=${roomId}&status=scheduled`)
+    .then(response => {
+      console.log("API Test - Status:", response.status);
+      return response.json();
+    })
+    .then(data => {
+      console.log("API Test - Response:", data);
+      
+      // Show a message with the results
+      if (data.success) {
+        const count = data.livestreams ? data.livestreams.length : 0;
+        showToast(`API Test: Found ${count} scheduled livestreams`, "info");
+      } else {
+        showToast(`API Test: Error - ${data.error || "Unknown error"}`, "error");
+      }
+    })
+    .catch(error => {
+      console.error("API Test - Error:", error);
+      showToast(`API Test: Network error - ${error.message}`, "error");
     });
 }
 
@@ -969,3 +1222,35 @@ function getCookie(name) {
   }
   return cookieValue;
 }
+
+// Initialize debug panel and API testing when document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Add debug panel for development
+  addDebugPanel();
+  
+  // Test API endpoints for debugging
+  // Uncomment the line below to enable API endpoint testing on page load
+  // testApiEndpoints();
+  
+  // Add modal event handlers specifically for the tabs
+  const manageLivestreamsModal = document.getElementById('manageLivestreamsModal');
+  if (manageLivestreamsModal) {
+    manageLivestreamsModal.addEventListener('shown.bs.modal', function() {
+      console.log("Modal is now fully visible");
+      // Force load the current tab contents
+      const activeTab = document.querySelector('.tab-pane.show.active');
+      if (activeTab) {
+        if (activeTab.id === 'upcoming-tab-pane') {
+          loadUpcomingLivestreams();
+        } else if (activeTab.id === 'live-tab-pane') {
+          loadLiveLivestreams();
+        } else if (activeTab.id === 'past-tab-pane') {
+          loadPastLivestreams();
+        }
+      } else {
+        // Default to upcoming if no tab is active
+        loadUpcomingLivestreams();
+      }
+    });
+  }
+});

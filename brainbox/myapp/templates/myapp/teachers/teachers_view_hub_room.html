@@ -508,8 +508,6 @@
     </div>
   </div>
 
-  <!-- Invite Students Modal -->
-<!-- Update the Invite Students Modal in teachers_view_hub_room.html -->
 
 <!-- Invite Students Modal -->
 <div class="modal fade" id="inviteStudentModal" tabindex="-1" aria-labelledby="inviteStudentModalLabel" aria-hidden="true">
@@ -709,6 +707,91 @@
     </div>
   </div>
   
+  <script>
+    // Add this code to a new script tag right before the closing </body> tag
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Running modal fix script");
+  
+  // Direct initialization of the manageLivestreamsModal
+  const manageModal = document.getElementById('manageLivestreamsModal');
+  
+  if (manageModal) {
+    console.log("Found modal, setting up custom handler");
+    
+    // Ensure Bootstrap is loaded and available
+    if (typeof bootstrap !== 'undefined') {
+      // Create a new Bootstrap modal instance directly
+      const modalInstance = new bootstrap.Modal(manageModal, {
+        backdrop: true,
+        keyboard: true,
+        focus: true
+      });
+      
+      // Find the button that should open this modal
+      const manageStreamsButton = document.querySelector('a[data-bs-target="#manageLivestreamsModal"]');
+      
+      if (manageStreamsButton) {
+        console.log("Found button, attaching direct click handler");
+        
+        // Override the click behavior
+        manageStreamsButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation(); // Stop event propagation
+          
+          console.log("Button clicked, showing modal directly");
+          
+          // Show the modal using our initialized instance
+          modalInstance.show();
+          
+          // Load the content after modal is shown
+          setTimeout(function() {
+            if (typeof loadTeacherLivestreams === 'function') {
+              console.log("Loading teacher livestreams");
+              loadTeacherLivestreams();
+            } else {
+              console.error("loadTeacherLivestreams function not found");
+            }
+          }, 300);
+        });
+      } else {
+        console.error("Manage Livestreams button not found");
+      }
+      
+      // Add additional event listener for modal shown event
+      manageModal.addEventListener('shown.bs.modal', function() {
+        console.log("Modal shown event triggered");
+        document.body.classList.add('modal-open');
+        
+        // Try to load content again for redundancy
+        if (typeof loadTeacherLivestreams === 'function') {
+          loadTeacherLivestreams();
+        }
+      });
+      
+      // Handle modal hidden event
+      manageModal.addEventListener('hidden.bs.modal', function() {
+        console.log("Modal hidden event triggered");
+        // Remove any stuck backdrops
+        const extraBackdrops = document.querySelectorAll('.modal-backdrop');
+        extraBackdrops.forEach(backdrop => {
+          backdrop.remove();
+        });
+        
+        // Ensure body classes are cleaned up
+        document.body.classList.remove('modal-open');
+      });
+    } else {
+      console.error("Bootstrap not loaded. Cannot initialize modal.");
+    }
+  } else {
+    console.error("Modal element not found in the DOM");
+  }
+});
+
+
+
+  </script>
   <style>
     .livestreams-list {
       margin-top: 15px;

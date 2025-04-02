@@ -3,7 +3,7 @@ import requests
 import json
 import faiss
 
-COLAB_URL = ' https://d097-34-73-147-131.ngrok-free.app/get_embedding' 
+COLAB_URL = ' https://0737-34-16-196-206.ngrok-free.app/get_embedding' 
 embedding_dimension = 384
 faiss_index = faiss.IndexFlatL2(embedding_dimension)
 
