@@ -200,11 +200,10 @@ function loadTeacherLivestreams() {
   if (!roomIdElement) {
     console.error("Error: room-id-data element not found!");
     
-    // Find room ID from the URL if element is missing
+    // Attempt to find room ID from URL if element is missing
     const pathParts = window.location.pathname.split('/');
     let roomId = null;
     
-    // Look for a segment that looks like a room ID in the URL
     for (let i = 0; i < pathParts.length; i++) {
       if (pathParts[i] === 'hub-room' && i+1 < pathParts.length) {
         roomId = pathParts[i+1];
@@ -221,15 +220,11 @@ function loadTeacherLivestreams() {
       roomIdData.dataset.roomId = roomId;
       roomIdData.style.display = 'none';
       document.body.appendChild(roomIdData);
-      
-      console.log("Created room-id-data element with room ID:", roomId);
     } else {
       console.error("Could not determine room ID from URL");
       showToast("Error: Could not determine room ID. Please refresh the page.", "error");
       return;
     }
-  } else {
-    console.log("Room ID found:", roomIdElement.dataset.roomId);
   }
   
   // Load upcoming livestreams by default
