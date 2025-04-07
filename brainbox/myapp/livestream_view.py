@@ -101,7 +101,7 @@ def get_teacher_livestreams_view(request):
                 
             livestreams.append(data)
             
-        print(f"Found {len(livestreams)} livestreams for teacher {teacher_name}, room {room_id}")
+        print(f"Found {len(livestreams)} livestreams for teacher {teacher_name}, room {room_id}\n\n{livestreams}")
         
         return JsonResponse({
             'success': True,
