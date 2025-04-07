@@ -4,387 +4,737 @@
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>{{ livestream.title }} - Livestream - EduLink</title>
-  <meta name="description" content="EduLink livestream by {{ livestream.teacher }}">
-
+  <title>{{ livestream.title }} - LiveStream</title>
+  <meta name="description" content="EduLink livestream room for students">
+  
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- jQuery -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
+  <!-- LiveKit JavaScript SDK -->
+  <script src="https://unpkg.com/livekit-client@1.11.2/dist/livekit-client.umd.js"></script>
+  
   <!-- Vendor CSS Files -->
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
   <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
 
-  <!-- Main CSS Files -->
+  <!-- Main CSS File -->
   <link href="{% static 'css/main.css' %}" rel="stylesheet">
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-
+  
   <style>
     .livestream-container {
       display: flex;
-      height: calc(100vh - 70px);
+      height: calc(100vh - 80px);
+      position: relative;
     }
     
-    .video-container {
-      flex: 3;
+    .video-area {
+      flex: 1;
       background-color: #1a1a1a;
       position: relative;
-      display: flex;
-      flex-direction: column;
+      overflow: hidden;
     }
     
-    .video-screen {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    .chat-sidebar {
+      width: 300px;
+      background-color: #2d2d2d;
       color: #fff;
-    }
-    
-    .video-screen.waiting {
-      background-color: #343a40;
-    }
-    
-    .chat-container {
-      flex: 1;
       display: flex;
       flex-direction: column;
-      border-left: 1px solid #ddd;
-      background-color: #f8f9fa;
-    }
-    
-    .chat-header {
-      padding: 15px;
-      background-color: #fff;
-      border-bottom: 1px solid #ddd;
+      border-left: 1px solid #3d3d3d;
     }
     
     .chat-messages {
       flex: 1;
-      padding: 15px;
       overflow-y: auto;
+      padding: 15px;
     }
     
     .chat-input {
+      padding: 15px;
+      border-top: 1px solid #3d3d3d;
+      background-color: #2d2d2d;
+    }
+    
+    .remote-stream {
+      width: 100%;
+      height: 100%;
+      background-color: #1a1a1a;
       display: flex;
-      padding: 10px;
-      border-top: 1px solid #ddd;
-    }
-    
-    .chat-input input {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      margin-right: 10px;
-    }
-    
-    .chat-input button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 0 15px;
-      border-radius: 4px;
-    }
-    
-    .livestream-info {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      color: white;
-      background-color: rgba(0, 0, 0, 0.6);
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 14px;
-      display: flex;
+      justify-content: center;
       align-items: center;
-      gap: 10px;
+    }
+    
+    .remote-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
     
     .live-indicator {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #dc3545;
+      padding: 5px 10px;
+      border-radius: 4px;
+      color: white;
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+      z-index: 10;
+    }
+    
+    .live-indicator::before {
+      content: "";
+      display: inline-block;
       width: 8px;
       height: 8px;
-      background-color: #dc3545;
+      background-color: white;
       border-radius: 50%;
       margin-right: 5px;
-      display: inline-block;
+      animation: pulse 1.5s infinite;
     }
     
-    .viewer-count {
-      display: flex;
-      align-items: center;
-      gap: 5px;
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+      100% {
+        opacity: 1;
+      }
     }
     
-    .waiting-message {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+    .stream-placeholder {
+      color: white;
       text-align: center;
-      padding: 20px;
+      margin-top: 40vh;
     }
     
-    .message-item {
+    .stream-placeholder i {
+      font-size: 48px;
+      margin-bottom: 20px;
+      opacity: 0.7;
+    }
+    
+    .participant-count {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 5px 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      color: white;
+      z-index: 10;
+    }
+    
+    .participant-count i {
+      margin-right: 5px;
+    }
+    
+    .chat-message {
       margin-bottom: 10px;
       padding: 8px 12px;
-      border-radius: 4px;
-      background-color: #fff;
-      border-left: 3px solid #007bff;
+      border-radius: 8px;
+      max-width: 80%;
+      word-break: break-word;
     }
     
-    .message-sender {
+    .chat-message .sender {
       font-weight: bold;
       margin-bottom: 2px;
     }
     
-    .message-content {
-      color: #333;
+    .chat-message .time {
+      font-size: 0.8em;
+      opacity: 0.8;
+      margin-left: 5px;
     }
     
-    .teacher-message {
-      border-left-color: #dc3545;
+    .chat-message.outgoing {
+      background-color: #0d6efd;
+      color: white;
+      margin-left: auto;
     }
     
-    .student-message {
-      border-left-color: #28a745;
+    .chat-message.incoming {
+      background-color: #2d2d2d;
+      border: 1px solid #3d3d3d;
+      margin-right: auto;
     }
     
-    .raise-hand-button {
+    .system-message {
+      text-align: center;
+      color: #aaaaaa;
+      margin: 10px 0;
+      font-size: 0.9em;
+    }
+    
+    .toggle-button {
       position: absolute;
-      bottom: 15px;
-      right: 15px;
-      background-color: #f8f9fa;
+      top: 50%;
+      right: 300px;
+      transform: translateY(-50%);
+      background-color: #2d2d2d;
       border: none;
-      color: #343a40;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
+      color: white;
+      width: 24px;
+      height: 60px;
+      border-radius: 4px 0 0 4px;
+      cursor: pointer;
+      z-index: 10;
+    }
+    
+    .toggle-button:focus {
+      outline: none;
+    }
+    
+    /* States */
+    .chat-sidebar.collapsed {
+      width: 0;
+    }
+    
+    .controls-bar {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      z-index: 10;
+    }
+    
+    .volume-control {
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 20px;
+      padding: 8px 16px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     
-    .raise-hand-button:hover {
-      background-color: #e9ecef;
-      transform: scale(1.05);
+    .volume-control i {
+      color: white;
+      margin-right: 10px;
     }
     
-    .raise-hand-button.active {
-      background-color: #ffc107;
-      color: #212529;
+    .volume-slider {
+      width: 100px;
+    }
+    
+    .teacher-info {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 8px 12px;
+      border-radius: 4px;
+      color: white;
+      display: flex;
+      align-items: center;
+      z-index: 10;
+    }
+    
+    .teacher-info i {
+      margin-right: 8px;
     }
   </style>
 </head>
 
-<body>
+<body class="livestream-page">
   <header id="header" class="header d-flex align-items-center sticky-top">
     <div class="container-fluid container-xl d-flex align-items-center justify-content-between">
       <a href="{% url 'students_homepage' %}" class="logo d-flex align-items-center me-auto">
         <h1 class="sitename">EduLink</h1>
       </a>
       
-      <h3 class="page-title">Livestream: {{ livestream.title }}</h3>
+      <h3 class="page-title">{{ livestream.title }}</h3>
 
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="{% url 'students_homepage' %}">
             <i class="bi bi-house"></i> Dashboard
           </a></li>
-          <li><a href="/students-dashboard/hub-room/{{ livestream.room_id }}/">
-            <i class="bi bi-arrow-left-circle"></i> Back to Room
-          </a></li>
         </ul>
       </nav>
     </div>
   </header>
 
-  <main id="main">
-    <div class="livestream-container">
-      <!-- Video Container -->
-      <div class="video-container">
-        <!-- Livestream Info (Live indicator, viewers, etc.) -->
-        <div class="livestream-info">
-          <div>
-            <span class="live-indicator"></span> LIVE
-          </div>
-          <div class="viewer-count">
-            <i class="bi bi-people-fill"></i>
-            <span id="viewer-count">0</span> viewers
-          </div>
-        </div>
-        
-        <!-- Main Video Screen -->
-        <div class="video-screen waiting" id="video-screen">
-          <div class="waiting-message">
-            <h2>Waiting for {{ livestream.teacher }} to start the livestream...</h2>
-            <p>You'll be automatically connected when the stream begins.</p>
-            <div class="spinner-border text-light mt-4" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Raise Hand Button -->
-        <button class="raise-hand-button" id="raise-hand-button" title="Raise Hand">
-          <i class="bi bi-hand-index"></i>
-        </button>
+  <div class="livestream-container">
+    <!-- Video Area -->
+    <div class="video-area">
+      <!-- Live Indicator -->
+      <div class="live-indicator">LIVE</div>
+      
+      <!-- Participant Count -->
+      <div class="participant-count">
+        <i class="bi bi-people-fill"></i>
+        <span id="viewerCount">0</span> viewers
       </div>
       
-      <!-- Chat Container -->
-      <div class="chat-container">
-        <div class="chat-header">
-          <h4>Live Chat</h4>
+      <!-- Teacher Info -->
+      <div class="teacher-info">
+        <i class="bi bi-person-video3"></i>
+        <span>{{ livestream.teacher }}</span>
+      </div>
+      
+      <!-- Main Stream Container -->
+      <div class="remote-stream" id="remoteContainer">
+        <div class="stream-placeholder">
+          <i class="bi bi-broadcast"></i>
+          <h3>Waiting for stream to begin...</h3>
+          <p>The teacher's stream will appear here when it starts</p>
         </div>
-        <div class="chat-messages" id="chat-messages">
-          <!-- Messages will be added dynamically -->
-          <div class="message-item">
-            <div class="message-sender">System</div>
-            <div class="message-content">Welcome to the livestream! Chat messages will appear here.</div>
-          </div>
-          <div class="message-item teacher-message">
-            <div class="message-sender">{{ livestream.teacher }} (Teacher)</div>
-            <div class="message-content">The livestream will begin shortly. Please stand by.</div>
-          </div>
+      </div>
+      
+      <!-- Controls Bar -->
+      <div class="controls-bar">
+        <div class="volume-control">
+          <i class="bi bi-volume-up" id="volumeIcon"></i>
+          <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
         </div>
-        <div class="chat-input">
-          <input type="text" id="chat-input" placeholder="Type a message...">
-          <button id="send-message-button">
+      </div>
+    </div>
+    
+    <!-- Chat Sidebar -->
+    <button class="toggle-button" id="toggleChatBtn">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+    
+    <div class="chat-sidebar" id="chatSidebar">
+      <div class="chat-messages" id="chatMessages">
+        <!-- Chat messages will be inserted here by JavaScript -->
+        <div class="system-message">
+          <p>Welcome to the livestream chat! You can interact with the teacher and other students here.</p>
+        </div>
+      </div>
+      
+      <div class="chat-input">
+        <div class="input-group">
+          <input type="text" id="chatInput" class="form-control" placeholder="Type your message...">
+          <button class="btn btn-primary" id="sendMessageBtn">
             <i class="bi bi-send"></i>
           </button>
         </div>
       </div>
     </div>
-  </main>
+  </div>
 
-  <!-- Hidden room data -->
-  <div id="room-data" 
-       data-room-name="{{ room_name }}" 
-       data-livestream-id="{{ livestream.id }}" 
-       data-is-teacher="false"
-       data-username="{{ user_name }}"
-       style="display: none;"></div>
+  <!-- Hidden elements for LiveKit integration -->
+  <div id="livestream-data" 
+    data-token="{{ token }}" 
+    data-room="{{ room_name }}" 
+    data-username="{{ user_name }}"
+    data-livestream-id="{{ livestream.id }}"
+    style="display: none;">
+  </div>
 
   <!-- Vendor JS Files -->
   <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-  <!-- Main JS Files -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Initialize variables
-      let streaming = false;
-      const roomName = document.getElementById('room-data').dataset.roomName;
-      const livestreamId = document.getElementById('room-data').dataset.livestreamId;
-      const username = document.getElementById('room-data').dataset.username;
+      // LiveKit integration
+      const livestreamData = document.getElementById('livestream-data');
+      const token = livestreamData.dataset.token;
+      const roomName = livestreamData.dataset.room;
+      const username = livestreamData.dataset.username;
+      const livestreamId = livestreamData.dataset.livestreamId;
       
-      // Check streaming status every 5 seconds
-      setInterval(checkStreamStatus, 5000);
+      // UI elements
+      const remoteContainer = document.getElementById('remoteContainer');
+      const viewerCountEl = document.getElementById('viewerCount');
+      const volumeSlider = document.getElementById('volumeSlider');
+      const volumeIcon = document.getElementById('volumeIcon');
+      const chatMessages = document.getElementById('chatMessages');
+      const chatInput = document.getElementById('chatInput');
+      const sendMessageBtn = document.getElementById('sendMessageBtn');
+      const toggleChatBtn = document.getElementById('toggleChatBtn');
+      const chatSidebar = document.getElementById('chatSidebar');
       
-      // Handle raise hand button click
-      const raiseHandButton = document.getElementById('raise-hand-button');
-      raiseHandButton.addEventListener('click', function() {
-        this.classList.toggle('active');
-        if (this.classList.contains('active')) {
-          raiseHand();
-        } else {
-          lowerHand();
-        }
-      });
+      // LiveKit room
+      let room;
       
-      // Handle send message button click
-      document.getElementById('send-message-button').addEventListener('click', function() {
-        sendChatMessage();
-      });
+      // State
+      let isChatCollapsed = false;
+      let videoElements = {};
+      let audioElements = {};
+      let screenShareElement = null;
       
-      // Handle Enter key press in chat input
-      document.getElementById('chat-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          sendChatMessage();
-        }
-      });
-      
-      // Initial check
-      checkStreamStatus();
-    });
-    
-    // Placeholder functions for LiveKit integration
-    function checkStreamStatus() {
-      // This will be replaced with actual LiveKit integration
-      console.log('Checking stream status...');
-      
-      // For demo purposes, randomly change the status after a few seconds
-      setTimeout(() => {
-        const random = Math.random();
-        if (random > 0.7) {
-          // Simulate stream starting
-          document.getElementById('video-screen').innerHTML = `
-            <div style="text-align: center; color: white;">
-              <h2>Teacher's Livestream</h2>
-              <p>This is a placeholder for the actual video stream.</p>
-              <p>LiveKit integration will be implemented in the next phase.</p>
-            </div>
-          `;
-          document.getElementById('video-screen').classList.remove('waiting');
+      // Initialize the LiveKit room
+      async function initializeRoom() {
+        try {
+          room = new LivekitClient.Room();
           
-          // Update viewer count randomly for demo purposes
-          document.getElementById('viewer-count').textContent = 
-            Math.floor(Math.random() * 20) + 1;
+          // Set up room event listeners
+          room.on(LivekitClient.RoomEvent.ParticipantConnected, handleParticipantConnected);
+          room.on(LivekitClient.RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
+          room.on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
+          room.on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
+          room.on(LivekitClient.RoomEvent.DataReceived, handleDataReceived);
+          room.on(LivekitClient.RoomEvent.Disconnected, handleDisconnected);
+          
+          // Connect to the room
+          await room.connect(LivekitClient.toURL(window.location.origin, roomName), token);
+          
+          console.log('Connected to room:', room.name);
+          
+          // Update UI
+          updateViewerCount();
+          
+        } catch (error) {
+          console.error('Error connecting to LiveKit room:', error);
+          handleConnectionError(error);
         }
-      }, 3000);
-    }
-    
-    function raiseHand() {
-      // This will be replaced with actual WebSocket implementation
-      console.log('Raising hand...');
+      }
       
-      // For demo purposes, add a message to the chat
-      const chatMessages = document.getElementById('chat-messages');
-      const messageItem = document.createElement('div');
-      messageItem.className = 'message-item';
-      messageItem.innerHTML = `
-        <div class="message-sender">System</div>
-        <div class="message-content">You raised your hand. The teacher has been notified.</div>
-      `;
-      chatMessages.appendChild(messageItem);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-    
-    function lowerHand() {
-      // This will be replaced with actual WebSocket implementation
-      console.log('Lowering hand...');
-    }
-    
-    function sendChatMessage() {
-      const chatInput = document.getElementById('chat-input');
-      const message = chatInput.value.trim();
-      
-      if (message) {
-        // Add message to chat (this would normally be handled by WebSockets)
-        const chatMessages = document.getElementById('chat-messages');
-        const messageItem = document.createElement('div');
-        messageItem.className = 'message-item student-message';
-        messageItem.innerHTML = `
-          <div class="message-sender">You (Student)</div>
-          <div class="message-content">${message}</div>
+      // Handle connection error
+      function handleConnectionError(error) {
+        // Clear placeholder
+        remoteContainer.innerHTML = `
+          <div class="stream-placeholder">
+            <i class="bi bi-exclamation-triangle text-warning"></i>
+            <h3>Connection Error</h3>
+            <p>${error.message || 'Failed to connect to the livestream. Please try refreshing the page.'}</p>
+            <button class="btn btn-primary mt-3" onclick="window.location.reload()">Refresh Page</button>
+          </div>
         `;
-        chatMessages.appendChild(messageItem);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      // Handle participant connected event
+      function handleParticipantConnected(participant) {
+        console.log('Participant connected:', participant.identity);
+        updateViewerCount();
+        
+        // Add system message to chat
+        addSystemMessage(`${participant.identity} joined the livestream`);
+      }
+      
+      // Handle participant disconnected event
+      function handleParticipantDisconnected(participant) {
+        console.log('Participant disconnected:', participant.identity);
+        updateViewerCount();
+        
+        // Add system message to chat
+        addSystemMessage(`${participant.identity} left the livestream`);
+        
+        // Clean up any elements for this participant
+        if (videoElements[participant.sid]) {
+          videoElements[participant.sid].remove();
+          delete videoElements[participant.sid];
+        }
+        
+        if (audioElements[participant.sid]) {
+          audioElements[participant.sid].remove();
+          delete audioElements[participant.sid];
+        }
+      }
+      
+      // Handle track subscribed event
+      function handleTrackSubscribed(track, publication, participant) {
+        console.log('Track subscribed:', track.kind, 'from', participant.identity);
+        
+        // If teacher is sharing screen, prioritize that
+        if (track.source === LivekitClient.Track.Source.ScreenShare) {
+          // Clear remote container
+          remoteContainer.innerHTML = '';
+          
+          // Create and attach video element for screen share
+          const videoEl = document.createElement('video');
+          videoEl.classList.add('remote-video');
+          videoEl.id = 'screen-share-video';
+          videoEl.autoplay = true;
+          track.attach(videoEl);
+          remoteContainer.appendChild(videoEl);
+          
+          // Store the element
+          screenShareElement = videoEl;
+          
+          // Apply volume setting
+          videoEl.volume = parseInt(volumeSlider.value) / 100;
+          
+        } else if (track.kind === LivekitClient.Track.Kind.Video) {
+          // If there's no screen share yet, show the teacher's camera
+          if (!screenShareElement) {
+            // Clear container
+            remoteContainer.innerHTML = '';
+            
+            // Create and attach video element
+            const videoEl = document.createElement('video');
+            videoEl.classList.add('remote-video');
+            videoEl.id = `video-${participant.sid}`;
+            videoEl.autoplay = true;
+            track.attach(videoEl);
+            remoteContainer.appendChild(videoEl);
+            
+            // Store the element
+            videoElements[participant.sid] = videoEl;
+          }
+        } else if (track.kind === LivekitClient.Track.Kind.Audio) {
+          // Always attach audio tracks
+          const audioEl = document.createElement('audio');
+          audioEl.id = `audio-${participant.sid}`;
+          audioEl.autoplay = true;
+          track.attach(audioEl);
+          document.body.appendChild(audioEl);
+          
+          // Store the element
+          audioElements[participant.sid] = audioEl;
+          
+          // Apply volume setting
+          audioEl.volume = parseInt(volumeSlider.value) / 100;
+        }
+      }
+      
+      // Handle track unsubscribed event
+      function handleTrackUnsubscribed(track, publication, participant) {
+        console.log('Track unsubscribed:', track.kind, 'from', participant.identity);
+        
+        // If it was a screen share, remove it and show webcam if available
+        if (track.source === LivekitClient.Track.Source.ScreenShare) {
+          if (screenShareElement) {
+            track.detach(screenShareElement);
+            screenShareElement.remove();
+            screenShareElement = null;
+            
+            // Find any video tracks to display instead
+            const participantIds = Object.keys(videoElements);
+            if (participantIds.length > 0) {
+              const videoEl = videoElements[participantIds[0]];
+              if (videoEl) {
+                remoteContainer.appendChild(videoEl);
+              }
+            } else {
+              // No videos to show, display placeholder
+              remoteContainer.innerHTML = `
+                <div class="stream-placeholder">
+                  <i class="bi bi-broadcast"></i>
+                  <h3>Waiting for stream to begin...</h3>
+                  <p>The teacher's stream will appear here when it starts</p>
+                </div>
+              `;
+            }
+          }
+        } else if (track.kind === LivekitClient.Track.Kind.Video) {
+          // Remove the video element
+          const videoEl = videoElements[participant.sid];
+          if (videoEl) {
+            track.detach(videoEl);
+            videoEl.remove();
+            delete videoElements[participant.sid];
+            
+            // If there are no videos left and no screen share, show placeholder
+            if (Object.keys(videoElements).length === 0 && !screenShareElement) {
+              remoteContainer.innerHTML = `
+                <div class="stream-placeholder">
+                  <i class="bi bi-broadcast"></i>
+                  <h3>Waiting for stream to begin...</h3>
+                  <p>The teacher's stream will appear here when it starts</p>
+                </div>
+              `;
+            }
+          }
+        } else if (track.kind === LivekitClient.Track.Kind.Audio) {
+          // Remove the audio element
+          const audioEl = audioElements[participant.sid];
+          if (audioEl) {
+            track.detach(audioEl);
+            audioEl.remove();
+            delete audioElements[participant.sid];
+          }
+        }
+      }
+      
+      // Handle data received event (chat messages)
+      function handleDataReceived(payload, participant) {
+        // Parse the data
+        const decoder = new TextDecoder();
+        const data = JSON.parse(decoder.decode(payload));
+        
+        console.log('Data received:', data, 'from', participant.identity);
+        
+        // Handle chat message
+        if (data.type === 'chat') {
+          addChatMessage(participant.identity, data.message, false);
+        }
+      }
+      
+      // Handle room disconnected event
+      function handleDisconnected() {
+        console.log('Disconnected from room');
+        
+        // Show disconnected message
+        remoteContainer.innerHTML = `
+          <div class="stream-placeholder">
+            <i class="bi bi-wifi-off text-warning"></i>
+            <h3>Stream Ended</h3>
+            <p>The livestream has ended or you have been disconnected.</p>
+            <button class="btn btn-primary mt-3" onclick="window.location.reload()">Try Reconnecting</button>
+            <button class="btn btn-secondary mt-3" onclick="window.location.href='{% url 'students_homepage' %}'">Return to Dashboard</button>
+          </div>
+        `;
+        
+        // Add system message
+        addSystemMessage('Disconnected from the livestream');
+      }
+      
+      // Update viewer count
+      function updateViewerCount() {
+        if (room) {
+          // Count all participants (including local participant)
+          const count = room.participants.size + 1;
+          viewerCountEl.textContent = count;
+        }
+      }
+      
+      // Send chat message
+      function sendChatMessage() {
+        const message = chatInput.value.trim();
+        
+        if (!message || !room) return;
+        
+        // Create message data
+        const messageData = {
+          type: 'chat',
+          message: message,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Encode and send the message
+        const encoder = new TextEncoder();
+        const data = encoder.encode(JSON.stringify(messageData));
+        
+        room.localParticipant.publishData(data, LivekitClient.DataPacket_Kind.RELIABLE);
+        
+        // Add message to UI
+        addChatMessage(username, message, true);
         
         // Clear input
         chatInput.value = '';
       }
-    }
+      
+      // Add chat message to UI
+      function addChatMessage(sender, message, isOutgoing) {
+        const messageEl = document.createElement('div');
+        messageEl.classList.add('chat-message');
+        messageEl.classList.add(isOutgoing ? 'outgoing' : 'incoming');
+        
+        const senderEl = document.createElement('div');
+        senderEl.classList.add('sender');
+        senderEl.textContent = sender;
+        
+        const timeEl = document.createElement('span');
+        timeEl.classList.add('time');
+        timeEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        senderEl.appendChild(timeEl);
+        
+        const contentEl = document.createElement('div');
+        contentEl.classList.add('content');
+        contentEl.textContent = message;
+        
+        messageEl.appendChild(senderEl);
+        messageEl.appendChild(contentEl);
+        
+        chatMessages.appendChild(messageEl);
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      // Add system message to chat
+      function addSystemMessage(message) {
+        const messageEl = document.createElement('div');
+        messageEl.classList.add('system-message');
+        messageEl.textContent = message;
+        
+        chatMessages.appendChild(messageEl);
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      // Toggle chat sidebar
+      function toggleChat() {
+        isChatCollapsed = !isChatCollapsed;
+        
+        if (isChatCollapsed) {
+          chatSidebar.classList.add('collapsed');
+          toggleChatBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+        } else {
+          chatSidebar.classList.remove('collapsed');
+          toggleChatBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+        }
+      }
+      
+      // Update volume for all audio and video elements
+      function updateVolume() {
+        const volume = parseInt(volumeSlider.value) / 100;
+        
+        // Update all audio elements
+        Object.values(audioElements).forEach(audioEl => {
+          audioEl.volume = volume;
+        });
+        
+        // Update screen share volume if present
+        if (screenShareElement) {
+          screenShareElement.volume = volume;
+        }
+        
+        // Update video elements
+        Object.values(videoElements).forEach(videoEl => {
+          videoEl.volume = volume;
+        });
+        
+        // Update volume icon
+        if (volume === 0) {
+          volumeIcon.className = 'bi bi-volume-mute';
+        } else if (volume < 0.5) {
+          volumeIcon.className = 'bi bi-volume-down';
+        } else {
+          volumeIcon.className = 'bi bi-volume-up';
+        }
+      }
+      
+      // Set up event listeners
+      sendMessageBtn.addEventListener('click', sendChatMessage);
+      chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          sendChatMessage();
+        }
+      });
+      toggleChatBtn.addEventListener('click', toggleChat);
+      volumeSlider.addEventListener('input', updateVolume);
+      volumeIcon.addEventListener('click', () => {
+        if (volumeSlider.value > 0) {
+          // Store the previous volume to restore it later
+          volumeSlider.dataset.previousVolume = volumeSlider.value;
+          volumeSlider.value = 0;
+        } else {
+          // Restore previous volume or default to 100
+          volumeSlider.value = volumeSlider.dataset.previousVolume || 100;
+        }
+        updateVolume();
+      });
+      
+      // Check if connection was lost periodically
+      setInterval(() => {
+        if (room && room.state === LivekitClient.ConnectionState.Disconnected) {
+          console.log('Detected disconnection, attempting to reconnect...');
+          initializeRoom();
+        }
+      }, 5000);
+      
+      // Initialize the room
+      initializeRoom();
+    });
   </script>
-</div>
+</body>
+</html>

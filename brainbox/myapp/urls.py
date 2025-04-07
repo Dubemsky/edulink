@@ -105,7 +105,18 @@ urlpatterns = [
     path('get-teacher-livestreams/', get_teacher_livestreams_view, name='get_teacher_livestreams'),
     path('get-livestream-details/<str:livestream_id>/', get_livestream_details_view, name='get_livestream_details'),
     path('update-livestream/', update_livestream_view, name='update_livestream'),
+    
 
+    path('livekit/token/', generate_token_view, name='livekit_token'),
+    path('livekit/create-room/', create_room_view, name='livekit_create_room'),
+    
+    # Livestream management endpoints
+    path('start-livestream/', start_livestream_view, name='start_livestream'),
+    path('end-livestream/', end_livestream_view, name='end_livestream'),
+    path('join-livestream/', join_livestream_view, name='join_livestream'),
+    
+    # Livestream room view
+    path('livestream/<str:livestream_id>/<str:room_name>/', livestream_room_view, name='livestream_room'),
 
 
 

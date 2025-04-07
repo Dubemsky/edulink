@@ -1354,3 +1354,503 @@ function getCookie(name) {
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(checkContainers, 1000); // Delay to ensure DOM is fully loaded
 });
+
+
+
+
+
+
+
+
+
+
+
+// Updates
+// ===============================
+// LiveKit Livestreaming Functions
+// ===============================
+
+// Function to start a livestream
+function startLivestream(livestreamId) {
+  if (confirm('Are you ready to start this livestream? Students will be notified.')) {
+    // Show loading state
+    const button = document.querySelector(`.start-livestream-btn[data-id="${livestreamId}"]`);
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Starting...';
+    }
+    
+    // Make API request to start the livestream
+    fetch('/start-livestream/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        livestream_id: livestreamId
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Show success message
+        showToast("Livestream started successfully", "success");
+        
+        // Redirect to the livestream room
+        window.location.href = `/livestream/${livestreamId}/${data.room_name}/`;
+      } else {
+        // Re-enable the button
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = '<i class="bi bi-broadcast"></i> Start Now';
+        }
+        
+        // Show error message
+        showToast(data.error || "Failed to start livestream", "error");
+      }
+    })
+    .catch(error => {
+      console.error('Error starting livestream:', error);
+      
+      // Re-enable the button
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-broadcast"></i> Start Now';
+      }
+      
+      // Show error message
+      showToast("An error occurred. Please try again.", "error");
+    });
+  }
+}
+
+// Function to join an active livestream (for teachers)
+function joinLivestream(livestreamId) {
+  // Show loading state
+  const button = document.querySelector(`.join-livestream-btn[data-id="${livestreamId}"]`);
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Joining...';
+  }
+  
+  // Get the livestream document from Firestore
+  fetch(`/get-livestream-details/${livestreamId}/`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.livestream) {
+        // Redirect to the livestream room
+        window.location.href = `/livestream/${livestreamId}/${data.livestream.room_name}/`;
+      } else {
+        // Re-enable the button
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = '<i class="bi bi-broadcast"></i> Join Your Stream';
+        }
+        
+        // Show error message
+        showToast(data.error || "Failed to join livestream", "error");
+      }
+    })
+    .catch(error => {
+      console.error('Error joining livestream:', error);
+      
+      // Re-enable the button
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-broadcast"></i> Join Your Stream';
+      }
+      
+      // Show error message
+      showToast("An error occurred. Please try again.", "error");
+    });
+}
+
+// Function to end an active livestream (for teachers)
+function endLivestream(livestreamId) {
+  if (confirm('Are you sure you want to end this livestream? This will stop the stream for all viewers.')) {
+    // Show loading state
+    const button = document.querySelector(`.end-livestream-btn[data-id="${livestreamId}"]`);
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Ending...';
+    }
+    
+    // Make API request to end the livestream
+    fetch('/end-livestream/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        livestream_id: livestreamId
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Show success message
+        showToast("Livestream ended successfully", "success");
+        
+        // Reload the tabs
+        loadLiveLivestreams();
+        loadPastLivestreams();
+        
+        // Also refresh the Streams tab if visible
+        if (document.getElementById('streams') && 
+            document.getElementById('streams').style.display === 'block') {
+          loadStreamsTabLivestreams();
+        }
+      } else {
+        // Re-enable the button
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = '<i class="bi bi-stop-circle"></i> End Stream';
+        }
+        
+        // Show error message
+        showToast(data.error || "Failed to end livestream", "error");
+      }
+    })
+    .catch(error => {
+      console.error('Error ending livestream:', error);
+      
+      // Re-enable the button
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-stop-circle"></i> End Stream';
+      }
+      
+      // Show error message
+      showToast("An error occurred. Please try again.", "error");
+    });
+  }
+}
+
+// Function for students to join a livestream
+function studentJoinLivestream(livestreamId) {
+  // Show loading state
+  const button = document.querySelector(`.join-livestream-btn[data-id="${livestreamId}"]`);
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Joining...';
+  }
+  
+  // Make API request to join the livestream
+  fetch('/join-livestream/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({
+      livestream_id: livestreamId
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Redirect to the livestream room
+      window.location.href = `/livestream/${livestreamId}/${data.room_name}/`;
+    } else {
+      // Re-enable the button
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-broadcast"></i> Join Livestream';
+      }
+      
+      // Show error message
+      showToast(data.error || "Failed to join livestream", "error");
+    }
+  })
+  .catch(error => {
+    console.error('Error joining livestream:', error);
+    
+    // Re-enable the button
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = '<i class="bi bi-broadcast"></i> Join Livestream';
+    }
+    
+    // Show error message
+    showToast("An error occurred. Please try again.", "error");
+  });
+}
+
+// Create a livestream item for students
+function createStudentLivestreamItem(livestream) {
+  const item = document.createElement('div');
+  item.className = 'livestream-card';
+  item.dataset.id = livestream.id;
+  
+  // Format the scheduled time
+  const scheduledDate = new Date(livestream.scheduled_time);
+  const formattedDate = scheduledDate.toLocaleDateString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+  const formattedTime = scheduledDate.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  // Calculate if it's upcoming soon (within 30 minutes)
+  const now = new Date();
+  const timeDiff = scheduledDate - now;
+  const isUpcomingSoon = timeDiff > 0 && timeDiff < 30 * 60 * 1000;
+  const isLive = livestream.status === 'live';
+  
+  // Create the card content
+  item.innerHTML = `
+    <div class="livestream-card-content">
+      <h5 class="livestream-card-title">${livestream.title || 'Untitled Livestream'}</h5>
+      <div class="livestream-card-info">
+        <i class="bi bi-person-video3"></i> ${livestream.teacher}
+        <br>
+        <i class="bi bi-calendar-event"></i> ${formattedDate} at ${formattedTime}
+        ${livestream.description ? `<br><small>${livestream.description}</small>` : ''}
+      </div>
+    </div>
+    <span class="livestream-card-status ${isLive ? 'status-live' : isUpcomingSoon ? 'status-soon' : 'status-scheduled'}">
+      ${isLive ? 'LIVE NOW' : isUpcomingSoon ? 'Starting Soon' : 'Scheduled'}
+    </span>
+  `;
+  
+  // Add click event to open the livestream details modal
+  item.addEventListener('click', () => {
+    showLivestreamDetails(livestream, isLive);
+  });
+  
+  return item;
+}
+
+// Function to show livestream details modal for students
+function showLivestreamDetails(livestream, isLive) {
+  const modal = document.getElementById('livestreamDetailsModal');
+  const modalContent = document.getElementById('livestreamDetailsContent');
+  const modalFooter = document.getElementById('livestreamDetailsFooter');
+  
+  // Format the scheduled time
+  const scheduledDate = new Date(livestream.scheduled_time);
+  const formattedDate = scheduledDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  const formattedTime = scheduledDate.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  // Populate the modal content
+  modalContent.innerHTML = `
+    <div class="livestream-details-content">
+      <div class="livestream-details-header">
+        <h4 class="livestream-details-title">${livestream.title || 'Untitled Livestream'}</h4>
+        <div class="livestream-details-status ${isLive ? 'status-live' : 'status-scheduled'}">
+          ${isLive ? 'LIVE NOW' : 'Scheduled'}
+        </div>
+        <div class="livestream-details-teacher">
+          <i class="bi bi-person-video3"></i> 
+          ${livestream.teacher}
+        </div>
+      </div>
+      
+      <div class="livestream-details-time">
+        <i class="bi bi-calendar-event"></i>
+        ${formattedDate} at ${formattedTime}
+      </div>
+      
+      ${livestream.description ? `
+        <div class="livestream-details-description">
+          <h5 class="livestream-details-description-title">Description</h5>
+          <div class="livestream-details-description-content">
+            ${livestream.description}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+  
+  // Update the footer buttons
+  if (isLive) {
+    modalFooter.innerHTML = `
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      <button type="button" class="btn btn-danger join-livestream-btn" data-id="${livestream.id}">
+        <i class="bi bi-broadcast"></i> Join Livestream
+      </button>
+    `;
+    
+    // Add click event to the join button
+    const joinBtn = modalFooter.querySelector('.join-livestream-btn');
+    joinBtn.addEventListener('click', () => {
+      studentJoinLivestream(livestream.id);
+    });
+  } else {
+    modalFooter.innerHTML = `
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      <button type="button" class="btn btn-outline-secondary reminder-btn" id="reminderBtn">
+        <i class="bi bi-bell"></i> Set Reminder
+      </button>
+    `;
+    
+    // Add click event to the reminder button
+    const reminderBtn = document.getElementById('reminderBtn');
+    if (reminderBtn) {
+      reminderBtn.addEventListener('click', function() {
+        toggleReminder(this, livestream.id);
+      });
+      
+      // Check if reminder is already set
+      checkReminderStatus(reminderBtn, livestream.id);
+    }
+  }
+  
+  // Show the modal
+  const modalInstance = new bootstrap.Modal(modal);
+  modalInstance.show();
+}
+
+// Function to check if a reminder is set for a livestream
+function checkReminderStatus(button, livestreamId) {
+  // Get reminders from localStorage
+  const reminders = JSON.parse(localStorage.getItem('livestreamReminders') || '{}');
+  
+  if (reminders[livestreamId]) {
+    button.classList.add('active');
+    button.innerHTML = '<i class="bi bi-bell-fill"></i> Reminder Set';
+  } else {
+    button.classList.remove('active');
+    button.innerHTML = '<i class="bi bi-bell"></i> Set Reminder';
+  }
+}
+
+// Function to toggle reminder for a livestream
+function toggleReminder(button, livestreamId) {
+  // Get reminders from localStorage
+  const reminders = JSON.parse(localStorage.getItem('livestreamReminders') || '{}');
+  
+  if (reminders[livestreamId]) {
+    // Remove reminder
+    delete reminders[livestreamId];
+    button.classList.remove('active');
+    button.innerHTML = '<i class="bi bi-bell"></i> Set Reminder';
+    showToast('Reminder removed', 'info');
+  } else {
+    // Add reminder
+    reminders[livestreamId] = true;
+    button.classList.add('active');
+    button.innerHTML = '<i class="bi bi-bell-fill"></i> Reminder Set';
+    showToast('Reminder set for this livestream', 'success');
+  }
+  
+  // Save to localStorage
+  localStorage.setItem('livestreamReminders', JSON.stringify(reminders));
+}
+
+// Function to load upcoming livestreams for students
+function loadUpcomingLivestreamsForStudents(containerSelector) {
+  const container = document.querySelector(containerSelector);
+  if (!container) {
+    console.error(`Container not found: ${containerSelector}`);
+    return;
+  }
+  
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement) {
+    console.error("Room ID data element not found");
+    return;
+  }
+  
+  const roomId = roomIdElement.dataset.roomId;
+  if (!roomId) {
+    console.error("Room ID is empty");
+    return;
+  }
+  
+  // Show loading spinner
+  container.innerHTML = '<div class="loading-spinner">Loading livestreams...</div>';
+  
+  // Make API request
+  fetch(`/get-upcoming-livestreams/?room_id=${roomId}`)
+    .then(response => response.json())
+    .then(data => {
+      container.innerHTML = '';
+      
+      if (data.success && data.livestreams && data.livestreams.length > 0) {
+        // Sort livestreams by date (live first, then upcoming)
+        const sortedLivestreams = data.livestreams.sort((a, b) => {
+          // Put live streams first
+          if (a.status === 'live' && b.status !== 'live') return -1;
+          if (a.status !== 'live' && b.status === 'live') return 1;
+          
+          // Then sort by scheduled time
+          return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+        });
+        
+        // Create elements for each livestream
+        sortedLivestreams.forEach(livestream => {
+          const livestreamEl = createStudentLivestreamItem(livestream);
+          container.appendChild(livestreamEl);
+        });
+      } else {
+        // No upcoming livestreams
+        container.innerHTML = '<div class="no-livestreams">No scheduled livestreams available.</div>';
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching upcoming livestreams:', error);
+      container.innerHTML = '<div class="error-message">Error loading livestreams. Please try again.</div>';
+    });
+}
+
+// Check for new livestreams
+function checkForNewLivestreams() {
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement) return;
+  
+  const roomId = roomIdElement.dataset.roomId;
+  if (!roomId) return;
+  
+  // Get the last check time from localStorage
+  const lastCheck = localStorage.getItem(`lastLivestreamCheck_${roomId}`) || '0';
+  
+  // Make API request
+  fetch(`/check-new-livestreams-view/?room_id=${roomId}&last_check=${lastCheck}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.new_count > 0) {
+        // Show notification
+        const badge = document.getElementById('livestreams-notification-badge');
+        if (badge) {
+          badge.textContent = data.new_count;
+          badge.style.display = 'flex';
+        }
+        
+        // Update last check time
+        localStorage.setItem(`lastLivestreamCheck_${roomId}`, Date.now().toString());
+      }
+    })
+    .catch(error => {
+      console.error('Error checking for new livestreams:', error);
+    });
+}
+
+// Initialize student livestream functionality if on student page
+document.addEventListener('DOMContentLoaded', function() {
+  // Check if we're on the student view with the livestreams modal
+  const upcomingLivestreamsModal = document.getElementById('upcomingLivestreamsModal');
+  if (upcomingLivestreamsModal) {
+    // Load livestreams when the modal is shown
+    upcomingLivestreamsModal.addEventListener('shown.bs.modal', function() {
+      loadUpcomingLivestreamsForStudents('#modal-upcoming-livestreams');
+    });
+    
+    // Check for new livestreams periodically
+    setInterval(checkForNewLivestreams, 60000); // Every minute
+  }
+});

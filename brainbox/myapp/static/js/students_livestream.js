@@ -1,42 +1,70 @@
+// students_livestream.js - Specific functionality for students joining livestreams
+
+// Check for new livestreams and upcoming sessions
 document.addEventListener('DOMContentLoaded', function() {
-  // Check for new livestreams when the page loads
-  checkNewLivestreams();
+  // Initialize livestream notification checking
+  initLivestreamNotifications();
   
-  // Add click handler to the livestreams nav button to load livestreams in the modal
-  const livestreamsNavButton = document.querySelector('a[data-bs-target="#upcomingLivestreamsModal"]');
-  livestreamsNavButton.addEventListener('click', function() {
-    // Clear the notification badge
-    const badge = document.getElementById('livestreams-notification-badge');
-    badge.style.display = 'none';
-    badge.textContent = '0';
-    
-    // Update the last viewed timestamp
-    localStorage.setItem('last-livestream-check', Date.now());
-    
-    // Load upcoming livestreams in the modal
-    loadModalLivestreams();
-  });
+  // Load upcoming livestreams in the panel if on the room page
+  const streamsTab = document.getElementById('streams');
+  if (streamsTab) {
+    // Load livestreams when the Streams tab is clicked
+    document.getElementById('streamsBtn').addEventListener('click', function() {
+      loadUpcomingLivestreamsInTab();
+    });
+  }
+  
+  // Check if we're on a page with the livestreams modal
+  const upcomingLivestreamsModal = document.getElementById('upcomingLivestreamsModal');
+  if (upcomingLivestreamsModal) {
+    upcomingLivestreamsModal.addEventListener('shown.bs.modal', function() {
+      loadUpcomingLivestreamsInModal();
+    });
+  }
 });
 
-// Function to check for new livestreams
-function checkNewLivestreams() {
-  const roomId = document.getElementById('room-id-data').dataset.roomId;
-  const lastCheck = localStorage.getItem('last-livestream-check') || 0;
+// Initialize livestream notification checking
+function initLivestreamNotifications() {
+  // Get the room ID
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement) return;
   
-  // Make an API request to check for new livestreams
-  fetch(`/check-new-livestreams/?room_id=${roomId}&last_check=${lastCheck}`)
+  const roomId = roomIdElement.dataset.roomId;
+  if (!roomId) return;
+  
+  // Check for new livestreams initially
+  checkForNewLivestreams(roomId);
+  
+  // Set up periodic checking
+  setInterval(() => {
+    checkForNewLivestreams(roomId);
+  }, 60000); // Check every minute
+}
+
+// Check for new livestreams
+function checkForNewLivestreams(roomId) {
+  // Get the last check time
+  const lastCheck = localStorage.getItem(`lastLivestreamCheck_${roomId}`) || '0';
+  
+  // Make API request
+  fetch(`/check-new-livestreams-view/?room_id=${roomId}&last_check=${lastCheck}`)
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        const newCount = data.new_count || 0;
-        const badge = document.getElementById('livestreams-notification-badge');
-        
-        if (newCount > 0) {
-          badge.textContent = newCount;
-          badge.style.display = 'flex';
-        } else {
-          badge.style.display = 'none';
+        if (data.new_count > 0) {
+          // Show notification badge
+          const badge = document.getElementById('livestreams-notification-badge');
+          if (badge) {
+            badge.textContent = data.new_count;
+            badge.style.display = 'flex';
+          }
+          
+          // Also send browser notification if permission is granted
+          sendLivestreamNotification(data.new_count);
         }
+        
+        // Update last check time
+        localStorage.setItem(`lastLivestreamCheck_${roomId}`, Date.now().toString());
       }
     })
     .catch(error => {
@@ -44,307 +72,227 @@ function checkNewLivestreams() {
     });
 }
 
-// Function to load upcoming livestreams in the modal
-function loadModalLivestreams() {
-  const roomId = document.getElementById('room-id-data').dataset.roomId;
-  const livestreamsContainer = document.getElementById('modal-upcoming-livestreams');
-  const noLivestreamsMessage = document.getElementById('modal-no-livestreams');
+// Send browser notification for new livestreams
+function sendLivestreamNotification(count) {
+  // Check if browser notifications are supported
+  if (!('Notification' in window)) return;
   
-  // Show loading spinner
-  livestreamsContainer.innerHTML = '<div class="loading-spinner">Loading livestreams...</div>';
+  // Check if permission is already granted
+  if (Notification.permission === 'granted') {
+    const message = count === 1 
+      ? 'A new livestream has been scheduled!'
+      : `${count} new livestreams have been scheduled!`;
+      
+    const notification = new Notification('EduLink Livestream', {
+      body: message,
+      icon: '/static/img/edulink-logo.png'
+    });
+    
+    // Close the notification after 5 seconds
+    setTimeout(() => {
+      notification.close();
+    }, 5000);
+    
+    // Click to open the livestreams modal
+    notification.onclick = function() {
+      window.focus();
+      const modal = document.getElementById('upcomingLivestreamsModal');
+      if (modal) {
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+      }
+    };
+  } else if (Notification.permission !== 'denied') {
+    // Request permission
+    Notification.requestPermission();
+  }
+}
+
+// Load upcoming livestreams in the Streams tab
+function loadUpcomingLivestreamsInTab() {
+  const container = document.querySelector('#streams .streams-list');
+  if (!container) return;
   
-  // Make an API request to get upcoming livestreams
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement) return;
+  
+  const roomId = roomIdElement.dataset.roomId;
+  
+  // Show loading state
+  container.innerHTML = '<li class="loading">Loading livestreams...</li>';
+  
+  // Clear the notification badge when viewing livestreams
+  const badge = document.getElementById('livestreams-notification-badge');
+  if (badge) {
+    badge.style.display = 'none';
+  }
+  
+  // Fetch upcoming livestreams
   fetch(`/get-upcoming-livestreams/?room_id=${roomId}`)
     .then(response => response.json())
     .then(data => {
-      if (data.success && data.livestreams && data.livestreams.length > 0) {
-        // Clear the container
-        livestreamsContainer.innerHTML = '';
-        
-        // Hide the "no livestreams" message
-        noLivestreamsMessage.style.display = 'none';
-        
-        // Create elements for each upcoming livestream
-        data.livestreams.forEach(livestream => {
-          const livestreamCard = createLivestreamCard(livestream);
-          livestreamsContainer.appendChild(livestreamCard);
-        });
+      if (data.success) {
+        if (data.livestreams && data.livestreams.length > 0) {
+          // Sort livestreams (live ones first, then by scheduled time)
+          const sortedLivestreams = data.livestreams.sort((a, b) => {
+            // Live streams first
+            if (a.status === 'live' && b.status !== 'live') return -1;
+            if (a.status !== 'live' && b.status === 'live') return 1;
+            
+            // Then by scheduled time
+            return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+          });
+          
+          // Clear container
+          container.innerHTML = '';
+          
+          // Add each livestream
+          sortedLivestreams.forEach(livestream => {
+            const livestreamEl = createLivestreamListItem(livestream);
+            container.appendChild(livestreamEl);
+          });
+        } else {
+          container.innerHTML = '<li class="no-streams">No upcoming livestreams scheduled.</li>';
+        }
       } else {
-        // No upcoming livestreams
-        livestreamsContainer.innerHTML = '';
-        noLivestreamsMessage.style.display = 'block';
+        container.innerHTML = '<li class="error">Error loading livestreams. Please try again.</li>';
       }
     })
     .catch(error => {
-      console.error('Error:', error);
-      livestreamsContainer.innerHTML = '<div class="error-message">Error loading livestreams. Please try again.</div>';
+      console.error('Error fetching livestreams:', error);
+      container.innerHTML = '<li class="error">Error loading livestreams. Please try again.</li>';
     });
 }
 
-// Function to create a simplified livestream card that opens the modal
-function createLivestreamCard(livestream) {
-  const card = document.createElement('div');
-  card.className = 'livestream-card';
-  card.dataset.id = livestream.id;
+// Load upcoming livestreams in the modal
+function loadUpcomingLivestreamsInModal() {
+  const container = document.getElementById('modal-upcoming-livestreams');
+  const noLivestreamsMessage = document.getElementById('modal-no-livestreams');
   
-  // Format the scheduled time
-  const scheduledDate = new Date(livestream.scheduled_time);
-  const formattedDate = scheduledDate.toLocaleDateString('en-US', {
+  if (!container) return;
+  
+  const roomIdElement = document.getElementById('room-id-data');
+  if (!roomIdElement) return;
+  
+  const roomId = roomIdElement.dataset.roomId;
+  
+  // Show loading state
+  container.innerHTML = '<div class="loading-spinner">Loading livestreams...</div>';
+  
+  // Clear the notification badge when viewing livestreams
+  const badge = document.getElementById('livestreams-notification-badge');
+  if (badge) {
+    badge.style.display = 'none';
+  }
+  
+  // Fetch upcoming livestreams
+  fetch(`/get-upcoming-livestreams/?room_id=${roomId}`)
+    .then(response => response.json())
+    .then(data => {
+      container.innerHTML = '';
+      
+      if (data.success) {
+        if (data.livestreams && data.livestreams.length > 0) {
+          // Sort livestreams (live ones first, then by scheduled time)
+          const sortedLivestreams = data.livestreams.sort((a, b) => {
+            // Live streams first
+            if (a.status === 'live' && b.status !== 'live') return -1;
+            if (a.status !== 'live' && b.status === 'live') return 1;
+            
+            // Then by scheduled time
+            return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+          });
+          
+          // Hide the "no livestreams" message
+          if (noLivestreamsMessage) {
+            noLivestreamsMessage.style.display = 'none';
+          }
+          
+          // Add each livestream
+          sortedLivestreams.forEach(livestream => {
+            const livestreamEl = createStudentLivestreamItem(livestream);
+            container.appendChild(livestreamEl);
+          });
+        } else if (noLivestreamsMessage) {
+          // Show the "no livestreams" message
+          noLivestreamsMessage.style.display = 'block';
+        } else {
+          container.innerHTML = '<div class="no-livestreams">No upcoming livestreams scheduled.</div>';
+        }
+      } else {
+        container.innerHTML = '<div class="error-message">Error loading livestreams. Please try again.</div>';
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching livestreams:', error);
+      container.innerHTML = '<div class="error-message">Error loading livestreams. Please try again.</div>';
+    });
+}
+
+// Create a livestream list item for the Streams tab
+function createLivestreamListItem(livestream) {
+  const li = document.createElement('li');
+  li.className = 'livestream-item';
+  
+  // Format date/time
+  const date = new Date(livestream.scheduled_time);
+  const formattedDate = date.toLocaleDateString('en-US', {
+    weekday: 'short',
     month: 'short',
     day: 'numeric'
   });
-  const formattedTime = scheduledDate.toLocaleTimeString('en-US', {
+  const formattedTime = date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   });
   
-  // Calculate if it's upcoming soon (within 30 minutes)
+  // Check if livestream is live or starting soon
   const now = new Date();
-  const timeDiff = scheduledDate - now;
-  const isUpcomingSoon = timeDiff > 0 && timeDiff < 30 * 60 * 1000;
+  const isLive = livestream.status === 'live';
+  const isStartingSoon = !isLive && (date - now) < 30 * 60 * 1000; // Within 30 minutes
   
-  // Calculate if it's live now (scheduled time is in the past but within the last hour)
-  const isLiveNow = timeDiff <= 0 && timeDiff > -60 * 60 * 1000;
-  
-  // Create card content
-  card.innerHTML = `
-    <div class="livestream-card-content">
-      <div class="livestream-card-title">${livestream.title}</div>
-      <div class="livestream-card-info">
-        <i class="bi bi-calendar-event"></i> ${formattedDate} at ${formattedTime}
-      </div>
+  // Create the HTML
+  li.innerHTML = `
+    <div class="livestream-header">
+      <h5 class="livestream-title">${livestream.title || 'Untitled Livestream'}</h5>
+      <span class="livestream-status ${isLive ? 'status-live' : isStartingSoon ? 'status-soon' : 'status-scheduled'}">
+        ${isLive ? 'LIVE NOW' : isStartingSoon ? 'Starting Soon' : 'Scheduled'}
+      </span>
     </div>
-    <span class="livestream-card-status ${isLiveNow ? 'status-live' : (isUpcomingSoon ? 'status-soon' : 'status-scheduled')}">
-      ${isLiveNow ? 'LIVE NOW' : (isUpcomingSoon ? 'Starting Soon' : 'Scheduled')}
-    </span>
-  `;
-  
-  // Add click event to open the details modal
-  card.addEventListener('click', function() {
-    // Hide the livestreams modal first
-    const upcomingModal = bootstrap.Modal.getInstance(document.getElementById('upcomingLivestreamsModal'));
-    upcomingModal.hide();
-    
-    // Then show the details modal
-    setTimeout(() => {
-      showLivestreamDetails(livestream);
-    }, 500);
-  });
-  
-  return card;
-}
-
-// Function to show livestream details in the modal
-function showLivestreamDetails(livestream) {
-  // Get modal elements
-  const modalElement = document.getElementById('livestreamDetailsModal');
-  const modal = new bootstrap.Modal(modalElement);
-  const modalTitle = document.getElementById('livestreamDetailsModalLabel');
-  const modalContent = document.getElementById('livestreamDetailsContent');
-  const modalFooter = document.getElementById('livestreamDetailsFooter');
-  
-  // Format the scheduled time
-  const scheduledDate = new Date(livestream.scheduled_time);
-  const formattedDate = scheduledDate.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-  const formattedTime = scheduledDate.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  
-  // Calculate if it's upcoming soon (within 30 minutes)
-  const now = new Date();
-  const timeDiff = scheduledDate - now;
-  const isUpcomingSoon = timeDiff > 0 && timeDiff < 30 * 60 * 1000;
-  
-  // Calculate if it's live now (scheduled time is in the past but within the last hour)
-  const isLiveNow = timeDiff <= 0 && timeDiff > -60 * 60 * 1000;
-  
-  // Set modal title
-  modalTitle.textContent = 'Livestream Details';
-  
-  // Create content for the modal
-  modalContent.innerHTML = `
-    <div class="livestream-details-content">
-      <div class="livestream-details-header">
-        <div class="livestream-details-title">${livestream.title}</div>
-        <div class="livestream-details-teacher">
-          <i class="bi bi-person-circle me-2"></i> ${livestream.teacher}
-        </div>
-        <div class="livestream-details-status livestream-card-status ${isLiveNow ? 'status-live' : (isUpcomingSoon ? 'status-soon' : 'status-scheduled')}">
-          ${isLiveNow ? 'LIVE NOW' : (isUpcomingSoon ? 'Starting Soon' : 'Scheduled')}
-        </div>
-      </div>
-      
-      <div class="livestream-details-time">
-        <i class="bi bi-calendar-event-fill"></i>
-        <div>
-          <div><strong>${formattedDate}</strong></div>
-          <div>${formattedTime}</div>
-        </div>
-      </div>
-      
-      ${livestream.description ? `
-        <div class="livestream-details-description">
-          <div class="livestream-details-description-title">Description</div>
-          <div class="livestream-details-description-content">${livestream.description}</div>
-        </div>
-      ` : ''}
+    <div class="livestream-details">
+      <i class="bi bi-person-video3"></i> ${livestream.teacher} &#8226;
+      <i class="bi bi-calendar-event"></i> ${formattedDate} at ${formattedTime}
+    </div>
+    ${livestream.description ? `<p class="livestream-description">${livestream.description}</p>` : ''}
+    <div class="livestream-actions">
+      ${isLive ? `
+        <button class="btn btn-danger btn-sm join-livestream-btn" data-id="${livestream.id}">
+          <i class="bi bi-broadcast"></i> Join Now
+        </button>
+      ` : `
+        <button class="btn btn-outline-secondary btn-sm view-details-btn" data-id="${livestream.id}">
+          <i class="bi bi-info-circle"></i> Details
+        </button>
+      `}
     </div>
   `;
   
-  // Set footer buttons based on livestream status
-  if (isLiveNow) {
-    modalFooter.innerHTML = `
-      <button type="button" class="btn btn-primary join-livestream-btn" data-id="${livestream.id}">
-        <i class="bi bi-broadcast me-2"></i> Join Livestream
-      </button>
-    `;
-    
-    // Add event listener to join button
-    modalFooter.querySelector('.join-livestream-btn').addEventListener('click', function() {
-      joinLivestream(livestream.id);
-    });
-  } else {
-    modalFooter.innerHTML = `
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      <button type="button" class="btn btn-outline-primary reminder-btn ${localStorage.getItem(`reminder-${livestream.id}`) === 'true' ? 'active' : ''}" data-id="${livestream.id}">
-        <i class="bi bi-bell me-2"></i> ${localStorage.getItem(`reminder-${livestream.id}`) === 'true' ? 'Reminder Set' : 'Set Reminder'}
-      </button>
-    `;
-    
-    // Add event listener to reminder button
-    modalFooter.querySelector('.reminder-btn').addEventListener('click', function() {
-      this.classList.toggle('active');
-      if (this.classList.contains('active')) {
-        this.innerHTML = '<i class="bi bi-bell me-2"></i> Reminder Set';
-        setReminder(livestream.id, true);
-      } else {
-        this.innerHTML = '<i class="bi bi-bell me-2"></i> Set Reminder';
-        setReminder(livestream.id, false);
-      }
-    });
-  }
-  
-  // Show the modal
-  modal.show();
-}
-
-// Function to join a livestream
-function joinLivestream(livestreamId) {
-  // Make an API request to join the livestream
-  fetch(`/join-livestream/${livestreamId}/`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Redirect to the livestream room
-        window.location.href = data.livestream_url;
-      } else {
-        showToast(data.error || "Failed to join livestream", "error");
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      showToast("An error occurred. Please try again.", "error");
-    });
-}
-
-// Function to set or remove a reminder for a livestream
-function setReminder(livestreamId, setReminder) {
-  // Store the reminder status in localStorage
-  localStorage.setItem(`reminder-${livestreamId}`, setReminder);
-  
-  // Make an API request to set or remove a reminder
-  fetch('/set-livestream-reminder/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCookie('csrftoken')
-    },
-    body: JSON.stringify({
-      livestream_id: livestreamId,
-      set_reminder: setReminder
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      showToast(setReminder ? "Reminder set" : "Reminder removed", setReminder ? "success" : "info");
-    } else {
-      showToast(data.error || "Failed to update reminder", "error");
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast("An error occurred. Please try again.", "error");
-  });
-}
-
-// Utility function to show toast notifications
-function showToast(message, type) {
-  // Check if there's an existing toast container
-  let toastContainer = document.getElementById('toast-container');
-  
-  // Create one if it doesn't exist
-  if (!toastContainer) {
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'toast-container';
-    toastContainer.style.position = 'fixed';
-    toastContainer.style.bottom = '20px';
-    toastContainer.style.right = '20px';
-    toastContainer.style.zIndex = '9999';
-    document.body.appendChild(toastContainer);
-  }
-  
-  // Create the toast element
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.style.backgroundColor = type === 'error' ? '#f44336' : 
-                               type === 'success' ? '#4CAF50' : 
-                               type === 'info' ? '#2196F3' : '#333';
-  toast.style.color = 'white';
-  toast.style.padding = '16px';
-  toast.style.borderRadius = '4px';
-  toast.style.marginTop = '10px';
-  toast.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-  toast.style.minWidth = '250px';
-  toast.style.opacity = '0';
-  toast.style.transition = 'opacity 0.3s';
-  toast.textContent = message;
-  
-  // Add toast to container
-  toastContainer.appendChild(toast);
-  
-  // Fade in
+  // Add event listeners
   setTimeout(() => {
-    toast.style.opacity = '1';
-  }, 10);
-  
-  // Remove after 3 seconds
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => {
-      toast.remove();
-    }, 300);
-  }, 3000);
-}
-
-// Utility function to get CSRF token from cookies
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
+    const joinBtn = li.querySelector('.join-livestream-btn');
+    if (joinBtn) {
+      joinBtn.addEventListener('click', function() {
+        studentJoinLivestream(livestream.id);
+      });
     }
-  }
-  return cookieValue;
+    
+    const detailsBtn = li.querySelector('.view-details-btn');
+    if (detailsBtn) {
+      detailsBtn.addEventListener('click', function() {
+        showLivestreamDetails(livestream, isLive);
+      });
+    }
+  }, 0);
+  
+  return li;
 }
