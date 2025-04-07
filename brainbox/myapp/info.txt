@@ -27,6 +27,9 @@
         hugging face text analisis and llama for text classification
 
 
+
+
+
 https://www.youtube.com/watch?v=1h6lfzJ0wZw   for explanation
 
 

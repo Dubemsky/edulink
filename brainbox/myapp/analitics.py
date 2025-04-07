@@ -803,9 +803,10 @@ def get_room_analytics(request, **kwargs):
             poll_options = poll.get('poll_options', [])
             if poll_options:
                 poll_data.append({
-                    "question": poll.get('content', 'Unnamed Poll'),
+                    "question": encryption_manager.decrypt(poll.get('content', 'Unnamed Poll')),
                     "options": [
-                        {"option": opt.get('option', ''), "votes": opt.get('votes', 0)}
+                        {"option":encryption_manager.decrypt(opt.get('option', '')),
+                          "votes": opt.get('votes', 0)}
                         for opt in poll_options
                     ]
                 })
@@ -918,6 +919,7 @@ def get_room_analytics(request, **kwargs):
                 "sentiment_ratio": round(upvotes_total / max(downvotes_total, 1), 2) if downvotes_total > 0 else upvotes_total
             }
         }
+        print(f"\n\n{analytics['polls']}\n\n")
         
         return JsonResponse({
             "success": True,
