@@ -18,9 +18,17 @@ from .firebase import db
 # These would be set in your environment variables or settings file
 LIVEKIT_API_KEY = "APIRsaxCuofVw7K"
 LIVEKIT_API_SECRET = "ZnrqffqzbGqyHdGqGGjTfL2I1fOGMMKSIK7Htqb11NDC"
-LIVEKIT_API_URL ="wss://edulink-oxkw0h5q.livekit.cloud"
 
+# Change WebSocket URL to HTTP URL for server API
+LIVEKIT_API_URL = "https://edulink-oxkw0h5q.livekit.cloud"
+# Keep the original WebSocket URL for client connections
+LIVEKIT_WS_URL = "wss://edulink-oxkw0h5q.livekit.cloud"
 
+# Debug LiveKit credentials - print to console
+print("LiveKit Configuration:")
+print(f"API Key: {LIVEKIT_API_KEY}")
+print(f"API Secret: {LIVEKIT_API_SECRET[:4]}...{LIVEKIT_API_SECRET[-4:]}")  # Print only part of secret for security
+print(f"API URL: {LIVEKIT_API_URL}")
 
 def generate_access_token(room_name: str, participant_name: str, is_publisher: bool = False, ttl_seconds: int = 3600) -> str:
     """
@@ -63,6 +71,10 @@ def generate_access_token(room_name: str, participant_name: str, is_publisher: b
     # Generate the JWT
     token = jwt.encode(claims, LIVEKIT_API_SECRET, algorithm='HS256')
     
+    # Ensure the token is a string (PyJWT >=2.0.0 returns a string, <2.0.0 returns bytes)
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
+    
     return token
 
 def create_livekit_room(room_name: str) -> Dict:
@@ -75,22 +87,43 @@ def create_livekit_room(room_name: str) -> Dict:
     Returns:
         Dict containing the API response.
     """
-    # Generate API key signature for authentication
-    timestamp = int(time.time())
-    path = f"/twirp/livekit.RoomService/CreateRoom"
+    # Generate API access token with appropriate permissions
+    import jwt
+    from datetime import datetime, timedelta
     
-    # Create message to sign
-    message = f"{path}{timestamp}"
-    signature = hmac.new(
-        LIVEKIT_API_SECRET.encode(),
-        message.encode(),
-        'sha256'
-    ).digest()
-    signature_b64 = base64.b64encode(signature).decode()
+    # Set up claims for the API JWT
+    now = int(datetime.now().timestamp())
+    exp = now + 60  # Short expiration for API calls
+    
+    claims = {
+        "iss": LIVEKIT_API_KEY,
+        "nbf": now,
+        "exp": exp,
+        "video": {
+            # Give admin level access for all operations
+            "room_create": True,
+            "room_list": True,
+            "room_record": True,
+            "room_admin": True
+        }
+    }
+    
+    # Generate the JWT
+    token = jwt.encode(claims, LIVEKIT_API_SECRET, algorithm='HS256')
+    
+    # Ensure the token is a string (PyJWT >=2.0.0 returns a string, <2.0.0 returns bytes)
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
+    
+    # Debug info
+    print("\n=== LiveKit Room Creation Debug ===")
+    print(f"Room Name: {room_name}")
+    print(f"Claims: {claims}")
+    print(f"Token: {token[:10]}...{token[-10:]}")  # Only show part of token for security
     
     # Prepare API request
     headers = {
-        "Authorization": f"Bearer {LIVEKIT_API_KEY}:{signature_b64}:{timestamp}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     
@@ -102,8 +135,16 @@ def create_livekit_room(room_name: str) -> Dict:
     }
     
     # Make API request
+    path = f"/twirp/livekit.RoomService/CreateRoom"
     url = f"{LIVEKIT_API_URL}{path}"
+    print(f"Request URL: {url}")
+    print(f"Request Headers: {headers}")
+    print(f"Request Data: {data}")
+    
     response = requests.post(url, headers=headers, json=data)
+    
+    print(f"Response Status: {response.status_code}")
+    print(f"Response Text: {response.text}")
     
     if response.status_code != 200:
         raise Exception(f"Failed to create LiveKit room: {response.text}")
@@ -130,22 +171,35 @@ def start_recording(room_name: str, recording_options=None) -> Dict:
             "preset": "H264_720P_30"
         }
     
-    # Generate API key signature for authentication
-    timestamp = int(time.time())
-    path = f"/twirp/livekit.RoomService/StartRoomRecording"
+    # Generate API access token with appropriate permissions
+    import jwt
+    from datetime import datetime, timedelta
     
-    # Create message to sign
-    message = f"{path}{timestamp}"
-    signature = hmac.new(
-        LIVEKIT_API_SECRET.encode(),
-        message.encode(),
-        'sha256'
-    ).digest()
-    signature_b64 = base64.b64encode(signature).decode()
+    # Set up claims for the API JWT
+    now = int(datetime.now().timestamp())
+    exp = now + 60  # Short expiration for API calls
+    
+    claims = {
+        "iss": LIVEKIT_API_KEY,
+        "nbf": now,
+        "exp": exp,
+        "video": {
+            "room": room_name,
+            "room_record": True,  # Can record the room
+            "room_admin": True    # Admin access
+        }
+    }
+    
+    # Generate the JWT
+    token = jwt.encode(claims, LIVEKIT_API_SECRET, algorithm='HS256')
+    
+    # Ensure the token is a string (PyJWT >=2.0.0 returns a string, <2.0.0 returns bytes)
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
     
     # Prepare API request
     headers = {
-        "Authorization": f"Bearer {LIVEKIT_API_KEY}:{signature_b64}:{timestamp}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     
@@ -156,6 +210,7 @@ def start_recording(room_name: str, recording_options=None) -> Dict:
     }
     
     # Make API request
+    path = f"/twirp/livekit.RoomService/StartRoomRecording"
     url = f"{LIVEKIT_API_URL}{path}"
     response = requests.post(url, headers=headers, json=data)
     
@@ -174,22 +229,34 @@ def stop_recording(recording_id: str) -> Dict:
     Returns:
         Dict containing the API response.
     """
-    # Generate API key signature for authentication
-    timestamp = int(time.time())
-    path = f"/twirp/livekit.RoomService/StopRoomRecording"
+    # Generate API access token with appropriate permissions
+    import jwt
+    from datetime import datetime, timedelta
     
-    # Create message to sign
-    message = f"{path}{timestamp}"
-    signature = hmac.new(
-        LIVEKIT_API_SECRET.encode(),
-        message.encode(),
-        'sha256'
-    ).digest()
-    signature_b64 = base64.b64encode(signature).decode()
+    # Set up claims for the API JWT
+    now = int(datetime.now().timestamp())
+    exp = now + 60  # Short expiration for API calls
+    
+    claims = {
+        "iss": LIVEKIT_API_KEY,
+        "nbf": now,
+        "exp": exp,
+        "video": {
+            "room_record": True,  # Can control recordings
+            "room_admin": True    # Admin access
+        }
+    }
+    
+    # Generate the JWT
+    token = jwt.encode(claims, LIVEKIT_API_SECRET, algorithm='HS256')
+    
+    # Ensure the token is a string (PyJWT >=2.0.0 returns a string, <2.0.0 returns bytes)
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
     
     # Prepare API request
     headers = {
-        "Authorization": f"Bearer {LIVEKIT_API_KEY}:{signature_b64}:{timestamp}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     
@@ -199,6 +266,7 @@ def stop_recording(recording_id: str) -> Dict:
     }
     
     # Make API request
+    path = f"/twirp/livekit.RoomService/StopRoomRecording"
     url = f"{LIVEKIT_API_URL}{path}"
     response = requests.post(url, headers=headers, json=data)
     
@@ -275,22 +343,35 @@ def get_active_participants(room_name: str) -> List[Dict]:
     Returns:
         List of participant information dictionaries.
     """
-    # Generate API key signature for authentication
-    timestamp = int(time.time())
-    path = f"/twirp/livekit.RoomService/ListParticipants"
+    # Generate API access token with appropriate permissions
+    import jwt
+    from datetime import datetime, timedelta
     
-    # Create message to sign
-    message = f"{path}{timestamp}"
-    signature = hmac.new(
-        LIVEKIT_API_SECRET.encode(),
-        message.encode(),
-        'sha256'
-    ).digest()
-    signature_b64 = base64.b64encode(signature).decode()
+    # Set up claims for the API JWT
+    now = int(datetime.now().timestamp())
+    exp = now + 60  # Short expiration for API calls
+    
+    claims = {
+        "iss": LIVEKIT_API_KEY,
+        "nbf": now,
+        "exp": exp,
+        "video": {
+            "room": room_name,
+            "room_list": True,  # Can list room participants
+            "room_admin": True  # Admin access
+        }
+    }
+    
+    # Generate the JWT
+    token = jwt.encode(claims, LIVEKIT_API_SECRET, algorithm='HS256')
+    
+    # Ensure the token is a string (PyJWT >=2.0.0 returns a string, <2.0.0 returns bytes)
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
     
     # Prepare API request
     headers = {
-        "Authorization": f"Bearer {LIVEKIT_API_KEY}:{signature_b64}:{timestamp}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     
@@ -300,6 +381,7 @@ def get_active_participants(room_name: str) -> List[Dict]:
     }
     
     # Make API request
+    path = f"/twirp/livekit.RoomService/ListParticipants"
     url = f"{LIVEKIT_API_URL}{path}"
     response = requests.post(url, headers=headers, json=data)
     

@@ -6,7 +6,7 @@ from .group_chat import *
 from .views_teachers import *
 from .views_students import *
 from .community_page import *
-from .livestream_view import *
+from .livestream import *
 from .private_messages import *
 from . profile_page_updates import *
 
