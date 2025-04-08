@@ -6,7 +6,6 @@ from .group_chat import *
 from .views_teachers import *
 from .views_students import *
 from .community_page import *
-from .livestream import *
 from .private_messages import *
 from . profile_page_updates import *
 
@@ -95,30 +94,6 @@ urlpatterns = [
     path('decline_connection_request/', decline_connection_request, name='decline_connection_request'),
 
     # Add these URL patterns to your urls.py file
-
-# Livestream related URLs
-    path('schedule-livestream/', schedule_livestream_view, name='schedule_livestream'),
-    path('get-upcoming-livestreams/', get_upcoming_livestreams_view, name='get_upcoming_livestreams'),
-    path('cancel-livestream/', cancel_livestream_view, name='cancel_livestream'),
-    path('start-livestream/', start_livestream_view, name='start_livestream'),
-    path('livestream/<str:livestream_id>/<str:room_name>/', livestream_room_view, name='livestream_room'),
-    path('get-teacher-livestreams/', get_teacher_livestreams_view, name='get_teacher_livestreams'),
-    path('get-livestream-details/<str:livestream_id>/', get_livestream_details_view, name='get_livestream_details'),
-    path('update-livestream/', update_livestream_view, name='update_livestream'),
-    
-
-    path('livekit/token/', generate_token_view, name='livekit_token'),
-    path('livekit/create-room/', create_room_view, name='livekit_create_room'),
-    
-    # Livestream management endpoints
-    path('start-livestream/', start_livestream_view, name='start_livestream'),
-    path('end-livestream/', end_livestream_view, name='end_livestream'),
-    path('join-livestream/', join_livestream_view, name='join_livestream'),
-    
-    # Livestream room view
-    path('livestream/<str:livestream_id>/<str:room_name>/', livestream_room_view, name='livestream_room'),
-
-
 
 
 
