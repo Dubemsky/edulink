@@ -2,8 +2,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Constants
     const STUDENT_USERNAME = document.getElementById("room-id-data")?.dataset?.username;
+    const CURRENT_ROOM_ID = document.getElementById("room-id-data")?.dataset?.roomId;
 
-    console.log(" Hi dahfoeidhfaiod")
+    console.log("Initializing livestream functionality for user:", STUDENT_USERNAME, "in room:", CURRENT_ROOM_ID);
     
     // DOM Elements
     const upcomingLivestreamsModal = document.getElementById('upcomingLivestreamsModal');
@@ -44,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load student's livestreams
     function loadStudentLivestreams() {
-        if (!studentLivestreamsList || !STUDENT_USERNAME) return;
+        if (!studentLivestreamsList || !CURRENT_ROOM_ID) return;
         
         // Show loading indicator
         loadingIndicator.style.display = 'block';
@@ -57,8 +58,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Fetch upcoming livestreams
-        fetch(`/get-student-livestreams/?username=${encodeURIComponent(STUDENT_USERNAME)}`)
+        // Fetch upcoming livestreams for the current room only
+        fetch(`/get-livestreams/?room_id=${encodeURIComponent(CURRENT_ROOM_ID)}&status=upcoming`)
             .then(response => response.json())
             .then(data => {
                 // Hide loading indicator
@@ -231,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load livestream notifications
     function loadLivestreamNotifications() {
-        if (!STUDENT_USERNAME) return;
+        if (!STUDENT_USERNAME || !CURRENT_ROOM_ID) return;
         
         // We'll use the existing notification system to display livestream notifications
         // Check if we should show the notifications based on local storage
@@ -251,9 +252,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data && data.length > 0) {
-                    // Filter for unread livestream notifications
+                    // Filter for unread livestream notifications for the current room
                     const livestreamNotifications = data.filter(notification => 
-                        notification.type === 'livestream' && !notification.read
+                        notification.type === 'livestream' && 
+                        !notification.read &&
+                        notification.room_id === CURRENT_ROOM_ID // Filter by current room ID
                     );
                     
                     if (livestreamNotifications.length > 0) {

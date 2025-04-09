@@ -377,9 +377,10 @@ def send_livestream_cancellation_notifications(livestream_id, livestream_data):
 
 @require_GET
 def get_student_livestreams(request):
-    """Get livestreams for a student."""
+    """Get livestreams for a student based on the rooms they are a member of."""
     try:
         username = request.GET.get('username')
+        room_id = request.GET.get('room_id')  # Optional parameter to filter by specific room
         
         if not username:
             return JsonResponse({'success': False, 'error': 'Username is required'})
@@ -387,51 +388,57 @@ def get_student_livestreams(request):
         # Get current time
         now = datetime.now()
         
-        # First, get all rooms the student is a member of
-        # This will give us room_ids that we need to filter livestreams
-        student_rooms = []
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    SELECT hub_url FROM myapp_students_joined_hub 
-                    WHERE student = %s
-                """, [username])
-                
-                student_rooms = [row[0] for row in cursor.fetchall()]
-                print(f"Found {len(student_rooms)} rooms for student {username}")
-        except Exception as e:
-            print(f"Error getting student rooms: {str(e)}")
-            # Fallback to getting all livestreams if we can't get the rooms
-            student_rooms = []
+        # If a specific room_id is provided, use it directly
+        if room_id:
+            student_rooms = [room_id]
+            print(f"Filtering livestreams for specific room: {room_id}")
+        else:
+            # Get all rooms the student is a member of
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT hub_url FROM myapp_students_joined_hub 
+                        WHERE student = %s
+                    """, [username])
+                    
+                    student_rooms = [row[0] for row in cursor.fetchall()]
+                    print(f"Found {len(student_rooms)} rooms for student {username}")
+            except Exception as e:
+                print(f"Error getting student rooms: {str(e)}")
+                student_rooms = []
             
         # Query all livestreams
         livestreams_ref = db.collection(LIVESTREAMS_COLLECTION)
-        all_livestreams = list(livestreams_ref.stream())
         
         # Filter to only upcoming, non-cancelled livestreams that are relevant to this student
         upcoming_livestreams = []
-        for livestream_doc in all_livestreams:
-            livestream = livestream_doc.to_dict()
-            livestream['id'] = livestream_doc.id
-            
-            # Skip if this livestream is not for a room the student is in
-            # Only apply this filter if we have student_rooms and it's not for "all students" view
-            if student_rooms and livestream.get('room_id') not in student_rooms:
-                continue
+        
+        # If we have student_rooms to filter by
+        if student_rooms:
+            for room_id in student_rooms:
+                room_livestreams = list(livestreams_ref.where('room_id', '==', room_id).stream())
                 
-            # Parse scheduled date and time
-            scheduled_datetime = datetime.strptime(
-                f"{livestream['scheduled_date']} {livestream['scheduled_time']}", 
-                '%Y-%m-%d %H:%M'
-            )
-            
-            # Calculate if the livestream is upcoming
-            if livestream.get('status') != 'cancelled':
-                scheduled_datetime_utc = scheduled_datetime.replace(tzinfo=pytz.UTC)
-                
-                # Include if scheduled time is in the future
-                if scheduled_datetime_utc > now.replace(tzinfo=pytz.UTC):
-                    upcoming_livestreams.append(livestream)
+                for livestream_doc in room_livestreams:
+                    livestream = livestream_doc.to_dict()
+                    livestream['id'] = livestream_doc.id
+                    
+                    # Parse scheduled date and time
+                    scheduled_datetime = datetime.strptime(
+                        f"{livestream['scheduled_date']} {livestream['scheduled_time']}", 
+                        '%Y-%m-%d %H:%M'
+                    )
+                    
+                    # Check if the livestream is upcoming and not cancelled
+                    if livestream.get('status') != 'cancelled':
+                        scheduled_datetime_utc = scheduled_datetime.replace(tzinfo=pytz.UTC)
+                        
+                        # Include if scheduled time is in the future
+                        if scheduled_datetime_utc > now.replace(tzinfo=pytz.UTC):
+                            upcoming_livestreams.append(livestream)
+        else:
+            # Fallback: no rooms found, show no livestreams
+            print(f"No rooms found for student: {username}")
+            upcoming_livestreams = []
         
         # Sort by scheduled date/time
         upcoming_livestreams.sort(key=lambda x: f"{x['scheduled_date']} {x['scheduled_time']}")
