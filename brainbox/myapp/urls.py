@@ -6,8 +6,10 @@ from .livestream import *
 from .views_teachers import *
 from .views_students import *
 from .community_page import *
+from .group_chat_view import *
 from .private_messages import *
 from . profile_page_updates import *
+
 
 urlpatterns = [
 
@@ -96,6 +98,22 @@ urlpatterns = [
     path('resend-verification-email/', resend_verification_email, name='resend_verification_email'),
     path('change-password/', change_password, name='change_password'),
 
+
+
+
+     path('get-group-chats/', get_group_chats, name='get_group_chats'),
+    
+    # Create a new group chat
+    path('create-group-chat/', create_new_group_chat, name='create_group_chat'),
+    
+    # Get messages for a group chat or send a new message
+    path('group-chat/<str:group_chat_id>/messages/', group_chat_messages, name='group_chat_messages'),
+    
+    # Add or remove a member from a group chat
+    path('group-chat/<str:group_chat_id>/member/', group_chat_member, name='group_chat_member'),
+    
+    # Get mutual connections for the current user
+    path('get-mutual-connections/', get_mutual_connections, name='get_mutual_connections'),
 
 
 
