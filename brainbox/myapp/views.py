@@ -82,6 +82,7 @@ def signup_page(request):
             error_message = "Password must contain at least one number."
         elif not re.search(r'[!@#$%^&*]', password):
             error_message = "Password must contain at least one special character."
+            
         else:
             try:
                 # Add new student to the database
