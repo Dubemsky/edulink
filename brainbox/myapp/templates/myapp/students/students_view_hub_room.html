@@ -322,6 +322,235 @@
     </div>
 </div>
 
+
+
+
+<!-- Student Upcoming Livestreams Section -->
+<div class="modal fade" id="upcomingLivestreamsModal" tabindex="-1" aria-labelledby="upcomingLivestreamsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="upcomingLivestreamsModalLabel">Upcoming Livestreams</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="studentLivestreamsList" class="livestream-list">
+          <!-- Livestreams will be loaded here -->
+          <div class="text-center py-4" id="student-livestreams-loading">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+          <div class="no-streams-message" id="no-student-livestreams" style="display: none;">
+            <p>No upcoming livestreams scheduled. Check back later!</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Livestream Notification Template -->
+<template id="livestreamNotificationTemplate">
+  <div class="livestream-notification">
+    <div class="livestream-notification-header">
+      <span class="livestream-notification-title">New Livestream Scheduled</span>
+      <button class="livestream-notification-close" aria-label="Close notification">×</button>
+    </div>
+    <p class="notification-message">A new livestream has been scheduled for [Room Name]</p>
+    <div class="notification-details">
+      <div><strong>Title:</strong> <span class="notification-title">[Livestream Title]</span></div>
+      <div><strong>Date & Time:</strong> <span class="notification-datetime">[Date and Time]</span></div>
+    </div>
+    <div class="notification-actions">
+      <button class="btn btn-sm btn-primary view-livestream-btn">View Details</button>
+      <button class="btn btn-sm btn-outline-secondary remind-later-btn">Remind Me Later</button>
+    </div>
+  </div>
+</template>
+
+<!-- Student Upcoming Livestreams Section - Simplified Styling -->
+<div class="modal fade" id="upcomingLivestreamsModal" tabindex="-1" aria-labelledby="upcomingLivestreamsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="upcomingLivestreamsModalLabel">
+          <i class="bi bi-broadcast"></i> Upcoming Livestreams
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="studentLivestreamsList" class="livestream-list">
+          <!-- Livestreams will be loaded here -->
+          <div class="text-center py-4" id="student-livestreams-loading">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+          <div class="no-streams-message text-center py-4" id="no-student-livestreams" style="display: none;">
+            <i class="bi bi-camera-video-off fs-4 mb-2 text-muted"></i>
+            <p>No upcoming livestreams scheduled. Check back later!</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Livestream Notification Template -->
+<template id="livestreamNotificationTemplate">
+  <div class="livestream-notification">
+    <div class="livestream-notification-header">
+      <span class="livestream-notification-title">New Livestream Scheduled</span>
+      <button class="livestream-notification-close" aria-label="Close notification">×</button>
+    </div>
+    <p class="notification-message">A new livestream has been scheduled for [Room Name]</p>
+    <div class="notification-details">
+      <div><strong>Title:</strong> <span class="notification-title">[Livestream Title]</span></div>
+      <div><strong>Date & Time:</strong> <span class="notification-datetime">[Date and Time]</span></div>
+    </div>
+    <div class="notification-actions">
+      <button class="btn btn-sm btn-primary view-livestream-btn">View Details</button>
+      <button class="btn btn-sm btn-outline-secondary remind-later-btn">Remind Me Later</button>
+    </div>
+  </div>
+</template>
+
+<!-- Add this minimal CSS to your stylesheet -->
+<style>
+/* Simplified Livestream Styles */
+.livestream-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.no-streams-message {
+  color: #6c757d;
+}
+
+/* Livestream card styles */
+.livestream-card {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: #fff;
+}
+
+.livestream-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.livestream-details {
+  margin: 10px 0;
+  color: #6c757d;
+}
+
+.livestream-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-bottom: 10px;
+}
+
+.status-upcoming {
+  background-color: #e3f2fd;
+  color: #0d6efd;
+}
+
+.status-live {
+  background-color: #f8d7da;
+  color: #dc3545;
+}
+
+/* Countdown timer */
+.countdown-timer {
+  display: flex;
+  justify-content: center;
+  margin: 15px 0;
+}
+
+.countdown-segment {
+  margin: 0 8px;
+  text-align: center;
+}
+
+.countdown-number {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.countdown-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* Notification styles */
+.livestream-notification {
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  width: 300px;
+}
+
+.livestream-notification-header {
+  background-color: #f8f9fa;
+  padding: 10px 15px;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.livestream-notification-title {
+  font-weight: 600;
+}
+
+.livestream-notification-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #6c757d;
+}
+
+.notification-message {
+  padding: 10px 15px 5px;
+  margin: 0;
+}
+
+.notification-details {
+  padding: 0 15px 10px;
+  font-size: 0.875rem;
+}
+
+.notification-details div {
+  margin-bottom: 5px;
+}
+
+.notification-actions {
+  padding: 10px 15px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid #eee;
+}
+</style>
+
 <!-- Hidden data elements to pass information to the JavaScript -->
 <div id="room-id-data" data-room-id="{{ room_id|escapejs }}" data-username="{{ current_student_name|escapejs }}" style="display: none;"></div>
 
@@ -430,6 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   <!-- Main JS Files -->
   <script src="{% static 'js/students-analitics.js' %}"></script>
+  <script src="{% static 'js/student_livestream.js' %}"></script>
   <script src="{% static 'js/main.js' %}"></script>
   <script src="{% static 'js/summarize.js' %}"></script>
 

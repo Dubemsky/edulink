@@ -3,6 +3,7 @@ from .analitics import *
 from .summarise import *
 from django.urls import path
 from .group_chat import *
+from .livestream import *
 from .views_teachers import *
 from .views_students import *
 from .community_page import *
@@ -93,9 +94,17 @@ urlpatterns = [
     path('accept_connection_request/', accept_connection_request, name='accept_connection_request'),
     path('decline_connection_request/', decline_connection_request, name='decline_connection_request'),
 
-    # Add these URL patterns to your urls.py file
+    
 
 
+
+
+# For livestream functionality
+path('schedule-livestream/', schedule_livestream, name='schedule_livestream'),
+path('get-livestreams/', get_livestreams, name='get_livestreams'),
+path('get-livestream-details/', get_livestream_details, name='get_livestream_details'),
+path('cancel-livestream/', cancel_livestream, name='cancel_livestream'),
+path('get-student-livestreams/', get_student_livestreams, name='get_student_livestreams'),
 
 # Emai verification
     path('verify-email/<str:token>/', verify_email, name='verify_email'),

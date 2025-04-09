@@ -123,6 +123,8 @@ def notifications_for_bookmarked_questions(question_id, room_id, sender):
             else:
                 print(f"Skipping notification for {username} because it's the sender.")
 
+
+
 def get_notifications_by_username(username):
     """
     Retrieve notifications for a specific user from Firebase, including livestreams.
@@ -153,6 +155,7 @@ def get_notifications_by_username(username):
 
         # Check if it's a livestream and add livestream-specific details
         if notification_data.get("type") == "livestream":
+
             s = str(notification_data.get("content"),)
             result = s.split(" for ")[0]
             
@@ -162,6 +165,8 @@ def get_notifications_by_username(username):
                 "timestamp": notification_data.get("created_at"),
                 "read": notification_data.get("read"),
             })
+
+            print(f"This is a livestream notification\n\nn\n\n")
             
         elif notification_data.get("type") == "room_invite":
             notification_item.update({
