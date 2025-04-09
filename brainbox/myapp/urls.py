@@ -99,12 +99,12 @@ urlpatterns = [
 
 
 
-# For livestream functionality
-path('schedule-livestream/', schedule_livestream, name='schedule_livestream'),
-path('get-livestreams/', get_livestreams, name='get_livestreams'),
-path('get-livestream-details/', get_livestream_details, name='get_livestream_details'),
-path('cancel-livestream/', cancel_livestream, name='cancel_livestream'),
-path('get-student-livestreams/', get_student_livestreams, name='get_student_livestreams'),
+    # For livestream functionality
+    path('schedule-livestream/', schedule_livestream, name='schedule_livestream'),
+    path('get-livestreams/', get_livestreams, name='get_livestreams'),
+    path('get-livestream-details/', get_livestream_details, name='get_livestream_details'),
+    path('cancel-livestream/', cancel_livestream, name='cancel_livestream'),
+    path('get-student-livestreams/', get_student_livestreams, name='get_student_livestreams'),
 
 # Emai verification
     path('verify-email/<str:token>/', verify_email, name='verify_email'),

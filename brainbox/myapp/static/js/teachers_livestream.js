@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Constants
     const ROOM_ID = document.getElementById("room-id-data")?.dataset?.roomId;
     const TEACHER_NAME = document.getElementById('teacher-name')?.dataset?.teacherName;
+    
+    console.log("Initializing livestream management for teacher:", TEACHER_NAME, "in room:", ROOM_ID);
+    
     // DOM Elements
     const manageLivestreamModal = document.getElementById('manageLivestreamModal');
     const scheduleLivestreamBtn = document.getElementById('scheduleLivestreamBtn');
@@ -94,6 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load livestreams when modal is shown
     if (manageLivestreamModal) {
         manageLivestreamModal.addEventListener('show.bs.modal', function() {
+            console.log("Modal shown, loading upcoming livestreams");
             loadUpcomingLivestreams();
             
             // Load past livestreams if tab is active or when clicked
@@ -111,6 +115,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Schedule a new livestream
     function scheduleLivestream(livestreamData) {
+        console.log("Scheduling livestream with data:", livestreamData);
+        
         fetch('/schedule-livestream/', {
             method: 'POST',
             headers: {
@@ -159,13 +165,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadingIndicator = document.getElementById('upcoming-loading');
         const noStreamsMessage = document.getElementById('no-upcoming-streams');
         
-        if (!upcomingStreamsList) return;
+        console.log("\n\nupcomingStreamsList element:", upcomingStreamsList);
+
+        if (!upcomingStreamsList || !ROOM_ID) {
+            console.error("Missing required elements for upcoming livestreams");
+            return;
+        }
+        
+        console.log("Loading upcoming livestreams for room:", ROOM_ID);
         
         // Show loading indicator
-        loadingIndicator.style.display = 'block';
-        noStreamsMessage.style.display = 'none';
+        if (loadingIndicator) loadingIndicator.style.display = 'block';
+        if (noStreamsMessage) noStreamsMessage.style.display = 'none';
         
-        // Clear existing content (except loading indicator)
+        // Clear existing content (except loading indicator and no streams message)
         Array.from(upcomingStreamsList.children).forEach(child => {
             if (child !== loadingIndicator && child !== noStreamsMessage) {
                 child.remove();
@@ -173,28 +186,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Fetch upcoming livestreams
-        fetch(`/get-livestreams/?room_id=${ROOM_ID}&status=upcoming`)
+        fetch(`/get-livestreams/?room_id=${encodeURIComponent(ROOM_ID)}&status=upcoming`)
             .then(response => response.json())
             .then(data => {
+                console.log("Received upcoming livestreams data:", data);
+                
                 // Hide loading indicator
-                loadingIndicator.style.display = 'none';
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
                 
                 if (data.success && data.livestreams && data.livestreams.length > 0) {
-                    // Render each livestream
-                    data.livestreams.forEach(livestream => {
+                    console.log("Creating livestream cards for", data.livestreams.length, "livestreams");
+                    
+                    // For each livestream, log before creating the card
+                    data.livestreams.forEach((livestream, index) => {
+                        console.log(`Creating card for livestream ${index}:`, livestream.title);
                         const livestreamCard = createLivestreamCard(livestream, 'upcoming');
+                        console.log("Card created:", livestreamCard);
                         upcomingStreamsList.appendChild(livestreamCard);
+                        console.log("Card appended to container");
                     });
-                } else {
+                }
+                else {
                     // Show no streams message
-                    noStreamsMessage.style.display = 'block';
+                    if (noStreamsMessage) noStreamsMessage.style.display = 'block';
                 }
             })
             .catch(error => {
                 console.error('Error loading upcoming livestreams:', error);
-                loadingIndicator.style.display = 'none';
-                noStreamsMessage.style.display = 'block';
-                noStreamsMessage.innerHTML = '<p>Error loading livestreams. Please try again.</p>';
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                if (noStreamsMessage) {
+                    noStreamsMessage.style.display = 'block';
+                    noStreamsMessage.innerHTML = '<p>Error loading livestreams. Please try again.</p>';
+                }
             });
     }
     
@@ -204,13 +227,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadingIndicator = document.getElementById('past-loading');
         const noStreamsMessage = document.getElementById('no-past-streams');
         
-        if (!pastStreamsList) return;
+        if (!pastStreamsList || !ROOM_ID) {
+            console.error("Missing required elements for past livestreams");
+            return;
+        }
+        
+        console.log("Loading past livestreams for room:", ROOM_ID);
         
         // Show loading indicator
-        loadingIndicator.style.display = 'block';
-        noStreamsMessage.style.display = 'none';
+        if (loadingIndicator) loadingIndicator.style.display = 'block';
+        if (noStreamsMessage) noStreamsMessage.style.display = 'none';
         
-        // Clear existing content (except loading indicator)
+        // Clear existing content (except loading indicator and no streams message)
         Array.from(pastStreamsList.children).forEach(child => {
             if (child !== loadingIndicator && child !== noStreamsMessage) {
                 child.remove();
@@ -218,11 +246,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Fetch past livestreams
-        fetch(`/get-livestreams/?room_id=${ROOM_ID}&status=past`)
+        fetch(`/get-livestreams/?room_id=${encodeURIComponent(ROOM_ID)}&status=past`)
             .then(response => response.json())
             .then(data => {
+                console.log("Received past livestreams data:", data);
+                
                 // Hide loading indicator
-                loadingIndicator.style.display = 'none';
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
                 
                 if (data.success && data.livestreams && data.livestreams.length > 0) {
                     // Render each livestream
@@ -232,14 +262,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 } else {
                     // Show no streams message
-                    noStreamsMessage.style.display = 'block';
+                    if (noStreamsMessage) noStreamsMessage.style.display = 'block';
                 }
             })
             .catch(error => {
                 console.error('Error loading past livestreams:', error);
-                loadingIndicator.style.display = 'none';
-                noStreamsMessage.style.display = 'block';
-                noStreamsMessage.innerHTML = '<p>Error loading livestreams. Please try again.</p>';
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                if (noStreamsMessage) {
+                    noStreamsMessage.style.display = 'block';
+                    noStreamsMessage.innerHTML = '<p>Error loading livestreams. Please try again.</p>';
+                }
             });
     }
     
@@ -521,8 +553,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const toast = document.createElement('div');
         toast.id = 'toast-notification';
         toast.style.backgroundColor = type === 'error' ? '#f44336' : 
-                                      type === 'success' ? '#4CAF50' : 
-                                      type === 'info' ? '#2196F3' : '#333';
+                                     type === 'success' ? '#4CAF50' : 
+                                     type === 'info' ? '#2196F3' : '#333';
         toast.style.color = 'white';
         toast.style.padding = '16px';
         toast.style.borderRadius = '4px';
