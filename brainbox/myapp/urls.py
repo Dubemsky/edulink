@@ -19,7 +19,6 @@ urlpatterns = [
     path('success/', success_page, name='success_page'),
     path('login-teachers/', login_page_teachers, name='login_page_teachers'), 
 
-
     # Students sections paths
     path('join-hub/', join_hub, name='join_hub'),
     path('edulink-community/', community_page, name='community_page'),
@@ -50,11 +49,9 @@ urlpatterns = [
     path('teachers-dashboard/hub-room/<str:id>/<str:message_id>/', hub_room_message_teacher_replies, name='hub_room_message_teacher_replies'),
     path('teachers-dashboard/teachers-profile/security-settings',teacher_profile_page_securty_settings,name='teacher_profile_page_securty_settings'),
     path('teachers-dashboard/teachers-profile/activity-contribution',teacher_profile_page_activity_contribution,name='teacher_profile_page_activity_contribution'),
-   
 
 
     # groupchat
-
     path('create-group-chat/', create_group_chat_view, name='create_group_chat'),
     path('get-group-chats/', get_group_chats_view, name='get_group_chats'),
     path('get-group-messages/', get_group_messages_view, name='get_group_messages'),
@@ -65,7 +62,6 @@ urlpatterns = [
 
 
     # Other sections paths
-    
     path('vote-reply/', vote_reply, name='vote_reply'),
     path('poll-voting/', poll_voting, name='poll_voting'),
     path('get_messages/',get_messages, name='get_messages'),
@@ -87,7 +83,6 @@ urlpatterns = [
     path('send-invite/', send_invite, name='send_invite'),
     path('search-students/', search_students, name='search_students'),
     path('respond-to-invite/', respond_to_invite, name='respond_to_invite'),
-
     path('check-bookmark-status/', check_bookmark_status, name='check_bookmark_status'),
     path('mark-notification-read/', mark_notification_read, name='mark_notification_read'),
     path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
@@ -106,7 +101,7 @@ urlpatterns = [
     path('cancel-livestream/', cancel_livestream, name='cancel_livestream'),
     path('get-student-livestreams/', get_student_livestreams, name='get_student_livestreams'),
 
-# Emai verification
+    # Emai verification
     path('verify-email/<str:token>/', verify_email, name='verify_email'),
     path('resend-verification-email/', resend_verification_email, name='resend_verification_email'),
     path('change-password/', change_password, name='change_password'),
@@ -115,22 +110,5 @@ urlpatterns = [
 
 
 ]
-
-
-
-
-
-
-"""
-HTTP POST /students-dashboard/mark_messages_read/ 404 [0.02, 127.0.0.1:56427]
-HTTP POST /students-dashboard/mark_messages_read/ 404 [0.01, 127.0.0.1:56485]
-HTTP POST /edulink-community/mark_messages_read/ 404 [0.02, 127.0.0.1:56563]
-HTTP POST /teachers-dashboard/mark_messages_read/ 404 [0.01, 127.0.0.1:56667]
-HTTP POST /students-dashboard/mark_messages_read/ 404 [0.02, 127.0.0.1:56485]
-HTTP POST /teachers-dashboard/mark_messages_read/ 404 [0.02, 127.0.0.1:57014]
-
-
-"""
-
 
 
