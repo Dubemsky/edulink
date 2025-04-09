@@ -2,7 +2,6 @@ from .views import *
 from .analitics import *
 from .summarise import *
 from django.urls import path
-from .group_chat import *
 from .livestream import *
 from .views_teachers import *
 from .views_students import *
@@ -50,15 +49,6 @@ urlpatterns = [
     path('teachers-dashboard/teachers-profile/security-settings',teacher_profile_page_securty_settings,name='teacher_profile_page_securty_settings'),
     path('teachers-dashboard/teachers-profile/activity-contribution',teacher_profile_page_activity_contribution,name='teacher_profile_page_activity_contribution'),
 
-
-    # groupchat
-    path('create-group-chat/', create_group_chat_view, name='create_group_chat'),
-    path('get-group-chats/', get_group_chats_view, name='get_group_chats'),
-    path('get-group-messages/', get_group_messages_view, name='get_group_messages'),
-    path('send-group-message/', send_group_message_view, name='send_group_message'),
-    path('mark-group-messages-read/', mark_group_messages_read_view, name='mark_group_messages_read'),
-    path('get-group-members/', get_group_members_view, name='get_group_members'),
-    path('get-connected-users/', get_connected_users_view, name='get_connected_users'),
 
 
     # Other sections paths

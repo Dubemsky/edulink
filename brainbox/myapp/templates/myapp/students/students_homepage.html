@@ -451,48 +451,6 @@
       <button class="dm-primary-btn" id="dmSendBtn">Send</button>
     </div>
   </div>
-  
-  <!-- Create Group Chat Modal -->
-  <div class="dm-create-group-modal" id="dmCreateGroupModal">
-    <div class="dm-modal-header">
-      <h4>Create Group Chat</h4>
-      <button class="dm-modal-close-btn" id="dmCloseGroupModalBtn">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-    <div class="dm-modal-body">
-      <div class="dm-group-name-input">
-        <label for="dmGroupNameInput">Group Name:</label>
-        <input type="text" id="dmGroupNameInput" placeholder="Enter a group name">
-      </div>
-      <div class="dm-group-members-section">
-        <h5>Add Members</h5>
-        <p class="dm-info-text">You can only add users you're connected with</p>
-        <div class="dm-members-search">
-          <input type="text" id="dmMembersSearchInput" placeholder="Search connections...">
-        </div>
-        <div class="dm-available-members" id="dmAvailableMembers">
-          <!-- Connected users will be listed here -->
-          <div class="dm-loading">
-            <div class="dm-spinner"></div>
-            <p>Loading connections...</p>
-          </div>
-        </div>
-        <div class="dm-selected-members">
-          <h5>Selected Members (<span id="dmSelectedCount">0</span>)</h5>
-          <div id="dmSelectedMembers" class="dm-selected-members-list">
-            <!-- Selected members will appear here -->
-            <div class="dm-empty-selection">No members selected</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="dm-modal-footer">
-      <button class="dm-secondary-btn" id="dmCancelGroupBtn">Cancel</button>
-      <button class="dm-primary-btn" id="dmCreateGroupSubmitBtn">Create Group</button>
-    </div>
-  </div>
-</div>
 
 <!-- Chat Window Template (hidden, will be cloned for each chat) -->
 <template id="dmChatWindowTemplate">
