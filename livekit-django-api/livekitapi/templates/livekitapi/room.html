@@ -1,0 +1,119 @@
+<html>
+<head>
+	<link href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css" rel="stylesheet">
+	<script src="//unpkg.com/alpinejs" defer></script>
+	<style type="text/css">
+	    iframe {
+	      position: fixed;
+	      bottom: 0;
+	      right: 0;
+	      width: 100%;
+	      height: 95%; 
+	      border: none;
+	      z-index: 1000;
+	    }
+            .record-indicator {
+                width: 30px;
+                height: 30px;
+                background-color: red;
+                border-radius: 50%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                color: white;
+                font-weight: bold;
+            }
+    </style>
+	</style>
+</head>
+<body class="bg-grey">
+        <script>
+	function userData() {
+	  return {
+            recording: {% if is_recording %}true{% else %}false{% endif %},
+	    loading: false,
+	    username: "",
+	    room: "",
+	    data: [],
+	    init() {
+	      this.username = localStorage.getItem('username') || 'nobody';
+	      this.room = localStorage.getItem('room') || 'test';
+	    },
+	    startRecording() {
+		if(this.loading) {
+		    return
+		}
+		console.debug("record start");
+		this.loading = true;
+		let user = 
+		fetch(window.location + '/start_recording')
+		    .then(response => response.json())
+		    .then(data => {
+			this.data = data;
+			this.loading = false;
+			if (data.msg == "ok") {
+			    this.recording = true;
+			    console.debug("start recording: ok");
+			} else {
+			    console.error(data.error);
+			}
+		    })
+		    .catch((error) => {
+			console.error("error fetching data:", error);
+			this.loading = false;
+		    });
+	    },
+	    stopRecording() {
+		if(this.loading || !this.recording) {
+		    return
+		}
+		console.debug("record stop");
+		this.loading = true;
+		fetch(window.location + '/stop_recording')
+		    .then(response => response.json())
+		    .then(data => {
+			console.debug("response:" + data);
+			this.data = data;
+			this.loading = false;
+			if (data.msg == "ok") {
+			    this.recording = false;
+			    console.debug("stop recording: ok");
+			} else {
+			    console.error(data.error);
+			}
+		    })
+		    .catch((error) => {
+			console.error("error fetching data:", error);
+			this.loading = false;
+		    });
+	    }
+	  }
+	}
+	</script>
+	<div 
+	    x-data="userData()"
+	    class="flex flex-row justify-start items-center absolute left-0 top-0"> 
+
+            {% include 'livekitapi/logo.html' %}
+
+            {% if can_record %}
+	    <button
+		x-show="!recording"
+		@click="startRecording()"
+	        class="bg-black hover:bg-green-500 text-white font-bold py-2 px-4 mx-8 my-2 rounded" type="submit">
+		Start recording
+	    </button>
+	    <button
+		@click="stopRecording()"
+		x-show="recording"
+	        class="bg-red-400 hover:bg-red-500 text-white font-bold py-2 px-4 mx-8 my-2 rounded" type="submit">
+		Stop recording
+	    </button>
+            {% endif %}
+             <div 
+		 x-show="recording"
+                 class="record-indicator">REC</div>
+	</div>
+	<iframe src="{{ roomURL }}" allow="microphone; camera"></iframe>
+</body>
+</html>

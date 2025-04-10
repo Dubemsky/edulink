@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "django-livekit"
+version = "0.1.0"
+description = "A django app to use livekit conference rooms"
+authors = ["kali kaneko <kalikaneko@riseup.net>"]
+license = "GPLv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+Django = "^5.0"
+django-environ = "^0.11.2"
+attrs = "^23.1.0"
+livekit-api = "^0.3.0"
+django-guardian = "^2.4.0"
+random-username = "^1.0.2"
+requests = "^2.31.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
