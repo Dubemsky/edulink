@@ -229,6 +229,10 @@
             <i class="bi bi-broadcast"></i> Manage Livestreams
           </a></li>
 
+          <li><a data-bs-toggle="modal" data-bs-target="#goLiveModal" style="cursor: pointer;">
+            <i class="bi bi-camera-video-fill"></i> Go Live
+          </a></li>
+
           {% if privacy_setting == "private" %}
             <li>
                 <a data-bs-toggle="modal" data-bs-target="#inviteStudentModal" style="cursor: pointer;">
@@ -634,7 +638,88 @@
       </div>
     </div>
   </div>
+
+
+
+
+
+   
+
   
+
+  <div class="modal fade" id="goLiveModal" tabindex="-1" aria-labelledby="goLiveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="goLiveModalLabel"><i class="bi bi-camera-video-fill"></i> Start Livestream</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="livestreamTitle" class="form-label">Livestream Title</label>
+                <input type="text" class="form-control" id="liveTitleInput" placeholder="Enter a title for your livestream">
+              </div>
+              
+              <div class="form-group mb-3">
+                <label class="form-label">Camera</label>
+                <select class="form-select" id="cameraSelect">
+                  <option value="">Loading cameras...</option>
+                </select>
+              </div>
+              
+              <div class="form-group mb-3">
+                <label class="form-label">Microphone</label>
+                <select class="form-select" id="micSelect">
+                  <option value="">Loading microphones...</option>
+                </select>
+              </div>
+              
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="notifyStudentsLive" checked>
+                <label class="form-check-label" for="notifyStudentsLive">
+                  Notify students about this livestream
+                </label>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="video-preview-container">
+                <video id="localPreview" autoplay muted playsinline style="width: 100%; height: 240px; background-color: #f0f0f0; border-radius: 8px;"></video>
+                <div id="camera-off-message" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none;">
+                  <i class="bi bi-camera-video-off" style="font-size: 32px;"></i>
+                  <p>Camera is off</p>
+                </div>
+              </div>
+              <div class="mt-2 d-flex justify-content-center">
+                <button class="btn btn-sm btn-outline-secondary me-2" id="toggleCameraBtn">
+                  <i class="bi bi-camera-video"></i> Toggle Camera
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="toggleMicBtn">
+                  <i class="bi bi-mic"></i> Toggle Mic
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle"></i> When you start the livestream, students in this hub will be able to view your broadcast.
+          </div>
+          
+          <div class="alert alert-danger mt-3" id="liveErrorAlert" style="display: none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="startLivestreamBtn">
+            <i class="bi bi-broadcast"></i> Start Livestream
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
 
  
    <!-- Manage Livestreams Modal -->
@@ -1029,6 +1114,15 @@
   <script src="{% static 'js/room-analytics.js' %}"></script> 
   <script src="{% static 'js/teachers_livestream.js' %}"></script> 
   <script>
+    // Include the livestream JavaScript
+    document.addEventListener('DOMContentLoaded', function() {
+      const script = document.createElement('script');
+      script.textContent = `{{ teacher_livestream_js|safe }}`;
+      document.body.appendChild(script);
+    });
+  </script>
+  <script>
+
 
 
     

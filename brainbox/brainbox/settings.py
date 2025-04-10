@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'myapp',
     'django_extensions',
+    'livekit',
 ]
 
 MIDDLEWARE = [
