@@ -39,7 +39,13 @@ def create_livestream_room(request):
             }
         })
     except Exception as e:
+        print(f"This is the error that occured {e}\n\n")
         return JsonResponse({'success': False, 'error': str(e)})
+    
+
+
+
+
 
 @require_POST
 @csrf_exempt

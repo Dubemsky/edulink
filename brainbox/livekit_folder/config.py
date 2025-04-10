@@ -2,7 +2,9 @@ import os
 from django.conf import settings
 
 # LiveKit Server Configuration
-LIVEKIT_API_URL = "wss://edulink-oxkw0h5q.livekit.cloud"
+# LiveKit Server Configuration
+LIVEKIT_WS_URL = "wss://edulink-oxkw0h5q.livekit.cloud"  # For WebSocket connections
+LIVEKIT_API_URL = "https://edulink-oxkw0h5q.livekit.cloud"  # For REST API requests
 LIVEKIT_API_KEY = "APIRsaxCuofVw7K"
 LIVEKIT_API_SECRET = "ZnrqffqzbGqyHdGqGGjTfL2I1fOGMMKSIK7Htqb11NDC"
 
