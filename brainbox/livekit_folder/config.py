@@ -2,7 +2,6 @@ import os
 from django.conf import settings
 
 # LiveKit Server Configuration
-# LiveKit Server Configuration
 LIVEKIT_WS_URL = "wss://edulink-oxkw0h5q.livekit.cloud"  # For WebSocket connections
 LIVEKIT_API_URL = "https://edulink-oxkw0h5q.livekit.cloud"  # For REST API requests
 LIVEKIT_API_KEY = "APIRsaxCuofVw7K"
@@ -15,4 +14,7 @@ DEFAULT_ROOM_SETTINGS = {
 }
 
 # Token Configuration
-DEFAULT_TOKEN_TTL = 6 * 60 * 60  # 6 hours
+DEFAULT_TOKEN_TTL = 6 * 60 * 60  # 6 hours (in seconds)
+
+# LiveKit Client CDN URLs
+LIVEKIT_CLIENT_JS = "https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.js"

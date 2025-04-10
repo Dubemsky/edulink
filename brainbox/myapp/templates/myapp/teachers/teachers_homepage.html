@@ -25,6 +25,315 @@
   <link href="{% static 'css/homepage.css' %}" rel="stylesheet">
   <link href="{% static 'css/private_message.css' %}" rel="stylesheet">
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  <style>
+    /* Enhanced Notification Bell Styles */
+.nav-notification-item {
+  position: relative;
+  margin-left: 10px;
+}
+
+.notification-bell-container {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.notification-bell-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  color: rgba(var(--color-secondary-rgb), 0.8);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.notification-bell-btn:hover {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.notification-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #dc3545;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.notification-count:empty {
+  display: none;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 15px);
+  right: -150px;
+  width: 350px;
+  max-height: 500px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 1000;
+  display: none;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transform-origin: top right;
+}
+
+.notification-dropdown:before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 162px;
+  width: 16px;
+  height: 16px;
+  background-color: white;
+  transform: rotate(45deg);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.notification-dropdown.show {
+  display: block;
+  animation: fadeInNotification 0.3s ease-out forwards;
+}
+
+@keyframes fadeInNotification {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.notification-header h5 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.notification-header-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.notification-header-btn:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.notification-body {
+  max-height: 350px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.notification-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notification-item {
+  padding: 16px;
+  border-bottom: 1px solid #f1f1f1;
+  display: flex;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.notification-item:hover {
+  background-color: #f8f9fa;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-icon {
+  margin-right: 15px;
+  min-width: 40px;
+  height: 40px;
+  background-color: rgba(var(--color-primary-rgb), 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--color-primary);
+}
+
+.notification-content {
+  flex-grow: 1;
+}
+
+.notification-content p {
+  margin: 0 0 5px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #333;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: #888;
+  display: block;
+}
+
+.notification-footer {
+  padding: 12px 16px;
+  text-align: center;
+  border-top: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+}
+
+.view-all-notifications {
+  font-size: 0.85rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.view-all-notifications:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.empty-notifications {
+  padding: 40px 20px;
+  text-align: center;
+  color: #888;
+}
+
+.empty-notifications i {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  opacity: 0.5;
+  color: #ccc;
+}
+
+/* Invitation-specific styles */
+.invitation-item {
+  cursor: default;
+  background-color: rgba(var(--color-primary-rgb), 0.03);
+}
+
+.invitation-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.invitation-actions button {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.accept-btn {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+}
+
+.accept-btn:hover {
+  background-color: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.reject-btn {
+  background-color: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.reject-btn:hover {
+  background-color: #f1f1f1;
+  border-color: #ccc;
+}
+
+/* Notification animation */
+@keyframes bell-ring {
+  0% { transform: rotate(0); }
+  20% { transform: rotate(15deg); }
+  40% { transform: rotate(-15deg); }
+  60% { transform: rotate(7deg); }
+  80% { transform: rotate(-7deg); }
+  100% { transform: rotate(0); }
+}
+
+.bell-ring-animation {
+  animation: bell-ring 0.5s ease;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 991px) {
+  .nav-notification-item {
+    margin-right: 10px;
+  }
+  
+  .notification-dropdown {
+    width: 300px;
+    right: -130px;
+  }
+  
+  .notification-dropdown:before {
+    right: 140px;
+  }
+}
+
+@media (max-width: 576px) {
+  .notification-dropdown {
+    width: calc(100vw - 30px);
+    right: -100px;
+    left: auto;
+    position: fixed;
+    top: 70px;
+  }
+  
+  .notification-dropdown:before {
+    right: 110px;
+  }
+}
+  </style>
 </head>
 
 <body class="index-page">
@@ -40,6 +349,45 @@
           <li><a href="{% url 'teachers_homepage' %}" class="active">Home</a></li>
           <li><a href="{% url 'teachers_community_page' %}">Community</a></li>
           <li><a href="{% url 'teacher_profile_page_my_profile' %}">My Profile</a></li>
+          <li class="nav-notification-item">
+            <div class="notification-bell-container">
+              <button class="notification-bell-btn" id="notificationBellBtn" aria-label="Notifications">
+                <i class="bi bi-bell-fill"></i>
+                <span class="notification-count" id="navNotificationCount">{{ number_of_notifications }}</span>
+              </button>
+              <div class="notification-dropdown" id="notificationDropdown">
+                <div class="notification-header">
+                  <h5>Notifications (<span id="dropdownNotificationCount">{{ number_of_notifications }}</span>)</h5>
+                  <button class="notification-header-btn" id="markAllReadBtn">Mark all as read</button>
+                </div>
+                <div class="notification-body">
+                  {% if notifications %}
+                    <ul class="notification-list">
+                      {% for notification in notifications %}
+                        <li class="notification-item" data-notification-id="{{notification.notification_id}}" data-room-id="{{ notification.room_id }}" data-question-id="{{ notification.question_id }}">
+                          <div class="notification-icon">
+                            <i class="bi bi-info-circle-fill"></i>
+                          </div>
+                          <div class="notification-content">
+                            <p>{{ notification.message }}</p>
+                            <span class="notification-time">{{ notification.timestamp }}</span>
+                          </div>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <div class="empty-notifications">
+                      <i class="bi bi-bell-slash"></i>
+                      <p>No notifications</p>
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="notification-footer">
+                  <a href="#" class="view-all-notifications">View all notifications</a>
+                </div>
+              </div>
+            </div>
+          </li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
@@ -90,31 +438,6 @@
       </div>
     </div>
 
-    <div class="additional-content-box" data-aos="fade-up" data-aos-delay="200">
-      <div class="hub-header">
-        <h3>Notifications ({{ number_of_notifications }})</h3>
-      </div>
-      <div class="hub-ction">
-        <!-- Notification items will be dynamically injected here -->
-        {% if notifications %}
-          <ul class="notifications-list">
-            {% for notification in notifications %}
-              <li data-aos="fade-left" data-aos-delay="{{ forloop.counter|add:200 }}">
-                <button class="notification-btn" data-notification-id="{{ notification.notification_id }}" data-room-id="{{ notification.room_id }}" data-question-id="{{ notification.question_id }}">
-                  <span>{{ notification.message }}</span>
-                  <small><i class="bi bi-clock"></i> {{ notification.timestamp }}</small>
-                </button>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <div class="empty-state" data-aos="fade-in">
-            <i class="bi bi-bell"></i>
-            <p>Notifications will appear here</p>
-          </div>
-        {% endif %}
-      </div>
-    </div>
   </section>
 
   <!-- Create Hub Modal -->
@@ -178,195 +501,298 @@
     // Define a global variable with the user ID
     window.currentUserId = "{{ user_id }}";
   </script>
-
   <script>
-    // messaging-system.js - LinkedIn-style messaging system for EduLink
-
-    function createHub() {
-      // Get the create button and change its state
-      const createButton = document.querySelector('.btn-primary');
-      createButton.disabled = true;
-      createButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Creating...';
-      
-      const csrftoken = '{{ csrf_token }}'; 
-      const formData = new FormData();
-      
-      // Validate form (basic validation)
-      const hubName = document.getElementById("hubName").value;
-      if (!hubName || hubName.trim() === '') {
-        showFormError("Please enter a hub name");
-        resetButton();
-        return;
-      }
-    
-      // Add form fields to the FormData object
-      formData.append("hubName", hubName);
-      formData.append("description", document.getElementById("description").value);
-      
-      
-      formData.append("privacySetting", document.getElementById("privacySetting").value);
-    
-      // Send the FormData object via fetch
-      fetch("{% url 'teachers_create_hub' %}", {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": csrftoken, 
-        },
-        body: formData, 
-      })
-      .then(response => response.json())
-      .then(data => {
-        const messageContainer = document.getElementById("messageContainer");
-        const messageContent = document.getElementById("messageContent");
-    
-        // Display success message or error message
-        if (data.success) {
-          messageContent.textContent = "Hub created successfully! Redirecting...";
-          messageContainer.classList.add('alert-success');
-          messageContainer.classList.remove('alert-danger');
-          
-          // Show a confetti effect on success
-          showSuccessEffect();
-        } else {
-          messageContent.textContent = data.error || "Failed to create the hub. Please try again.";
-          messageContainer.classList.add('alert-danger');
-          messageContainer.classList.remove('alert-success');
-          resetButton();
-        }
-    
-        messageContainer.style.display = "block";
-    
-        const modalContent = document.querySelector('.modal-content');
-        modalContent.scrollTop = 0;
+    document.addEventListener('DOMContentLoaded', function() {
+  // Initialize AOS animations
+  AOS.init({
+    duration: 800,
+    easing: 'ease-in-out',
+    once: true,
+    mirror: false
+  });
   
-        if (data.success) {
-          setTimeout(() => {
-            var modal = new bootstrap.Modal(document.getElementById('createHubModal'));
-            modal.hide();
-            window.location.href = "{% url 'teachers_homepage' %}";  
-          }, 1500);  
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showFormError('Network error. Please check your connection and try again.');
-        resetButton();
-      });
+  // Hub buttons click handler
+  const hubButtons = document.querySelectorAll('.hub-btn');
+  hubButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const url = this.getAttribute('data-url');
+      // Add a small animation before redirecting
+      this.classList.add('clicked');
+      setTimeout(() => {
+        window.location.href = url;
+      }, 300);
+    });
+  });
+  
+  // Notification buttons click handler (original code preserved)
+  const notificationButtons = document.querySelectorAll('.notification-btn');
+  notificationButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const roomId = this.getAttribute('data-room-id');
+      const questionId = this.getAttribute('data-question-id');
+      const notificationId = this.getAttribute('data-notification-id');
       
-      // Helper function to reset button state
-      function resetButton() {
-        createButton.disabled = false;
-        createButton.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Create Hub';
+      // Mark notification as read
+      if (notificationId) {
+        fetch('/mark-notification-read/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ notification_id: notificationId })
+        }).then(response => {
+          console.log('Notification marked as read');
+        }).catch(error => {
+          console.error('Error marking notification as read:', error);
+        });
       }
       
-      // Helper function to show form error
-      function showFormError(message) {
-        const messageContainer = document.getElementById("messageContainer");
-        const messageContent = document.getElementById("messageContent");
-        messageContent.textContent = message;
-        messageContainer.classList.add('alert-danger');
-        messageContainer.classList.remove('alert-success');
-        messageContainer.style.display = "block";
-        
-        const modalContent = document.querySelector('.modal-content');
-        modalContent.scrollTop = 0;
-      }
+      // Store the questionId in sessionStorage to retrieve it on the hub page
+      sessionStorage.setItem('openQuestionId', questionId);
       
-      // Function to show success visual effect (simplified confetti)
-      function showSuccessEffect() {
-        // We'll keep this simple for now, but you could add a confetti animation here
-        const modalDialog = document.querySelector('.modal-dialog');
-        modalDialog.classList.add('success-animation');
-        
-        // Add the success icon to the button
-        createButton.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Created!';
+      // Add a small animation before redirecting
+      this.classList.add('clicked');
+      setTimeout(() => {
+        window.location.href = `http://${window.location.host}/students-dashboard/hub-room/${roomId}/`;
+      }, 300);
+    });
+  });
+  
+  // ----- New Notification Bell System Code -----
+  
+  // Elements
+  const notificationBellBtn = document.getElementById('notificationBellBtn');
+  const notificationDropdown = document.getElementById('notificationDropdown');
+  const notificationItems = document.querySelectorAll('.notification-item:not(.invitation-item)');
+  const markAllReadBtn = document.getElementById('markAllReadBtn');
+  const navNotificationCount = document.getElementById('navNotificationCount');
+  const dropdownNotificationCount = document.getElementById('dropdownNotificationCount');
+  
+  // Check if there are notifications and update UI accordingly
+  function checkNotificationCount() {
+    if (navNotificationCount) {
+      const count = parseInt(navNotificationCount.textContent || '0');
+      if (count === 0) {
+        navNotificationCount.style.display = 'none';
+      } else {
+        navNotificationCount.style.display = 'flex';
       }
     }
-    
-    // Done button listener
-    document.getElementById('doneButton').addEventListener('click', function() {
-      var modal = new bootstrap.Modal(document.getElementById('createHubModal'));
-      modal.hide(); // Close the modal when "Done" is clicked
-      window.location.href = "{% url 'teachers_homepage' %}";  
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-      // Initialize AOS animations
-      AOS.init({
-        duration: 800,
-        easing: 'ease-in-out',
-        once: true,
-        mirror: false
-      });
-      
-      // Select all hub buttons
-      const hubButtons = document.querySelectorAll('.hub-btn');
+  }
   
-      // Add click event listener to each button
-      hubButtons.forEach(button => {
-          button.addEventListener('click', function() {
-              const roomUrl = this.getAttribute('data-room-url');
-              // Add a small animation before redirecting
-              this.classList.add('clicked');
-              setTimeout(() => {
-                  window.location.href = roomUrl; // Redirect to the URL after animation
-              }, 300);
-          });
-      });
+  // Initialize
+  checkNotificationCount();
+  
+  // Toggle dropdown when clicking the bell
+  if (notificationBellBtn) {
+    notificationBellBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
       
-      // Handle notification clicks
-      const notificationButtons = document.querySelectorAll('.notification-btn');
-      if (notificationButtons) {
-          notificationButtons.forEach(button => {
-              button.addEventListener('click', function() {
-                  const roomId = this.getAttribute('data-room-id');
-                  const questionId = this.getAttribute('data-question-id');
-                  const notificationId = this.getAttribute('data-notification-id');
-                  
-                  // Mark notification as read
-                  if (notificationId) {
-                      fetch('/mark-notification-read/', {
-                          method: 'POST',
-                          headers: {
-                              'Content-Type': 'application/json',
-                              'X-CSRFToken': getCookie('csrftoken')
-                          },
-                          body: JSON.stringify({ notification_id: notificationId })
-                      }).then(response => {
-                          console.log('Notification marked as read');
-                      }).catch(error => {
-                          console.error('Error marking notification as read:', error);
-                      });
-                  }
-                  
-                  // Store the questionId in sessionStorage to retrieve it on the hub page
-                  sessionStorage.setItem('openQuestionId', questionId);
-                  
-                  // Add a small animation before redirecting
-                  this.classList.add('clicked');
-                  setTimeout(() => {
-                      window.location.href = `http://${window.location.host}/teachers-dashboard/hub-room/${roomId}/`;
-                  }, 300);
-              });
-          });
-      }
+      // Toggle the dropdown
+      notificationDropdown.classList.toggle('show');
       
-      // Helper function to get CSRF token
-      function getCookie(name) {
-          let cookieValue = null;
-          if (document.cookie && document.cookie !== '') {
-              const cookies = document.cookie.split(';');
-              for (let i = 0; i < cookies.length; i++) {
-                  const cookie = cookies[i].trim();
-                  if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                      break;
-                  }
-              }
-          }
-          return cookieValue;
+      if (notificationDropdown.classList.contains('show')) {
+        // Add a nice animation to the bell when opening
+        notificationBellBtn.classList.add('bell-ring-animation');
+        setTimeout(() => {
+          notificationBellBtn.classList.remove('bell-ring-animation');
+        }, 500);
       }
     });
+  }
+  
+  // Close dropdown when clicking elsewhere
+  document.addEventListener('click', function(e) {
+    if (notificationDropdown && !notificationDropdown.contains(e.target) && e.target !== notificationBellBtn) {
+      notificationDropdown.classList.remove('show');
+    }
+  });
+  
+  // Handle notification item clicks
+  if (notificationItems) {
+    notificationItems.forEach(item => {
+      item.addEventListener('click', function() {
+        const roomId = this.getAttribute('data-room-id');
+        const questionId = this.getAttribute('data-question-id');
+        const notificationId = this.getAttribute('data-notification-id');
+        
+        // Mark notification as read
+        if (notificationId) {
+          markNotificationAsRead(notificationId, this);
+        }
+        
+        // Store the questionId in sessionStorage to retrieve it on the hub page
+        if (questionId) {
+          sessionStorage.setItem('openQuestionId', questionId);
+        }
+        
+        // Navigate to the hub room
+        if (roomId) {
+          const userType = window.location.pathname.includes('students') ? 'students' : 'teachers';
+          window.location.href = `http://${window.location.host}/${userType}-dashboard/hub-room/${roomId}/`;
+        }
+      });
+    });
+  }
+  
+  // Mark a notification as read
+  function markNotificationAsRead(notificationId, element) {
+    fetch('/mark-notification-read/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ notification_id: notificationId })
+    }).then(response => {
+      if (response.ok) {
+        console.log('Notification marked as read');
+        
+        // Visual feedback
+        element.style.opacity = '0.6';
+        
+        // Update the notification count
+        updateNotificationCount();
+      }
+    }).catch(error => {
+      console.error('Error marking notification as read:', error);
+    });
+  }
+  
+  // Handle invitation responses
+  const inviteResponseBtns = document.querySelectorAll('.invite-response-btn');
+  if (inviteResponseBtns.length > 0) {
+    inviteResponseBtns.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        const notificationId = this.getAttribute('data-notification-id');
+        const response = this.getAttribute('data-response');
+        
+        // Call API to respond to invitation
+        fetch('/respond-to-invitation/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ 
+            notification_id: notificationId,
+            response: response 
+          })
+        }).then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Find the parent notification item and update it
+              const notificationItem = this.closest('.notification-item');
+              if (notificationItem) {
+                if (response === 'accept') {
+                  notificationItem.innerHTML = `
+                    <div class="notification-icon">
+                      <i class="bi bi-check-circle-fill text-success"></i>
+                    </div>
+                    <div class="notification-content">
+                      <p>Invitation accepted successfully!</p>
+                      <span class="notification-time">Just now</span>
+                    </div>
+                  `;
+                  
+                  // Redirect to the hub after a short delay
+                  if (data.room_url) {
+                    setTimeout(() => {
+                      window.location.href = data.room_url;
+                    }, 1500);
+                  }
+                } else {
+                  notificationItem.innerHTML = `
+                    <div class="notification-icon">
+                      <i class="bi bi-x-circle-fill text-secondary"></i>
+                    </div>
+                    <div class="notification-content">
+                      <p>Invitation declined.</p>
+                      <span class="notification-time">Just now</span>
+                    </div>
+                  `;
+                }
+                
+                // Update notification count
+                updateNotificationCount();
+              }
+            } else {
+              console.error('Failed to respond to invitation:', data.error);
+            }
+          })
+          .catch(error => {
+            console.error('Error responding to invitation:', error);
+          });
+      });
+    });
+  }
+  
+  // Mark all notifications as read
+  if (markAllReadBtn) {
+    markAllReadBtn.addEventListener('click', function() {
+      fetch('/mark-all-notifications-read/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      }).then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update UI to show all notifications as read
+            document.querySelectorAll('.notification-item').forEach(item => {
+              item.style.opacity = '0.6';
+            });
+            
+            // Update the notification count to zero
+            if (navNotificationCount) navNotificationCount.textContent = '0';
+            if (dropdownNotificationCount) dropdownNotificationCount.textContent = '0';
+            
+            // Hide the count
+            navNotificationCount.style.display = 'none';
+          }
+        })
+        .catch(error => {
+          console.error('Error marking all notifications as read:', error);
+        });
+    });
+  }
+  
+  // Update notification count
+  function updateNotificationCount() {
+    if (navNotificationCount && dropdownNotificationCount) {
+      let count = parseInt(navNotificationCount.textContent || '0') - 1;
+      count = count < 0 ? 0 : count;
+      
+      navNotificationCount.textContent = count.toString();
+      dropdownNotificationCount.textContent = count.toString();
+      
+      // Hide the count if it's zero
+      if (count === 0) {
+        navNotificationCount.style.display = 'none';
+      }
+    }
+  }
+  
+  // Helper function to get CSRF token (preserved from original code)
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
   </script>
 
 <div class="direct-messaging-container">

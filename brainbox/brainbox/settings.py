@@ -37,7 +37,11 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+
+
+
 # Application definition
+
 
 INSTALLED_APPS = [
     'daphne',
@@ -51,6 +55,7 @@ INSTALLED_APPS = [
     'myapp',
     'django_extensions',
     'livekit',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

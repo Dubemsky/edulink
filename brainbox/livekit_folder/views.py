@@ -1,11 +1,22 @@
+# livekit_folder/views.py
+
 import json
+import jwt
+import time
+import uuid
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+import requests
 
-from .utils import create_room, generate_token, list_rooms, list_participants
-from .config import DEFAULT_ROOM_SETTINGS
+from .config import (
+    LIVEKIT_API_KEY, 
+    LIVEKIT_API_SECRET, 
+    LIVEKIT_API_URL, 
+    DEFAULT_ROOM_SETTINGS,
+    DEFAULT_TOKEN_TTL
+)
 
 @require_POST
 @csrf_exempt
@@ -25,27 +36,58 @@ def create_livestream_room(request):
         empty_timeout = data.get('empty_timeout', DEFAULT_ROOM_SETTINGS['empty_timeout'])
         max_participants = data.get('max_participants', DEFAULT_ROOM_SETTINGS['max_participants'])
         
-        # Create or get the room
-        room = create_room(room_name, empty_timeout, max_participants)
+        # Create JWT token for API access
+        at = int(time.time())
+        exp = at + 60  # Token valid for 1 minute
+        
+        # In the create_livestream_room function:
+        api_token = jwt.encode({
+            'iss': LIVEKIT_API_KEY,  # Make sure this matches your key exactly
+            'exp': exp,
+            'nbf': at,
+            'video': {
+                'room_create': True,
+            }
+        }, LIVEKIT_API_SECRET, algorithm='HS256')
+        
+        # Create the room using LiveKit API
+        headers = {
+            "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json"
+        }
+        
+        room_data = {
+            "name": room_name,
+            "empty_timeout": empty_timeout,
+            "max_participants": max_participants,
+        }
+        
+        # Try to create a room, if it exists, the API will return the existing room
+        response = requests.post(
+            f"{LIVEKIT_API_URL}/twirp/livekit.RoomService/CreateRoom",
+            headers=headers,
+            json=room_data
+        )
+        
+        if response.status_code != 200:
+            print(f"LiveKit API error: {response.text}")
+            return JsonResponse({'success': False, 'error': f"LiveKit API error: {response.text}"})
+        
+        room_response = response.json()
         
         return JsonResponse({
             'success': True,
             'room': {
-                'name': room.name,
-                'sid': room.sid,
-                'empty_timeout': room.empty_timeout,
-                'max_participants': room.max_participants,
-                'created_at': room.created_at,
+                'name': room_response.get('name'),
+                'sid': room_response.get('sid'),
+                'empty_timeout': room_response.get('empty_timeout'),
+                'max_participants': room_response.get('max_participants'),
+                'created_at': int(time.time()),
             }
         })
     except Exception as e:
-        print(f"This is the error that occured {e}\n\n")
+        print(f"Error creating LiveKit room: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
-    
-
-
-
-
 
 @require_POST
 @csrf_exempt
@@ -64,8 +106,40 @@ def get_join_token(request):
                 'error': 'Room name and participant name are required'
             })
         
-        # Generate the token
-        token = generate_token(room_name, participant_name, participant_identity, is_teacher)
+        # Token expiration time
+        exp = int(time.time()) + DEFAULT_TOKEN_TTL
+        
+        # Define claims for the token
+        claims = {
+            'iss': LIVEKIT_API_KEY,
+            'sub': participant_identity,
+            'exp': exp,
+            'nbf': int(time.time()),
+            'jti': str(uuid.uuid4()),
+            'video': {
+                'room': room_name,
+                'roomJoin': True,
+                'canPublish': True,
+                'canSubscribe': True,
+                'canPublishData': True
+            }
+        }
+        
+        # Add additional permissions for teachers
+        if is_teacher:
+            claims['video'].update({
+                'roomCreate': True,
+                'roomList': True,
+                'roomAdmin': True,
+                'roomRecord': True
+            })
+        
+        # Generate the JWT token
+        token = jwt.encode(claims, LIVEKIT_API_SECRET, algorithm='HS256')
+        
+        # Some jwt libraries return bytes, ensure we return a string
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
         
         return JsonResponse({
             'success': True,
@@ -78,6 +152,7 @@ def get_join_token(request):
             }
         })
     except Exception as e:
+        print(f"Error generating LiveKit token: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
 
 @require_GET
@@ -90,23 +165,54 @@ def get_room_participants(request):
         if not room_name:
             return JsonResponse({'success': False, 'error': 'Room name is required'})
         
-        # Get participants
-        participants = list_participants(room_name)
+        # Create JWT token for API access
+        at = int(time.time())
+        exp = at + 60  # Token valid for 1 minute
+        
+        api_token = jwt.encode({
+            'iss': LIVEKIT_API_KEY,
+            'exp': exp,
+            'nbf': at,
+            'video': {
+                'room_admin': True,
+            }
+        }, LIVEKIT_API_SECRET, algorithm='HS256')
+        
+        # Get participants from LiveKit API
+        headers = {
+            "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json"
+        }
+        
+        response = requests.post(
+            f"{LIVEKIT_API_URL}/twirp/livekit.RoomService/ListParticipants",
+            headers=headers,
+            json={"room": room_name}
+        )
+        
+        if response.status_code != 200:
+            print(f"LiveKit API error: {response.text}")
+            return JsonResponse({'success': False, 'error': f"LiveKit API error: {response.text}"})
+        
+        participants_response = response.json()
+        
+        participants = []
+        for participant in participants_response.get('participants', []):
+            participants.append({
+                'identity': participant.get('identity'),
+                'name': participant.get('name'),
+                'state': participant.get('state'),
+                'joined_at': participant.get('joined_at'),
+                'is_publishing': bool(participant.get('tracks', [])),
+            })
         
         return JsonResponse({
             'success': True,
             'room': room_name,
-            'participants': [
-                {
-                    'identity': p.identity,
-                    'state': p.state,
-                    'joined_at': p.joined_at,
-                    'is_publishing': len(p.tracks) > 0,
-                }
-                for p in participants
-            ]
+            'participants': participants
         })
     except Exception as e:
+        print(f"Error getting room participants: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
 
 @require_GET
@@ -114,24 +220,50 @@ def get_room_participants(request):
 def get_active_rooms(request):
     """Get all active LiveKit rooms"""
     try:
-        # Only allow teachers to list all rooms
-        if not hasattr(request.user, 'role') or request.user.role != 'teacher':
-            return JsonResponse({'success': False, 'error': 'Unauthorized'})
+        # Create JWT token for API access
+        at = int(time.time())
+        exp = at + 60  # Token valid for 1 minute
         
-        # Get rooms
-        rooms = list_rooms()
+        api_token = jwt.encode({
+            'iss': LIVEKIT_API_KEY,
+            'exp': exp,
+            'nbf': at,
+            'video': {
+                'room_list': True,
+            }
+        }, LIVEKIT_API_SECRET, algorithm='HS256')
+        
+        # Get rooms from LiveKit API
+        headers = {
+            "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json"
+        }
+        
+        response = requests.post(
+            f"{LIVEKIT_API_URL}/twirp/livekit.RoomService/ListRooms",
+            headers=headers,
+            json={}
+        )
+        
+        if response.status_code != 200:
+            print(f"LiveKit API error: {response.text}")
+            return JsonResponse({'success': False, 'error': f"LiveKit API error: {response.text}"})
+        
+        rooms_response = response.json()
+        
+        rooms = []
+        for room in rooms_response.get('rooms', []):
+            rooms.append({
+                'name': room.get('name'),
+                'sid': room.get('sid'),
+                'num_participants': room.get('num_participants', 0),
+                'created_at': room.get('created_at'),
+            })
         
         return JsonResponse({
             'success': True,
-            'rooms': [
-                {
-                    'name': room.name,
-                    'sid': room.sid,
-                    'num_participants': room.num_participants,
-                    'created_at': room.created_at,
-                }
-                for room in rooms
-            ]
+            'rooms': rooms
         })
     except Exception as e:
+        print(f"Error getting active rooms: {e}")
         return JsonResponse({'success': False, 'error': str(e)})

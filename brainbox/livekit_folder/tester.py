@@ -1,30 +1,42 @@
-# test_livekit.py
-import livekit
-import sys
-import inspect
+import jwt
+import time
+import requests
+from livekit import AccessToken, VideoGrants
+import os
 
-print("Python version:", sys.version)
-print("LiveKit package path:", livekit.__file__)
-print("LiveKit modules:", dir(livekit))
+# Your LiveKit credentials
+API_KEY = "APIcbCX5qYjr7zg"
+API_SECRET = "NTeoX1IITeFTTQ71tPnF95SjxsIRo3kRulXN5boAqWX"
+API_URL = "https://livestreaming-wo47lfci.livekit.cloud"
 
-# Check if 'api' is in the module
-if hasattr(livekit, 'api'):
-    print("\nlivekit.api modules:", dir(livekit.api))
-    
-    # Try to find relevant classes
-    for name in dir(livekit.api):
-        obj = getattr(livekit.api, name)
-        if inspect.isclass(obj) or inspect.ismodule(obj):
-            print(f"- {name}: {type(obj).__name__}")
-            
-            # If it's a module, check its contents too
-            if inspect.ismodule(obj):
-                print(f"  Contents: {dir(obj)}")
-else:
-    print("No 'api' module found in livekit package")
-    
-    # Check top-level modules
-    for name in dir(livekit):
-        obj = getattr(livekit, name)
-        if inspect.isclass(obj) or inspect.ismodule(obj):
-            print(f"- {name}: {type(obj).__name__}")
+# Generate the token using the LiveKit Python SDK
+now = int(time.time())
+
+# Create a token with appropriate access grants (e.g., room_join)
+token = AccessToken(API_KEY, API_SECRET) \
+    .with_identity("identity") \
+    .with_name("name") \
+    .with_grants(VideoGrants(room_join=True, room="my-room")) \
+    .to_jwt()
+
+# If using older PyJWT version and token is bytes
+if isinstance(token, bytes):
+    token = token.decode('utf-8')
+
+# Set up the headers for the request
+headers = {
+    "Authorization": f"Bearer {token}",
+    "Content-Type": "application/json"
+}
+
+# Make the POST request to the LiveKit API
+response = requests.post(
+    f"{API_URL}/twirp/livekit.RoomService/ListRooms",
+    headers=headers,
+    json={}  # Empty body for this request
+)
+
+# Print response details
+print(f"Status: {response.status_code}")
+print(f"Response: {response.text}")
+print(f"Headers: {response.headers}")
