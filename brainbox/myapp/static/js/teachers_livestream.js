@@ -1,5 +1,164 @@
 // teacher_livestream.js - Complete implementation for teacher livestreaming
 
+
+
+// Add this to your teachers_livestream.js or create a new file
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Get the GO LIVE button
+  const startLivestreamBtn = document.getElementById('startLivestreamBtn');
+  
+  if (startLivestreamBtn) {
+      startLivestreamBtn.addEventListener('click', function() {
+          // Get form data
+          const liveTitleInput = document.getElementById('liveTitleInput');
+          const title = liveTitleInput.value.trim();
+          const hubName = "{{ hub }}"; // This would be from your template context
+          
+          if (!title) {
+              alert('Please enter a title for your livestream');
+              return;
+          }
+          
+          // Disable button to prevent multiple clicks
+          startLivestreamBtn.disabled = true;
+          startLivestreamBtn.innerHTML = '<i class="bi bi-hourglass"></i> Starting...';
+          
+          // Send request to start livestream
+          fetch('/start-teacher-livestream/', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': getCookie('csrftoken')
+              },
+              body: JSON.stringify({
+                  hub_name: hubName,
+                  title: title,
+                  notify_students: document.getElementById('notifyStudentsLive').checked
+              })
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  // Store room info in sessionStorage
+                  sessionStorage.setItem('liveRoomId', data.room.room_id);
+                  sessionStorage.setItem('liveRoomName', data.room.name);
+                  
+                  // Redirect to the livestream room or open in a new window
+                  window.open(data.room.url, '_blank');
+                  
+                  // Update UI to show we're live
+                  document.getElementById('goLiveModal').classList.remove('show');
+                  // Add a "currently live" indicator to the page
+                  const liveIndicator = document.createElement('div');
+                  liveIndicator.className = 'live-indicator';
+                  liveIndicator.innerHTML = '<i class="bi bi-broadcast"></i> LIVE NOW';
+                  document.querySelector('.page-title').appendChild(liveIndicator);
+              } else {
+                  // Show error
+                  const errorAlert = document.getElementById('liveErrorAlert');
+                  errorAlert.textContent = data.error || 'Failed to start livestream';
+                  errorAlert.style.display = 'block';
+              }
+              
+              // Re-enable button
+              startLivestreamBtn.disabled = false;
+              startLivestreamBtn.innerHTML = '<i class="bi bi-broadcast"></i> Start Livestream';
+          })
+          .catch(error => {
+              console.error('Error starting livestream:', error);
+              // Re-enable button
+              startLivestreamBtn.disabled = false;
+              startLivestreamBtn.innerHTML = '<i class="bi bi-broadcast"></i> Start Livestream';
+              
+              // Show error
+              const errorAlert = document.getElementById('liveErrorAlert');
+              errorAlert.textContent = 'Network error, please try again';
+              errorAlert.style.display = 'block';
+          });
+      });
+  }
+  
+  // Helper function to get CSRF token from cookies
+  function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+});
+
+// Add this to the above JavaScript file
+
+// Function to end livestream
+function endLivestream() {
+  const roomId = sessionStorage.getItem('liveRoomId');
+  
+  if (!roomId) {
+      console.error('No active livestream found');
+      return;
+  }
+  
+  if (!confirm('Are you sure you want to end this livestream?')) {
+      return;
+  }
+  
+  fetch('/end-teacher-livestream/', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+          room_id: roomId
+      })
+  })
+  .then(response => response.json())
+  .then(data => {
+      if (data.success) {
+          // Clear the session storage
+          sessionStorage.removeItem('liveRoomId');
+          sessionStorage.removeItem('liveRoomName');
+          
+          // Update UI
+          const liveIndicator = document.querySelector('.live-indicator');
+          if (liveIndicator) {
+              liveIndicator.remove();
+          }
+          
+          // Show ended message
+          alert('Livestream ended successfully');
+      } else {
+          alert('Failed to end livestream: ' + (data.error || 'Unknown error'));
+      }
+  })
+  .catch(error => {
+      console.error('Error ending livestream:', error);
+      alert('Network error while ending livestream');
+  });
+}
+
+// Check if there's an active livestream on page load
+document.addEventListener('DOMContentLoaded', function() {
+  const roomId = sessionStorage.getItem('liveRoomId');
+  
+  if (roomId) {
+      // Add a "currently live" indicator to the page
+      const liveIndicator = document.createElement('div');
+      liveIndicator.className = 'live-indicator';
+      liveIndicator.innerHTML = '<i class="bi bi-broadcast"></i> LIVE NOW <button id="endLiveBtn" class="btn btn-sm btn-danger ml-2">End</button>';
+      document.querySelector('.page-title').appendChild(liveIndicator);
+      
+      // Add event listener to end button
+      document.getElementById('endLiveBtn').addEventListener('click', endLivestream);
+  }
+});
+
+
+
+
+
+
+
 document.addEventListener('DOMContentLoaded', function() {
     // Constants
     const ROOM_ID = document.getElementById("room-id-data")?.dataset?.roomId;

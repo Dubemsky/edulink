@@ -8,7 +8,7 @@ from .views_students import *
 from .community_page import *
 from .private_messages import *
 from . profile_page_updates import *
-from .livekit_intigrations import *
+from .livestream_functions import *
 
 urlpatterns = [
 
@@ -105,9 +105,8 @@ urlpatterns = [
     # Update the URLs in your urls.py file to include these endpoints:
 
     # LiveKit integration URLs
-    path('create-livestream/', handle_livestream_creation, name='create_livestream'),
-    path('check-active-livestreams/', check_active_livestreams, name='check_active_livestreams'),
-    path('end-livestream/', end_livestream, name='end_livestream'),
+    path('start-teacher-livestream/', start_teacher_livestream, name='start_teacher_livestream'),
+    path('end-teacher-livestream/', end_teacher_livestream, name='end_teacher_livestream'),
 
 
 ]

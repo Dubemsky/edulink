@@ -56,7 +56,24 @@ INSTALLED_APPS = [
     'django_extensions',
     'livekit',
     'rest_framework',
+    'guardian',  
+    'livekitapi',  
 ]
+
+
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'guardian.backends.ObjectPermissionBackend',
+)
+
+# LiveKit settings (use your existing config from livekit_folder/config.py)
+LIVEKIT_API_KEY = "APIRsaxCuofVw7K"
+LIVEKIT_API_SECRET = "ZnrqffqzbGqyHdGqGGjTfL2I1fOGMMKSIK7Htqb11NDC"
+LIVEKIT_INSTANCE = "edulink-oxkw0h5q.livekit.cloud"
+
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

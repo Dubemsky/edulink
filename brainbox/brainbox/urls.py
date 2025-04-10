@@ -8,4 +8,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("",include("myapp.urls")),
     path("livekit/", include("livekit_folder.urls")),
+    path("livekitapi/", include("livekitapi.urls")), 
 ]
