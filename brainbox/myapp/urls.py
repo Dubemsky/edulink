@@ -7,6 +7,7 @@ from .views_teachers import *
 from .views_students import *
 from .community_page import *
 from .private_messages import *
+from .livestream_firebase import *
 from . profile_page_updates import *
 from .livestream_functions import *
 
@@ -105,6 +106,11 @@ urlpatterns = [
     path('end-teacher-livestream/', end_teacher_livestream, name='end_teacher_livestream'),
 
 
+    path('store-livestream-firebase/', store_livestream_firebase, name='store_livestream_firebase'),
+    path('update-livestream-status/', update_livestream_status, name='update_livestream_status'),
+    path('check-livestream-status/', check_livestream_status, name='check_livestream_status'),
+    path('get-room-livestreams/', get_room_livestreams, name='get_room_livestreams'),
+
 
 
 
@@ -114,6 +120,7 @@ urlpatterns = [
     path('room-participants/', get_room_participants, name='livekit_room_participants'),
     path('active-rooms/', get_active_rooms, name='livekit_active_rooms'),
     path('teacher-livestream/<str:room_id>/', teacher_livestream, name='teacher_livestream'),
-
+    path('store-livestream-direct/', store_livestream_direct, name='store_livestream_direct'),
+    path('update-livestream-status-direct/', update_livestream_status_direct, name='update_livestream_status_direct'),
 
 ]

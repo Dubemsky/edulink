@@ -5,51 +5,81 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 import json
 from .livekit_integration import create_livestream_room, end_livestream_room
-
-
-
-
-
-
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
+import jwt
+import time
+import uuid
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 from django.conf import settings
-
-# Import the simplified functions that don't depend on livekitapi
-from .livekit_integration import create_livestream_room, end_livestream_room
 
 @login_required
 def teacher_livestream_view(request, room_id):
-    """View for teacher livestream interface"""
+    """View for the teacher livestream interface"""
     
-    # Get LiveKit credentials from settings
-    livekit_ws_url = getattr(settings, 'LIVEKIT_WS_URL', f"wss://{settings.LIVEKIT_INSTANCE}")
-    
-    # Room name based on room ID
+    # Create a room name based on the hub room ID
     room_name = f"live-{room_id}"
     
-    # Generate token for the room
-    from .livekit_integration import create_livestream_token
-    token_data = create_livestream_token(room_id, request.user.username, is_admin=True)
+    # Create a LiveKit token for the teacher
+    token = generate_livekit_token(room_name, request.user.username, is_admin=True)
     
-    # Prepare the context for the template
+    # LiveKit WebSocket URL
+    livekit_ws_url = f"wss://{settings.LIVEKIT_INSTANCE}"
+    
+    # Prepare context for the template
     context = {
-        'room_id': room_id,
         'room_name': room_name,
-        'token': token_data['token'],
+        'token': token,
         'ws_url': livekit_ws_url,
-        'teacher_name': request.user.username
+        'slug': room_name,  # Using room_name as the slug for simplicity
+        'teacher_name': request.user.username,
+        'title': f"Live Class: {room_name}"  # Default title
     }
     
     # Render the livestream template
     return render(request, 'myapp/teacher_livestream.html', context)
 
-
-
-
-
-
+def generate_livekit_token(room_name, identity, is_admin=False):
+    """Generate a LiveKit token for a participant"""
+    
+    # Get API key and secret from settings
+    api_key = settings.LIVEKIT_API_KEY
+    api_secret = settings.LIVEKIT_API_SECRET
+    
+    # Token expiration time (1 hour)
+    exp = int(time.time()) + 3600
+    
+    # Create claims for the token
+    claims = {
+        'iss': api_key,
+        'sub': identity,
+        'exp': exp,
+        'nbf': int(time.time()),
+        'jti': str(uuid.uuid4()),
+        'video': {
+            'room': room_name,
+            'roomJoin': True,
+            'canPublish': True,
+            'canSubscribe': True,
+            'canPublishData': True
+        }
+    }
+    
+    # Add admin permissions if needed
+    if is_admin:
+        claims['video'].update({
+            'roomAdmin': True,
+            'roomCreate': True,
+            'canPublishSources': ['camera', 'microphone', 'screen_share', 'screen_share_audio']
+        })
+    
+    # Generate the token
+    token = jwt.encode(claims, api_secret, algorithm='HS256')
+    
+    # Some jwt libraries return bytes, ensure we return a string
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
+    
+    return token
 
 @login_required
 @require_POST

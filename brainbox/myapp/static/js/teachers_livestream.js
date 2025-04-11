@@ -216,72 +216,127 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Start the livestream
-  async function startLivestream() {
-    if (!mediaStream) {
-      showError('Media stream not available. Please check your camera and microphone.');
-      return;
-    }
-    
-    // Get title from input
-    const liveTitle = liveTitleInput.value.trim();
-    if (!liveTitle) {
-      showError('Please enter a title for your livestream.');
-      return;
-    }
-    
-    // Get notification setting
-    const notifyStudents = notifyStudentsLive.checked;
-    
-    try {
-      // Disable button and show loading state
-      startLivestreamBtn.disabled = true;
-      startLivestreamBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Starting...';
-      
-      // Step 1: Create a LiveKit room via our API
-      const roomResponse = await fetch('/livekitapi/create-room/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-          room_name: `live-${roomId}`,
-          description: liveTitle,
-          notify_students: notifyStudents
-        })
-      });
-      
-      const roomData = await roomResponse.json();
-      
-      if (!roomData.success) {
-        throw new Error(roomData.error || 'Failed to create livestream room');
-      }
-      
-      console.log('LiveKit room created:', roomData);
-      
-      // Hide the modal
-      const modal = bootstrap.Modal.getInstance(goLiveModal);
-      modal.hide();
-      
-      // Open the LiveKit room in a new window
-      window.open(`/livekitapi/room/${roomData.room.slug}`, '_blank');
-      
-      // Show livestream interface
-      showLiveIndicator(liveTitle, roomData.room.slug);
-      
-      // Store session info
-      sessionStorage.setItem('current_livestream_slug', roomData.room.slug);
-      sessionStorage.setItem('current_livestream_title', liveTitle);
-      
-    } catch (error) {
-      console.error('Error starting livestream:', error);
-      showError(error.message || 'Failed to start livestream. Please try again.');
-      
-      // Reset button state
-      startLivestreamBtn.disabled = false;
-      startLivestreamBtn.innerHTML = '<i class="bi bi-broadcast"></i> Start Livestream';
-    }
+  // In teachers_livestream.js - update the startLivestream function
+
+async function startLivestream() {
+  if (!mediaStream) {
+    showError('Media stream not available. Please check your camera and microphone.');
+    return;
   }
+  
+  // Get title from input
+  const liveTitle = liveTitleInput.value.trim();
+  if (!liveTitle) {
+    showError('Please enter a title for your livestream.');
+    return;
+  }
+  
+  // Get notification setting
+  const notifyStudents = notifyStudentsLive.checked;
+  
+  try {
+    // Disable button and show loading state
+    startLivestreamBtn.disabled = true;
+    startLivestreamBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Starting...';
+    
+    // Now use the direct URL generator endpoint instead
+    const response = await fetch('/livekitapi/get-livekit-url/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        room_name: `live-${roomId}`,
+        user_name: teacherName,
+        description: liveTitle
+      })
+    });
+    
+    // Check for success response
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('Server error:', text);
+      throw new Error(`Server error: ${response.status}`);
+    }
+    
+    const roomData = await response.json();
+    
+    if (!roomData.success) {
+      throw new Error(roomData.error || 'Failed to create livestream room');
+    }
+    
+    console.log('LiveKit direct URL created:', roomData);
+    
+    // Hide the modal
+    const modal = bootstrap.Modal.getInstance(goLiveModal);
+    modal.hide();
+    
+    // Open the LiveKit room in a new window
+    window.open(roomData.room.url, '_blank');
+    
+    // Show livestream interface
+    showLiveIndicator(liveTitle, roomData.room.slug);
+    
+    // Store session info
+    sessionStorage.setItem('current_livestream_slug', roomData.room.slug);
+    sessionStorage.setItem('current_livestream_title', liveTitle);
+    
+    // Upload stream info to Firebase if needed
+    if (typeof uploadStreamInfoToFirebase === 'function') {
+      uploadStreamInfoToFirebase(roomData.room.slug, liveTitle, roomId);
+    }
+    
+  } catch (error) {
+    console.error('Error starting livestream:', error);
+    showError(error.message || 'Failed to start livestream. Please try again.');
+  } finally {
+    // Reset button state
+    startLivestreamBtn.disabled = false;
+    startLivestreamBtn.innerHTML = '<i class="bi bi-broadcast"></i> Start Livestream';
+  }
+}
+  
+  // New function to upload stream info to Firebase
+  // In teachers_livestream.js
+// Update the uploadStreamInfoToFirebase function
+
+async function uploadStreamInfoToFirebase(streamSlug, title, roomId) {
+  try {
+    // Get current timestamp
+    const currentTime = new Date().toISOString();
+    
+    // Create livestream data object
+    const livestreamData = {
+      slug: streamSlug,
+      title: title,
+      room_id: roomId,
+      teacher: teacherName,
+      created_at: currentTime,
+      status: 'active',
+      viewers: 0
+    };
+    
+    // Send data to our backend to store in Firebase - use the direct endpoint
+    const response = await fetch('/store-livestream-direct/', {  // Note the changed URL
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify(livestreamData)
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      console.log('Livestream info stored in Firebase successfully');
+    } else {
+      console.error('Error storing livestream in Firebase:', data.error);
+    }
+  } catch (error) {
+    console.error('Error uploading to Firebase:', error);
+  }
+}
   
   // Function to show a "Currently Live" indicator
   function showLiveIndicator(title, slug) {
@@ -300,7 +355,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <span class="live-text">LIVE NOW: ${title}</span>
       </div>
       <div class="live-actions">
-        <button class="live-view-btn" onclick="window.open('/livekitapi/room/${slug}', '_blank')">
+        <button class="live-view-btn" onclick="window.open('/livekitapi/room/${slug}/', '_blank')">
           <i class="bi bi-display"></i> View
         </button>
         <button class="live-end-btn" onclick="endLivestream('${slug}')">
@@ -387,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     try {
-      const response = await fetch(`/livekitapi/room/${slug}/end-stream`, {
+      const response = await fetch(`/livekitapi/room/${slug}/stop_recording`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -397,7 +452,10 @@ document.addEventListener('DOMContentLoaded', function() {
       
       const data = await response.json();
       
-      if (data.success) {
+      if (data.ok) {
+        // Update Firebase status
+        await updateFirebaseStreamStatus(slug, 'ended');
+        
         // Remove the live indicator
         const indicator = document.querySelector('.live-stream-indicator');
         if (indicator) {
@@ -418,14 +476,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
+  // New function to update Firebase stream status
+  // Update this function in teachers_livestream.js
+async function updateFirebaseStreamStatus(slug, status) {
+  try {
+    const response = await fetch('/update-livestream-status-direct/', {  // Note the changed URL
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        slug: slug,
+        status: status
+      })
+    });
+    
+    const data = await response.json();
+    if (!data.success) {
+      console.error('Error updating Firebase status:', data.error);
+    }
+    return data.success;
+  } catch (error) {
+    console.error('Error updating Firebase:', error);
+    return false;
+  }
+}
+  
   // Check for active livestream on page load
   function checkForActiveLivestream() {
     const livestreamSlug = sessionStorage.getItem('current_livestream_slug');
     const livestreamTitle = sessionStorage.getItem('current_livestream_title');
     
     if (livestreamSlug && livestreamTitle) {
-      // Show the live indicator
-      showLiveIndicator(livestreamTitle, livestreamSlug);
+      // Check if the stream is still active in Firebase
+      fetch(`/check-livestream-status/?slug=${livestreamSlug}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.status === 'active') {
+            // Show the live indicator
+            showLiveIndicator(livestreamTitle, livestreamSlug);
+          } else {
+            // Clear session storage if stream is no longer active
+            sessionStorage.removeItem('current_livestream_slug');
+            sessionStorage.removeItem('current_livestream_title');
+          }
+        })
+        .catch(error => {
+          console.error('Error checking livestream status:', error);
+        });
     }
   }
   
@@ -514,7 +613,11 @@ window.endLivestream = async function(slug) {
   }
   
   try {
-    const response = await fetch(`/livekitapi/room/${slug}/end-stream`, {
+    // First update Firebase
+    await updateFirebaseStreamStatus(slug, 'ended');
+    
+    // Then stop the recording in LiveKit
+    const response = await fetch(`/livekitapi/room/${slug}/stop_recording`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -524,7 +627,7 @@ window.endLivestream = async function(slug) {
     
     const data = await response.json();
     
-    if (data.success) {
+    if (data.ok) {
       // Remove the live indicator
       const indicator = document.querySelector('.live-stream-indicator');
       if (indicator) {
@@ -545,6 +648,32 @@ window.endLivestream = async function(slug) {
     showToast('Error ending livestream. Please try again.', 'error');
   }
 };
+
+// Global function to update Firebase stream status
+async function updateFirebaseStreamStatus(slug, status) {
+  try {
+    const response = await fetch('/update-livestream-status/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        slug: slug,
+        status: status
+      })
+    });
+    
+    const data = await response.json();
+    if (!data.success) {
+      console.error('Error updating Firebase status:', data.error);
+    }
+    return data.success;
+  } catch (error) {
+    console.error('Error updating Firebase:', error);
+    return false;
+  }
+}
 
 // Global helper function to get cookies
 function getCookie(name) {
@@ -607,41 +736,3 @@ function showToast(message, type) {
     }, 300);
   }, 3000);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
