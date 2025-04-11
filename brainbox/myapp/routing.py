@@ -1,5 +1,6 @@
 from django.urls import re_path
 from .consumer import *
+from .group_chat_consumer import GroupChatConsumer
 from .private_message_consumer import DirectChatConsumer
 
 wsPattern = [
@@ -13,6 +14,7 @@ wsPattern = [
     re_path(r'ws/teachers-dashboard/hub-room/(?P<room_name>[a-zA-Z0-9]+)/(?P<message_id>[a-zA-Z0-9]+)/$', ChatConsumer.as_asgi()),
 
     re_path(r'ws/direct-chat/(?P<user_id>[^/]+)/(?P<recipient_id>[^/]+)/$', DirectChatConsumer.as_asgi()),
+    re_path(r'ws/group-chat/(?P<user_id>[^/]+)/(?P<group_id>[^/]+)/$', GroupChatConsumer.as_asgi()),
 
     
 

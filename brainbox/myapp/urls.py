@@ -3,6 +3,7 @@ from .analitics import *
 from .summarise import *
 from django.urls import path
 from .livestream import *
+from .group_chat import *
 from .views_teachers import *
 from .views_students import *
 from .community_page import *
@@ -83,8 +84,20 @@ urlpatterns = [
     # Add to urls.py (make sure this is added to the URL patterns)
     path('respond-to-invitation/', respond_to_invitation, name='respond_to_invitation'),
 
-    
 
+
+
+    path('get_mutual_connections/', get_mutual_connections, name='get_mutual_connections'),
+    
+    # Group chat management
+    path('create_group_chat/', create_group_chat, name='create_group_chat'),
+    path('get_group_chats/', get_group_chats, name='get_group_chats'),
+    path('add_to_group/', add_to_group, name='add_to_group'),
+    path('leave_group/', leave_group, name='leave_group'),
+    
+    # Group messages
+    path('send_group_message/', send_group_message, name='send_group_message'),
+    path('get_group_messages/<str:group_id>/', get_group_messages, name='get_group_messages'),
 
 
 
