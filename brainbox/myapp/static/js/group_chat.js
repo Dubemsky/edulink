@@ -154,7 +154,12 @@ function setupGroupChatModalHandlers() {
   // Clicking outside the modal should close it
   const modalOverlay = document.getElementById('dmModalOverlay');
   if (modalOverlay) {
-    modalOverlay.addEventListener('click', hideCreateGroupChatModal);
+    modalOverlay.addEventListener('click', function(e) {
+      // Only close if clicking directly on overlay (not on modal)
+      if (e.target === modalOverlay) {
+        hideCreateGroupChatModal();
+      }
+    });
   }
   
   // Prevent closing when clicking on the modal itself
@@ -965,5 +970,94 @@ document.addEventListener('DOMContentLoaded', function() {
   const groupNameInput = document.getElementById('dmGroupNameInput');
   if (groupNameInput) {
     groupNameInput.addEventListener('input', updateCreateGroupButtonState);
+  }
+});
+
+// Add CSS fixes for the modal
+document.addEventListener('DOMContentLoaded', function() {
+  // Check if we already have a style element for our fixes
+  let styleElement = document.getElementById('group-chat-modal-fixes');
+  
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = 'group-chat-modal-fixes';
+    styleElement.textContent = `
+      /* Modal overlay fixes */
+      .dm-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9998;
+        display: none;
+      }
+      
+      .dm-modal-overlay.show {
+        display: block;
+      }
+      
+      /* Create group modal fixes */
+      .dm-create-group-modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 550px;
+        max-height: 80vh;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      
+      .dm-create-group-modal.show {
+        display: flex;
+      }
+      
+      /* Selected members container */
+      .dm-selected-members-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-height: 50px;
+      }
+      
+      .dm-selected-member-badge {
+        display: flex;
+        align-items: center;
+        background-color: #f0f7ff;
+        border-radius: 20px;
+        padding: 5px 10px 5px 5px;
+        gap: 8px;
+      }
+      
+      .dm-selected-member-img {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+      }
+      
+      .dm-selected-member-name {
+        font-size: 0.9rem;
+      }
+      
+      .dm-remove-selected-btn {
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        font-size: 0.9rem;
+        padding: 0;
+        margin-left: 5px;
+      }
+    `;
+    
+    document.head.appendChild(styleElement);
   }
 });
