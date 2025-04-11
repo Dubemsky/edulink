@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 """
 
+
 def get_teacher_user_id(request):
     """Helper function to get the teacher name from the session"""
     return request.session.get("teachers_name")

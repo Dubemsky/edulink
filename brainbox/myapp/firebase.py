@@ -416,21 +416,6 @@ def get_bookmarked_messages(username, room_id):
 
 
 
-# Teachers Credentails
-Info = {
-    "t":["jelena.vasic@tudublin.ie","012207919","Jelena Vasic"],
-    "t1":["lucas.rizzo@tudublin.ie","35312205765","Lucas Rizzo"],
-    "t2":["robert.ross@tudublin.ie","35312205636","Robert Ross"],
-    "t3":["marisa.llorens@tudublin.ie","35312205624","Marisa Llorens Salvador"],
-    "t4":["bianca.schoenphelan@tudublin.ie","35312205637","Bianca Schoen Phelan"],
-}
-
-
-
-
-
-
-
 
 
 # Teachers data

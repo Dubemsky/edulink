@@ -819,6 +819,101 @@ def get_user_votes(request):
 
 # Add to views_hub_room.py
 
+
+
+# Add to views_hub_room.py
+@csrf_exempt
+def respond_to_invitation(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            notification_id = data.get("notification_id")
+            response = data.get("response")  # "accept" or "reject"
+            
+            if not notification_id or not response:
+                return JsonResponse({"success": False, "error": "Missing required parameters"}, status=400)
+            
+            # Get the current student from session
+            student_name = request.session.get("students_name")
+            if not student_name:
+                return JsonResponse({"success": False, "error": "Not logged in as a student"}, status=401)
+            
+            # Get the notification details
+            notification_ref = db.collection("notifications").document(notification_id)
+            notification = notification_ref.get()
+            
+            if not notification.exists:
+                return JsonResponse({"success": False, "error": "Notification not found"}, status=404)
+                
+            notification_data = notification.to_dict()
+            
+            # Verify this notification is for the current student
+            if notification_data.get("username") != student_name:
+                return JsonResponse({"success": False, "error": "This notification is not for you"}, status=403)
+                
+            # Get room details
+            room_id = notification_data.get("room_id")
+            room_name = notification_data.get("room_name")
+            
+            if response == "accept":
+                try:
+                    # Get the room details
+                    room = Teachers_created_hub.objects.get(room_url=room_id)
+                    
+                    # Check if student is already a member
+                    if Students_joined_hub.objects.filter(student=student_name, hub=room).exists():
+                        # Mark notification as read even if already a member
+                        notification_ref.delete()
+                        return JsonResponse({
+                            "success": True, 
+                            "message": "You are already a member of this room",
+                            "room_url": f"/students-dashboard/hub-room/{room_id}/"
+                        })
+                    
+                    # Add student to the room
+                    new_member = Students_joined_hub(
+                        student=student_name,
+                        hub=room,
+                        hub_owner=room.hub_owner,
+                        hub_url=room_id
+                    )
+                    new_member.save()
+                    
+                    # Delete the notification
+                    notification_ref.delete()
+                    
+                    return JsonResponse({
+                        "success": True,
+                        "message": f"You have joined {room_name}",
+                        "room_url": f"/students-dashboard/hub-room/{room_id}/"
+                    })
+                    
+                except Teachers_created_hub.DoesNotExist:
+                    return JsonResponse({"success": False, "error": "Room not found"}, status=404)
+                except Exception as e:
+                    print(f"Error accepting invite: {e}")
+                    return JsonResponse({"success": False, "error": str(e)}, status=500)
+                    
+            elif response == "reject":
+                # Delete the notification
+                notification_ref.delete()
+                
+                return JsonResponse({
+                    "success": True,
+                    "message": f"You have declined the invitation to {room_name}"
+                })
+                
+            else:
+                return JsonResponse({"success": False, "error": "Invalid response"}, status=400)
+                
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            print(f"Error responding to invite: {e}")
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+            
+    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+
 @csrf_exempt
 def send_invite(request):
     if request.method == "POST":

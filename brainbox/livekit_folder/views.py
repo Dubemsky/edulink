@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import requests
+from django.shortcuts import render
 
 from .config import (
     LIVEKIT_API_KEY, 
@@ -267,3 +268,57 @@ def get_active_rooms(request):
     except Exception as e:
         print(f"Error getting active rooms: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
+    
+
+
+@login_required
+def teacher_livestream(request, room_id):
+    """View for teacher livestream room"""
+    # Get LiveKit credentials from settings
+    api_key = "APIRsaxCuofVw7K"
+    api_secret = "ZnrqffqzbGqyHdGqGGjTfL2I1fOGMMKSIK7Htqb11NDC"
+    livekit_url = "edulink-oxkw0h5q.livekit.cloud"
+
+
+
+    # Create a room name based on the hub room ID
+    room_name = f"live-{room_id}"
+    
+    # Generate a token for the teacher
+    import jwt
+    import time
+    import uuid
+    
+    # Token expiration time (1 hour)
+    exp = int(time.time()) + 3600
+    
+    # Create claims for the token
+    claims = {
+        'iss': api_key,
+        'sub': request.user.username,
+        'exp': exp,
+        'nbf': int(time.time()),
+        'jti': str(uuid.uuid4()),
+        'video': {
+            'room': room_name,
+            'roomJoin': True,
+            'canPublish': True,
+            'canSubscribe': True,
+            'canPublishData': True,
+            'roomAdmin': True,
+            'roomCreate': True
+        }
+    }
+    
+    # Generate the token
+    token = jwt.encode(claims, api_secret, algorithm='HS256')
+    
+    # Create the LiveKit URL
+    room_url = f"{livekit_url}?token={token}"
+    
+    # Return template with LiveKit room
+    return render(request, 'livekit_folder/teacher_livestream.html', {
+        'room_name': room_name,
+        'room_url': room_url,
+        'teacher_name': request.user.username,
+    })

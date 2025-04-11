@@ -1,68 +1,79 @@
-# brainbox/myapp/livekit_integration.py
-
-from livekitapi.models import LivekitRoom
-from django.utils import timezone
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.models import User
-from django.http import JsonResponse
+import jwt
+import time
 import uuid
+from django.conf import settings
+from django.http import JsonResponse
 
-def create_livestream_room(request_data, user):
-    """
-    Create a new LiveKit room for a teacher's livestream
-    """
+def create_livestream_token(room_id, user_identity, is_admin=False):
+    """Create a LiveKit access token"""
+    room_name = f"live-{room_id}"
+    
+    # Get settings
+    api_key = settings.LIVEKIT_API_KEY
+    api_secret = settings.LIVEKIT_API_SECRET
+    
+    # Create token with expiration (1 hour)
+    exp = int(time.time()) + 3600
+    
+    # Create claims
+    claims = {
+        'iss': api_key,
+        'sub': user_identity,
+        'exp': exp,
+        'nbf': int(time.time()),
+        'jti': str(uuid.uuid4()),
+        'video': {
+            'room': room_name,
+            'roomJoin': True,
+            'canPublish': True,
+            'canSubscribe': True,
+            'canPublishData': True
+        }
+    }
+    
+    # Add admin privileges if needed
+    if is_admin:
+        claims['video'].update({
+            'roomAdmin': True,
+            'roomCreate': True
+        })
+    
+    # Generate token
+    token = jwt.encode(claims, api_secret, algorithm='HS256')
+    
+    return {
+        'token': token,
+        'room': room_name
+    }
+
+def create_livestream_room(request):
+    """API view to create a LiveKit room and return token"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
     try:
-        # Generate a unique room name based on request data
-        hub_name = request_data.get('hub_name', '')
-        room_name = f"live-{hub_name}-{uuid.uuid4().hex[:8]}"
+        # Get data
+        import json
+        data = json.loads(request.body)
+        room_id = data.get('room_id', '')
+        user_identity = data.get('user_identity', request.user.username)
         
-        # Create or get a LiveKit room
-        room = LivekitRoom(
-            description=f"Livestream for {hub_name}",
-            slug=room_name[:10],  # LiveKit model has max 10 chars for slug
-            owner=user,
-            started=timezone.now(),
-            scheduledEnd=timezone.now() + timezone.timedelta(hours=2),
-            shareWithNextcloudGroup="default"  # This might need to be adjusted
-        )
-        room.save()
+        # Create token
+        result = create_livestream_token(room_id, user_identity, is_admin=True)
         
-        # Generate a link for the teacher
-        room_link = room.get_link_for_user(user)
-        
-        return {
+        # Return response with token and room info
+        return JsonResponse({
             'success': True,
-            'room': {
-                'name': room.slug,
-                'url': room_link,
-                'room_id': room.id
-            }
-        }
+            'token': result['token'],
+            'room': result['room'],
+            'ws_url': getattr(settings, 'LIVEKIT_WS_URL', f"wss://{settings.LIVEKIT_INSTANCE}")
+        })
     except Exception as e:
-        return {
-            'success': False,
-            'error': str(e)
-        }
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-def end_livestream_room(room_id, user):
-    """
-    End an active livestream room
-    """
-    try:
-        room = get_object_or_404(LivekitRoom, id=room_id)
-        
-        # Check if user has permission to end this room
-        if room.owner != user:
-            return {'success': False, 'error': 'Permission denied'}
-        
-        # Mark the room as ended
-        room.ended = timezone.now()
-        room.save()
-        
-        # Stop recording if it's active
-        if room.is_recording:
-            room.stop_recording(user)
-            
-        return {'success': True}
-    except Exception as e:
-        return {'success': False, 'error': str(e)}
+def end_livestream_room(request):
+    """Placeholder for ending a LiveKit room"""
+    return JsonResponse({
+        'success': True,
+        'message': 'Livestream ended'
+    })

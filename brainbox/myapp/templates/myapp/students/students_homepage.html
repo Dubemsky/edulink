@@ -863,6 +863,83 @@
     return cookieValue;
   }
 });
+
+
+// Add to the existing JavaScript in students_homepage.html
+// This code already exists but we need to make sure it's properly handling invitations
+
+// When a student clicks on a notification invitation
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle invitation responses (accept/reject buttons)
+  const inviteResponseBtns = document.querySelectorAll('.invite-response-btn');
+  if (inviteResponseBtns.length > 0) {
+    inviteResponseBtns.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        const notificationId = this.getAttribute('data-notification-id');
+        const response = this.getAttribute('data-response');
+        
+        // Call API to respond to invitation
+        fetch('/respond-to-invitation/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ 
+            notification_id: notificationId,
+            response: response 
+          })
+        }).then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Find the parent notification item and update it
+              const notificationItem = this.closest('.notification-item');
+              if (notificationItem) {
+                if (response === 'accept') {
+                  notificationItem.innerHTML = `
+                    <div class="notification-icon">
+                      <i class="bi bi-check-circle-fill text-success"></i>
+                    </div>
+                    <div class="notification-content">
+                      <p>Invitation accepted successfully!</p>
+                      <span class="notification-time">Just now</span>
+                    </div>
+                  `;
+                  
+                  // Redirect to the hub after a short delay
+                  if (data.room_url) {
+                    setTimeout(() => {
+                      window.location.href = data.room_url;
+                    }, 1500);
+                  }
+                } else {
+                  notificationItem.innerHTML = `
+                    <div class="notification-icon">
+                      <i class="bi bi-x-circle-fill text-secondary"></i>
+                    </div>
+                    <div class="notification-content">
+                      <p>Invitation declined.</p>
+                      <span class="notification-time">Just now</span>
+                    </div>
+                  `;
+                }
+                
+                // Update notification count
+                updateNotificationCount();
+              }
+            } else {
+              console.error('Failed to respond to invitation:', data.error);
+            }
+          })
+          .catch(error => {
+            console.error('Error responding to invitation:', error);
+          });
+      });
+    });
+  }
+});
   </script>
 
 

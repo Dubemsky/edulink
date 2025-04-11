@@ -2,6 +2,8 @@ import string
 from itertools import chain
 import attrs
 import requests
+import jwt
+import time
 
 from django.db import models
 from django.core.exceptions import PermissionDenied
@@ -14,7 +16,8 @@ from guardian.mixins import PermissionRequiredMixin
 from guardian.shortcuts import assign_perm
 from random_username.generate import generate_username
 
-from livekit import api as lkapi
+# Remove this import that's causing issues
+# from livekit import api as lkapi
 
 # By default, avoid scheduling too many concurrent calls.
 # This can be overridden in config with `LIVEKIT_MAX_ROOMS`.
@@ -39,7 +42,7 @@ class LivekitConfig:
     @classmethod
     def from_config(cls):
         api = settings.LIVEKIT_API_KEY
-        secret = settings.LIVEKIT_SECRET
+        secret = settings.LIVEKIT_API_SECRET
 
         if api is None or secret is None:
             raise ValueError("Need to configure LIVEKIT_API_KEY and LIVEKIT_API_SECRET")
@@ -154,19 +157,47 @@ class LivekitRoom(PermissionRequiredMixin, models.Model):
         else:
             identity = user.username
 
-        token = lkapi.AccessToken(key, secret) \
-            .with_identity(identity) \
-            .with_name(identity) \
-            .with_grants(lkapi.VideoGrants(
-                room_join=True,
-                room=self.slug,
-            )).to_jwt()
+        # Replace the livekit API token generation with our own implementation
+        token = self._generate_token(identity, identity, self.slug)
 
         link = LIVEKIT_DEFAULT_BASEURL.format(
             instance=settings.LIVEKIT_INSTANCE,
             token=token)
 
         return link
+    
+    def _generate_token(self, identity, name, room):
+        """Generate a LiveKit token using JWT directly"""
+        key = settings.LIVEKIT_API_KEY
+        secret = settings.LIVEKIT_API_SECRET
+        
+        now = int(time.time())
+        exp = now + 24 * 60 * 60  # Token valid for 24 hours
+        
+        # Create claims according to LiveKit API specs
+        claims = {
+            "iss": key,
+            "sub": identity,
+            "nbf": now,
+            "exp": exp,
+            "video": {
+                "roomJoin": True,
+                "room": room,
+                "canPublish": True,
+                "canSubscribe": True
+            },
+            "name": name
+        }
+        
+        # Encode the token
+        token = jwt.encode(claims, secret, algorithm='HS256')
+        
+        # In newer versions of PyJWT, token is returned as a string
+        # In older versions it might be bytes, so decode it
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+            
+        return token
 
     def start_recording(self, user):
         if not user.has_perm(START_STOP_RECORDING_PERM, self):

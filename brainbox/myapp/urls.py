@@ -79,18 +79,14 @@ urlpatterns = [
     path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
     path('accept_connection_request/', accept_connection_request, name='accept_connection_request'),
     path('decline_connection_request/', decline_connection_request, name='decline_connection_request'),
+    # Add to urls.py (make sure this is added to the URL patterns)
+    path('respond-to-invitation/', respond_to_invitation, name='respond_to_invitation'),
 
     
 
 
 
 
-    # For livestream functionality
-    path('schedule-livestream/', schedule_livestream, name='schedule_livestream'),
-    path('get-livestreams/', get_livestreams, name='get_livestreams'),
-    path('get-livestream-details/', get_livestream_details, name='get_livestream_details'),
-    path('cancel-livestream/', cancel_livestream, name='cancel_livestream'),
-    path('get-student-livestreams/', get_student_livestreams, name='get_student_livestreams'),
 
     # Emai verification
     path('verify-email/<str:token>/', verify_email, name='verify_email'),
@@ -105,8 +101,19 @@ urlpatterns = [
     # Update the URLs in your urls.py file to include these endpoints:
 
     # LiveKit integration URLs
-    path('start-teacher-livestream/', start_teacher_livestream, name='start_teacher_livestream'),
+    path('teacher-livestream/<str:room_id>/', teacher_livestream_view, name='teacher_livestream'),
     path('end-teacher-livestream/', end_teacher_livestream, name='end_teacher_livestream'),
+
+
+
+
+
+
+    path('create-room/', create_livestream_room, name='livekit_create_room'),
+    path('get-token/', get_join_token, name='livekit_get_token'),
+    path('room-participants/', get_room_participants, name='livekit_room_participants'),
+    path('active-rooms/', get_active_rooms, name='livekit_active_rooms'),
+    path('teacher-livestream/<str:room_id>/', teacher_livestream, name='teacher_livestream'),
 
 
 ]

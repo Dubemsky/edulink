@@ -6,6 +6,8 @@ urlpatterns = [
     path('get-token/', get_join_token, name='livekit_get_token'),
     path('room-participants/', get_room_participants, name='livekit_room_participants'),
     path('active-rooms/', get_active_rooms, name='livekit_active_rooms'),
+
+    path('teacher-livestream/<str:room_id>/', teacher_livestream, name='teacher_livestream'),
 ]
 
 

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveKit Livestream</title>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .header {
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .live-indicator {
+            display: flex;
+            align-items: center;
+        }
+        .live-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #ff4a4a;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .main {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+        #localParticipant {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 240px;
+            height: 180px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+        #remoteParticipants {
+            flex: 1;
+            background-color: #f8f9fa;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="live-indicator">
+                <div class="live-dot"></div>
+                <span>LIVE</span>
+            </div>
+            <h2>{{ room_name }}</h2>
+            <div class="controls">
+                <button id="toggleAudio" class="btn">Mute</button>
+                <button id="toggleVideo" class="btn">Stop Video</button>
+                <button id="toggleScreenShare" class="btn">Share Screen</button>
+                <button id="endStream" class="btn btn-danger">End Stream</button>
+            </div>
+        </div>
+        <div class="main">
+            <div id="localParticipant"></div>
+            <div id="remoteParticipants"></div>
+        </div>
+    </div>
+
+    <script>
+        // LiveKit Room setup
+        const roomName = '{{ room_name }}';
+        const token = '{{ room_url }}'.split('?token=')[1];
+        const wsUrl = '{{ room_url }}'.split('?')[0];
+        
+        let room;
+        let localParticipant;
+        let isSharingScreen = false;
+        
+        async function setupRoom() {
+            // Create room
+            room = new LivekitClient.Room({
+                adaptiveStream: true,
+                dynacast: true,
+                videoCaptureDefaults: {
+                    resolution: LivekitClient.VideoPresets.h720.resolution,
+                }
+            });
+            
+            // Add event listeners
+            room.on(LivekitClient.RoomEvent.ParticipantConnected, handleParticipantConnected);
+            room.on(LivekitClient.RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
+            room.on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
+            room.on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
+            
+            try {
+                // Connect to LiveKit server
+                await room.connect(wsUrl, token);
+                console.log('Connected to room:', room.name);
+                
+                // Set local participant
+                localParticipant = room.localParticipant;
+                
+                // Publish local tracks
+                await publishLocalTracks();
+                
+                // Set up control buttons
+                setupControls();
+            } catch (error) {
+                console.error('Error connecting to room:', error);
+                alert('Failed to connect to livestream room. Please try again.');
+            }
+        }
+        
+        async function publishLocalTracks() {
+            try {
+                // Publish camera and microphone
+                const tracks = await LivekitClient.createLocalTracks({
+                    audio: true,
+                    video: true
+                });
+                
+                // Publish each track
+                for (const track of tracks) {
+                    await localParticipant.publishTrack(track);
+                }
+                
+                // Display local video
+                const localVideo = document.createElement('video');
+                localVideo.autoplay = true;
+                localVideo.muted = true;
+                
+                // Find the video track
+                const videoTrack = localParticipant.getTrackPublications().find(
+                    pub => pub.track && pub.track.kind === 'video' && !pub.simulcasted
+                );
+                
+                if (videoTrack && videoTrack.track) {
+                    videoTrack.track.attach(localVideo);
+                    document.getElementById('localParticipant').appendChild(localVideo);
+                }
+            } catch (error) {
+                console.error('Error publishing tracks:', error);
+            }
+        }
+        
+        function setupControls() {
+            // Toggle audio
+            document.getElementById('toggleAudio').addEventListener('click', async () => {
+                const enabled = await localParticipant.setMicrophoneEnabled(
+                    !localParticipant.isMicrophoneEnabled
+                );
+                document.getElementById('toggleAudio').textContent = 
+                    enabled ? 'Mute' : 'Unmute';
+            });
+            
+            // Toggle video
+            document.getElementById('toggleVideo').addEventListener('click', async () => {
+                const enabled = await localParticipant.setCameraEnabled(
+                    !localParticipant.isCameraEnabled
+                );
+                document.getElementById('toggleVideo').textContent = 
+                    enabled ? 'Stop Video' : 'Start Video';
+            });
+            
+            // Toggle screen share
+            document.getElementById('toggleScreenShare').addEventListener('click', async () => {
+                if (!isSharingScreen) {
+                    try {
+                        const screenTrack = await LivekitClient.createLocalScreenTracks();
+                        await localParticipant.publishTrack(screenTrack[0]);
+                        isSharingScreen = true;
+                        document.getElementById('toggleScreenShare').textContent = 'Stop Sharing';
+                    } catch (error) {
+                        console.error('Error sharing screen:', error);
+                    }
+                } else {
+                    const screenTrack = localParticipant.getTrackPublications().find(
+                        pub => pub.track && pub.track.source === LivekitClient.Track.Source.ScreenShare
+                    );
+                    if (screenTrack) {
+                        await localParticipant.unpublishTrack(screenTrack.track);
+                    }
+                    isSharingScreen = false;
+                    document.getElementById('toggleScreenShare').textContent = 'Share Screen';
+                }
+            });
+            
+            // End stream
+            document.getElementById('endStream').addEventListener('click', async () => {
+                if (confirm('Are you sure you want to end the livestream?')) {
+                    await room.disconnect();
+                    window.close();
+                }
+            });
+        }
+        
+        // Participant and track management functions
+        function handleParticipantConnected(participant) {
+            console.log('Participant connected:', participant.identity);
+        }
+        
+        function handleParticipantDisconnected(participant) {
+            console.log('Participant disconnected:', participant.identity);
+        }
+        
+        function handleTrackSubscribed(track, publication, participant) {
+            if (track.kind === 'video' || track.kind === 'audio') {
+                // Create container for the track
+                const container = document.createElement('div');
+                container.id = `participant-${participant.identity}-${track.sid}`;
+                container.className = 'remote-participant';
+                
+                // If video, attach to video element
+                if (track.kind === 'video') {
+                    const videoElem = document.createElement('video');
+                    videoElem.autoplay = true;
+                    track.attach(videoElem);
+                    container.appendChild(videoElem);
+                    
+                    // Add name label
+                    const nameLabel = document.createElement('div');
+                    nameLabel.className = 'participant-name';
+                    nameLabel.textContent = participant.identity;
+                    container.appendChild(nameLabel);
+                }
+                
+                document.getElementById('remoteParticipants').appendChild(container);
+            }
+        }
+        
+        function handleTrackUnsubscribed(track, publication, participant) {
+            track.detach();
+            const container = document.getElementById(`participant-${participant.identity}-${track.sid}`);
+            if (container) {
+                container.remove();
+            }
+        }
+        
+        // Initialize room when page loads
+        window.addEventListener('DOMContentLoaded', setupRoom);
+    </script>
+</body>
+</html>
