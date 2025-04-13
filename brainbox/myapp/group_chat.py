@@ -162,10 +162,12 @@ def create_group_chat(request):
                 db.collection('notifications').add(notification_data)
         
         # Add a system message to the group chat
+        from .firebase import get_username
+
+        print(f"{get_username(current_user_id)}")
         system_message = {
             'group_id': group_chat_id,
             'sender_id': 'system',
-            'content': f"Group '{group_name}' created by {current_user_id}",
             'timestamp': firestore.SERVER_TIMESTAMP,
             'type': 'system'
         }
@@ -211,57 +213,52 @@ def get_group_chats(request):
         }, status=401)
     
     try:
-        # Query user_group_chats to find groups this user is a member of
-        user_groups_ref = db.collection('user_group_chats')
-        query = user_groups_ref.where('user_id', '==', current_user_id)
-        user_groups = list(query.stream())
-        
-        # Get the group_ids
-        group_ids = [doc.to_dict().get('group_id') for doc in user_groups]
-        
-        # Fetch details for each group
+        # Method 1: Find all groups where this user is in the members list
+        # This is more direct but potentially less efficient for users in many groups
         groups_ref = db.collection('group_chats')
+        query = groups_ref.where('members', 'array_contains', current_user_id)
+        group_docs = query.stream()
+        
         group_chats = []
         
-        for group_id in group_ids:
-            group_doc = groups_ref.document(group_id).get()
-            if group_doc.exists:
-                group_data = group_doc.to_dict()
-                
-                # Get member names for display
-                member_ids = group_data.get('members', [])
-                
-                # Get member details
-                users_ref = db.collection('users_profile')
-                members = []
-                
-                # This would be inefficient for large groups, consider paginating
-                for member_id in member_ids[:3]:  # Only get first 3 for preview
-                    user_doc = users_ref.document(member_id).get()
-                    if user_doc.exists:
-                        user_data = user_doc.to_dict()
-                        members.append({
-                            'id': member_id,
-                            'name': user_data.get('name')
-                        })
-                
-                # Get unread count for this user
-                user_group_doc = db.collection('user_group_chats').document(f"{current_user_id}_{group_id}").get()
-                unread_count = 0
-                if user_group_doc.exists:
-                    unread_count = user_group_doc.to_dict().get('unread_count', 0)
-                
-                # Format the group chat data
-                group_chats.append({
-                    'id': group_id,
-                    'name': group_data.get('name'),
-                    'last_message': group_data.get('last_message'),
-                    'last_message_time': group_data.get('last_message_time'),
-                    'members': members,
-                    'member_count': len(member_ids),
-                    'unread_count': unread_count,
-                    'created_at': group_data.get('created_at')
-                })
+        for group_doc in group_docs:
+            group_id = group_doc.id
+            group_data = group_doc.to_dict()
+            
+            # Get member names for display
+            member_ids = group_data.get('members', [])
+            
+            # Get member details
+            users_ref = db.collection('users_profile')
+            members = []
+            
+            # This would be inefficient for large groups, consider paginating
+            for member_id in member_ids[:3]:  # Only get first 3 for preview
+                user_doc = users_ref.document(member_id).get()
+                if user_doc.exists:
+                    user_data = user_doc.to_dict()
+                    members.append({
+                        'id': member_id,
+                        'name': user_data.get('name')
+                    })
+            
+            # Get unread count for this user
+            user_group_doc = db.collection('user_group_chats').document(f"{current_user_id}_{group_id}").get()
+            unread_count = 0
+            if user_group_doc.exists:
+                unread_count = user_group_doc.to_dict().get('unread_count', 0)
+            
+            # Format the group chat data
+            group_chats.append({
+                'id': group_id,
+                'name': group_data.get('name'),
+                'last_message': group_data.get('last_message'),
+                'last_message_time': group_data.get('last_message_time'),
+                'members': members,
+                'member_count': len(member_ids),
+                'unread_count': unread_count,
+                'created_at': group_data.get('created_at')
+            })
         
         # Sort by last message time (newest first)
         group_chats.sort(key=lambda x: x.get('last_message_time', 0), reverse=True)

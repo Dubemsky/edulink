@@ -603,6 +603,7 @@ def get_following_list(request):
         
         user_role = request.session.get("role")
 
+
         if user_role == "teacher":
 
             current_user_name = get_teacher_user_id(request)

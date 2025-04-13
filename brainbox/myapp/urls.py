@@ -99,7 +99,6 @@ urlpatterns = [
 
 
 
-
     # Emai verification
     path('verify-email/<str:token>/', verify_email, name='verify_email'),
     path('resend-verification-email/', resend_verification_email, name='resend_verification_email'),

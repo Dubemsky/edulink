@@ -1,13 +1,16 @@
-// Standalone Group Chat JavaScript
+// Updated Group Chat JavaScript with Backend Integration
 
 // Global variables
 let selectedMembers = [];
 let activeGroupChats = [];
 let groupChats = [];
+let currentUserId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize group chat component
   initGroupChatComponent();
+  // Get current user ID from the page if available
+  currentUserId = document.getElementById('currentUserId')?.value || null;
 });
 
 /**
@@ -100,7 +103,7 @@ function closeGroupChatPanel() {
 }
 
 /**
- * Load group chats from server (or mock data for demo)
+ * Load group chats from server
  */
 function loadGroupChats() {
   const groupChatList = document.getElementById('groupChatList');
@@ -114,26 +117,59 @@ function loadGroupChats() {
     </div>
   `;
   
-  // In a real app, you would fetch from the server here
-  // For demo, we'll use mock data or create an empty state
-  setTimeout(() => {
-    if (groupChats.length > 0) {
-      groupChatList.innerHTML = '';
-      groupChats.forEach(chat => {
-        addGroupToList(chat);
-      });
+  // Fetch group chats from the server
+  fetch('/get-group-chats/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      groupChats = data.group_chats || [];
+      
+      if (groupChats.length > 0) {
+        groupChatList.innerHTML = '';
+        groupChats.forEach(chat => {
+          addGroupToList(chat);
+        });
+      } else {
+        groupChatList.innerHTML = `
+          <div class="group-empty-state">
+            <i class="bi bi-people"></i>
+            <p>No group chats yet. Create a new group chat to get started.</p>
+          </div>
+        `;
+      }
     } else {
+      console.error('Error loading group chats:', data.error);
       groupChatList.innerHTML = `
-        <div class="group-empty-state">
-          <i class="bi bi-people"></i>
-          <p>No group chats yet. Create a new group chat to get started.</p>
+        <div class="group-error-state">
+          <i class="bi bi-exclamation-triangle"></i>
+          <p>Failed to load group chats. Please try again later.</p>
         </div>
       `;
     }
     
     // Update badge count
     updateGroupChatBadgeCount();
-  }, 1000);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    groupChatList.innerHTML = `
+      <div class="group-error-state">
+        <i class="bi bi-exclamation-triangle"></i>
+        <p>Failed to load group chats. Please try again later.</p>
+      </div>
+    `;
+  });
 }
 
 /**
@@ -235,12 +271,54 @@ function loadAvailableMembers() {
     </div>
   `;
   
-  // In a real app, you would fetch from the server here
-  // For demo, we'll use mock data
-  setTimeout(() => {
-    // Display mock users
-    displayAvailableMembers(getMockUsers());
-  }, 1000);
+  // Fetch mutual connections from the server
+  fetch('/get-mutual-connections', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      const connections = data.connections || [];
+      
+      if (connections.length === 0) {
+        availableMembers.innerHTML = `
+          <div class="group-empty-connections">
+            <i class="bi bi-people"></i>
+            <p>You need to connect with users before creating a group chat.</p>
+            <p>Follow other users and have them follow you back to create mutual connections.</p>
+          </div>
+        `;
+      } else {
+        displayAvailableMembers(connections);
+      }
+    } else {
+      console.error('Error loading mutual connections:', data.error);
+      availableMembers.innerHTML = `
+        <div class="group-error-state">
+          <i class="bi bi-exclamation-triangle"></i>
+          <p>Failed to load connections. Please try again later.</p>
+        </div>
+      `;
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    availableMembers.innerHTML = `
+      <div class="group-error-state">
+        <i class="bi bi-exclamation-triangle"></i>
+        <p>Failed to load connections. Please try again later.</p>
+      </div>
+    `;
+  });
 }
 
 /**
@@ -458,46 +536,87 @@ function createNewGroupChat() {
     createBtn.disabled = true;
     createBtn.innerHTML = `<div class="group-spinner"></div> Creating...`;
     
-    // Simulate API call
-    setTimeout(() => {
-      // Create group data
-      const groupData = {
-        id: 'group_' + Date.now(),
-        name: groupName,
-        members: selectedMembers.map(member => member.id),
-        membersCount: selectedMembers.length,
-        created_at: new Date().toISOString(),
-        last_message: 'Group created',
-        last_message_time: new Date().toISOString(),
-        unread_count: 0
-      };
-      
-      // Add to groupChats array
-      groupChats.push(groupData);
-      
-      // Add group to UI
-      addGroupToList(groupData);
-      
-      // Update badge count
-      updateGroupChatBadgeCount();
-      
-      // Hide the modal
-      hideCreateGroupModal();
+    // Prepare data for API
+    const requestData = {
+      name: groupName,
+      members: selectedMembers.map(member => member.id)
+    };
+    
+    // Call the create_group_chat API
+    fetch('/create-group-chat/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify(requestData)
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Create group data from the response
+        const groupData = {
+          id: data.group_id,
+          name: data.name,
+          members: data.members,
+          membersCount: data.members.length,
+          created_at: new Date().toISOString(),
+          last_message: 'Group created',
+          last_message_time: new Date().toISOString(),
+          unread_count: 0
+        };
+        
+        // Add to groupChats array
+        groupChats.push(groupData);
+        
+        // Add group to UI
+        addGroupToList(groupData);
+        
+        // Update badge count
+        updateGroupChatBadgeCount();
+        
+        // Hide the modal
+        hideCreateGroupModal();
+        
+        // Show success message (if notification system is available)
+        if (typeof showNotification === 'function') {
+          showNotification('Group chat created successfully!', 'success');
+        } else {
+          console.log('Group chat created successfully!');
+        }
+        
+        // Open the group chat window
+        openGroupChatWindow(groupData);
+      } else {
+        console.error('Error creating group chat:', data.error);
+        if (typeof showNotification === 'function') {
+          showNotification('Failed to create group chat: ' + data.error, 'error');
+        } else {
+          alert('Failed to create group chat: ' + data.error);
+        }
+      }
       
       // Reset button
       createBtn.disabled = false;
       createBtn.innerHTML = originalText;
-      
-      // Show success message (if notification system is available)
+    })
+    .catch(error => {
+      console.error('Error:', error);
       if (typeof showNotification === 'function') {
-        showNotification('Group chat created successfully!', 'success');
+        showNotification('Failed to create group chat. Please try again later.', 'error');
       } else {
-        console.log('Group chat created successfully!');
+        alert('Failed to create group chat. Please try again later.');
       }
       
-      // Open the group chat window
-      openGroupChatWindow(groupData);
-    }, 1000);
+      // Reset button
+      createBtn.disabled = false;
+      createBtn.innerHTML = originalText;
+    });
   }
 }
 
@@ -535,7 +654,7 @@ function addGroupToList(group) {
   lastMessage.textContent = group.last_message || 'Group created';
   
   const membersCount = groupItem.querySelector('.group-members-count');
-  membersCount.textContent = group.membersCount || 0;
+  membersCount.textContent = group.member_count || group.membersCount || 0;
   
   const lastTime = groupItem.querySelector('.group-chat-item-time');
   lastTime.textContent = formatTime(group.last_message_time) || 'Just now';
@@ -597,7 +716,7 @@ function openGroupChatWindow(group) {
   groupNameElement.textContent = group.name;
   
   const membersCountElement = chatWindow.querySelector('.group-members-count');
-  membersCountElement.textContent = `${group.membersCount} members`;
+  membersCountElement.textContent = `${group.member_count || group.membersCount || 0} members`;
   
   // Set up buttons
   const minimizeBtn = chatWindow.querySelector('.group-minimize-btn');
@@ -624,8 +743,19 @@ function openGroupChatWindow(group) {
   const infoBtn = chatWindow.querySelector('.group-info-btn');
   if (infoBtn) {
     infoBtn.addEventListener('click', function() {
-      // Show group info (for demo, just console log)
+      // In the future, implement a modal with group info and options
       console.log('Group info:', group);
+    });
+  }
+  
+  // Set up leave group button
+  const leaveGroupBtn = chatWindow.querySelector('.group-leave-btn');
+  if (leaveGroupBtn) {
+    leaveGroupBtn.addEventListener('click', function() {
+      // Show confirmation dialog
+      if (confirm(`Are you sure you want to leave the group "${group.name}"?`)) {
+        leaveGroupChat(group.id, chatWindow);
+      }
     });
   }
   
@@ -655,7 +785,7 @@ function openGroupChatWindow(group) {
   // Add to active chats
   activeGroupChats.push(group.id);
   
-  // Load messages (mock for demo)
+  // Load messages
   loadGroupChatMessages(group.id, chatWindow);
   
   // Focus the input
@@ -665,7 +795,139 @@ function openGroupChatWindow(group) {
     }, 100);
   }
   
+  // Initialize WebSocket connection for real-time messaging
+  if (currentUserId) {
+    initGroupChatWebSocket(group.id, currentUserId, chatWindow);
+  }
+  
   return chatWindow;
+}
+
+/**
+ * Initialize WebSocket connection for real-time group chat
+ */
+function initGroupChatWebSocket(groupId, userId, chatWindow) {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const socket = new WebSocket(`${wsProtocol}${window.location.host}/ws/group_chat/${groupId}/${userId}/`);
+  
+  chatWindow.socket = socket;
+  
+  socket.onopen = function(e) {
+    console.log('WebSocket connection established for group chat:', groupId);
+    // Update connection status in UI if needed
+  };
+  
+  socket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    
+    // Handle different message types
+    if (data.type === 'message') {
+      addMessageToGroupChat(chatWindow, data);
+    } else if (data.type === 'history') {
+      displayGroupChatHistory(chatWindow, data.messages);
+    }
+  };
+  
+  socket.onclose = function(e) {
+    console.log('WebSocket connection closed:', e);
+    // Update connection status in UI if needed
+    
+    // Attempt to reconnect after a delay if the window is still open
+    if (!chatWindow.classList.contains('closed')) {
+      setTimeout(() => {
+        initGroupChatWebSocket(groupId, userId, chatWindow);
+      }, 3000);
+    }
+  };
+  
+  socket.onerror = function(e) {
+    console.error('WebSocket error:', e);
+    // Show error in UI if needed
+  };
+}
+
+/**
+ * Leave a group chat
+ */
+function leaveGroupChat(groupId, chatWindow) {
+  fetch('/leave-group', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({ group_id: groupId })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Remove from groupChats array
+      const groupIndex = groupChats.findIndex(g => g.id === groupId);
+      if (groupIndex !== -1) {
+        groupChats.splice(groupIndex, 1);
+      }
+      
+      // Remove from UI
+      const groupItem = document.querySelector(`.group-chat-item[data-group-id="${groupId}"]`);
+      if (groupItem) {
+        groupItem.remove();
+      }
+      
+      // Close the chat window
+      if (chatWindow) {
+        // Close WebSocket connection if it exists
+        if (chatWindow.socket) {
+          chatWindow.socket.close();
+        }
+        
+        chatWindow.remove();
+      }
+      
+      // Remove from active chats
+      const activeIndex = activeGroupChats.findIndex(c => c === groupId);
+      if (activeIndex !== -1) {
+        activeGroupChats.splice(activeIndex, 1);
+      }
+      
+      // Show empty state if no more groups
+      const groupChatList = document.getElementById('groupChatList');
+      if (groupChatList && groupChats.length === 0) {
+        groupChatList.innerHTML = `
+          <div class="group-empty-state">
+            <i class="bi bi-people"></i>
+            <p>No group chats yet. Create a new group chat to get started.</p>
+          </div>
+        `;
+      }
+      
+      // Show success message
+      if (typeof showNotification === 'function') {
+        showNotification(data.message, 'success');
+      } else {
+        alert(data.message);
+      }
+    } else {
+      console.error('Error leaving group chat:', data.error);
+      if (typeof showNotification === 'function') {
+        showNotification('Failed to leave group: ' + data.error, 'error');
+      } else {
+        alert('Failed to leave group: ' + data.error);
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    if (typeof showNotification === 'function') {
+      showNotification('Failed to leave group. Please try again later.', 'error');
+    } else {
+      alert('Failed to leave group. Please try again later.');
+    }
+  });
 }
 
 /**
@@ -698,14 +960,83 @@ function loadGroupChatMessages(groupId, chatWindow) {
     loadingElement.style.display = 'flex';
   }
   
-  // For demo, simulate loading messages
-  setTimeout(() => {
+  // Fetch messages from server
+  fetch(`/get-group-messages/${groupId}/`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
     // Hide loading indicator
     if (loadingElement) {
       loadingElement.style.display = 'none';
     }
     
-    // Add welcome message
+    if (data.success) {
+      // Display messages
+      displayGroupChatHistory(chatWindow, data.messages);
+      
+      // Update group info if available
+      if (data.group) {
+        const groupNameElement = chatWindow.querySelector('.group-chat-name');
+        if (groupNameElement) {
+          groupNameElement.textContent = data.group.name;
+        }
+        
+        const membersCountElement = chatWindow.querySelector('.group-members-count');
+        if (membersCountElement) {
+          membersCountElement.textContent = `${data.group.members.length} members`;
+        }
+      }
+    } else {
+      console.error('Error loading group messages:', data.error);
+      messagesContainer.innerHTML = `
+        <div class="group-message system-message">
+          <div class="group-message-content">
+            Failed to load messages. ${data.error || 'Please try again later.'}
+          </div>
+        </div>
+      `;
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    
+    // Hide loading indicator
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
+    
+    messagesContainer.innerHTML = `
+      <div class="group-message system-message">
+        <div class="group-message-content">
+          Failed to load messages. Please try again later.
+        </div>
+      </div>
+    `;
+  });
+}
+
+/**
+ * Display message history in the chat window
+ */
+function displayGroupChatHistory(chatWindow, messages) {
+  const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+  if (!messagesContainer) return;
+  
+  // Clear existing messages
+  messagesContainer.innerHTML = '';
+  
+  if (!messages || messages.length === 0) {
+    // Add welcome message if no messages
     const welcomeMessage = document.createElement('div');
     welcomeMessage.className = 'group-message system-message';
     welcomeMessage.innerHTML = `
@@ -714,10 +1045,89 @@ function loadGroupChatMessages(groupId, chatWindow) {
       </div>
     `;
     messagesContainer.appendChild(welcomeMessage);
-    
-    // Scroll to bottom
+  } else {
+    // Add all messages
+    messages.forEach(message => {
+      addMessageToGroupChat(chatWindow, message, false);
+    });
+  }
+  
+  // Scroll to bottom
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+/**
+ * Add a message to the group chat UI
+ */
+function addMessageToGroupChat(chatWindow, message, scrollToBottom = true) {
+  const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+  if (!messagesContainer) return;
+  
+  // Create message element
+  const messageElement = document.createElement('div');
+  
+  // Determine if it's an outgoing message (from current user)
+  const isCurrentUser = message.sender_id === currentUserId;
+  const isSystemMessage = message.sender_id === 'system' || message.type === 'system';
+  
+  // Set appropriate class
+  if (isSystemMessage) {
+    messageElement.className = 'group-message system-message';
+  } else if (isCurrentUser) {
+    messageElement.className = 'group-message outgoing';
+  } else {
+    messageElement.className = 'group-message incoming';
+  }
+  
+  // Format timestamp
+  let timeStr = 'Just now';
+  if (message.timestamp) {
+    try {
+      const timestamp = new Date(message.timestamp);
+      timeStr = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      console.error('Error formatting timestamp:', e);
+    }
+  }
+  
+  // Create message content based on message type
+  if (isSystemMessage) {
+    messageElement.innerHTML = `
+      <div class="group-message-content">${message.content}</div>
+    `;
+  } else {
+    // For regular messages, include sender info for incoming messages
+    if (!isCurrentUser) {
+      messageElement.innerHTML = `
+        <div class="group-message-sender">
+          <img src="${message.sender_profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'}" 
+               alt="${message.sender_name}" class="group-message-avatar">
+          <span class="group-message-name">${message.sender_name}</span>
+        </div>
+        <div class="group-message-content">${message.content}</div>
+        <div class="group-message-time">${timeStr}</div>
+      `;
+    } else {
+      messageElement.innerHTML = `
+        <div class="group-message-content">${message.content}</div>
+        <div class="group-message-time">${timeStr}</div>
+      `;
+    }
+  }
+  
+  // Add to the chat
+  messagesContainer.appendChild(messageElement);
+  
+  // Scroll to bottom if needed
+  if (scrollToBottom) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }, 1000);
+  }
+  
+  // Mark as read immediately for outgoing messages
+  if (isCurrentUser) {
+    // Update group in the list with the latest message
+    updateGroupLastMessage(message.group_id || chatWindow.getAttribute('data-group-id'), message.content);
+  }
 }
 
 /**
@@ -727,34 +1137,91 @@ function sendGroupMessage(groupId, message, chatWindow) {
   message = message.trim();
   if (!message) return;
   
-  const messagesContainer = chatWindow.querySelector('.group-chat-messages');
   const messageInput = chatWindow.querySelector('.group-chat-input');
   
-  // Create a new message element
-  const messageElement = document.createElement('div');
-  messageElement.className = 'group-message outgoing';
-  
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
-  messageElement.innerHTML = `
-    <div class="group-message-content">${message}</div>
-    <div class="group-message-time">${timeStr}</div>
-  `;
-  
-  // Add to the chat
-  messagesContainer.appendChild(messageElement);
-  
-  // Clear input
+  // Clear input immediately for better UX
   if (messageInput) {
     messageInput.value = '';
   }
   
-  // Scroll to bottom
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  // If WebSocket is connected, send through that
+  if (chatWindow.socket && chatWindow.socket.readyState === WebSocket.OPEN) {
+    chatWindow.socket.send(JSON.stringify({
+      type: 'message',
+      message: message
+    }));
+    return;
+  }
   
-  // Update the group in the list
-  updateGroupLastMessage(groupId, message);
+  // If WebSocket is not connected, use REST API as fallback
+  fetch('/send-group-message/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({
+      group_id: groupId,
+      message: message
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Create a message object for local display
+      const messageObj = {
+        sender_id: currentUserId,
+        sender_name: 'You', // Fallback
+        content: message,
+        timestamp: new Date().toISOString(),
+        message_id: data.message_id
+      };
+      
+      // Add to the chat UI
+      addMessageToGroupChat(chatWindow, messageObj);
+      
+      // Update the group in the list with the latest message
+      updateGroupLastMessage(groupId, message);
+    } else {
+      console.error('Error sending message:', data.error);
+      
+      // Show error in chat
+      const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+      if (messagesContainer) {
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'group-message system-message error';
+        errorMessage.innerHTML = `
+          <div class="group-message-content">
+            Failed to send message. ${data.error || 'Please try again.'}
+          </div>
+        `;
+        messagesContainer.appendChild(errorMessage);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    
+    // Show error in chat
+    const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+    if (messagesContainer) {
+      const errorMessage = document.createElement('div');
+      errorMessage.className = 'group-message system-message error';
+      errorMessage.innerHTML = `
+        <div class="group-message-content">
+          Failed to send message. Please try again later.
+        </div>
+      `;
+      messagesContainer.appendChild(errorMessage);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  });
 }
 
 /**
@@ -837,39 +1304,20 @@ function formatTime(timestamp) {
 }
 
 /**
- * Get mock users for demonstration
+ * Get CSRF token from cookies
  */
-function getMockUsers() {
-  return [
-    {
-      id: 'user1',
-      name: 'Jane Smith',
-      role: 'Student',
-      profile_picture: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
-    },
-    {
-      id: 'user2',
-      name: 'Mark Johnson',
-      role: 'Teacher',
-      profile_picture: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
-    },
-    {
-      id: 'user3',
-      name: 'Sarah Williams',
-      role: 'Student',
-      profile_picture: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
-    },
-    {
-      id: 'user4',
-      name: 'Michael Brown',
-      role: 'Student',
-      profile_picture: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
-    },
-    {
-      id: 'user5',
-      name: 'Emily Davis',
-      role: 'Teacher',
-      profile_picture: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+function getCsrfToken() {
+  const name = 'csrftoken';
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
     }
-  ];
+  }
+  return cookieValue;
 }
