@@ -274,51 +274,61 @@ def get_active_rooms(request):
 @login_required
 def teacher_livestream(request, room_id):
     """View for teacher livestream room"""
-    # Get LiveKit credentials from settings
-    api_key = "APIRsaxCuofVw7K"
-    api_secret = "ZnrqffqzbGqyHdGqGGjTfL2I1fOGMMKSIK7Htqb11NDC"
-    livekit_url = "edulink-oxkw0h5q.livekit.cloud"
+    try:
+        # Get LiveKit credentials from settings
+        api_key = "APIRsaxCuofVw7K"
+        api_secret = "ZnrqffqzbGqyHdGqGGjTfL2I1fOGMMKSIK7Htqb11NDC"
+        livekit_instance = "edulink-oxkw0h5q.livekit.cloud"
 
-
-
-    # Create a room name based on the hub room ID
-    room_name = f"live-{room_id}"
-    
-    # Generate a token for the teacher
-    import jwt
-    import time
-    import uuid
-    
-    # Token expiration time (1 hour)
-    exp = int(time.time()) + 3600
-    
-    # Create claims for the token
-    claims = {
-        'iss': api_key,
-        'sub': request.user.username,
-        'exp': exp,
-        'nbf': int(time.time()),
-        'jti': str(uuid.uuid4()),
-        'video': {
-            'room': room_name,
-            'roomJoin': True,
-            'canPublish': True,
-            'canSubscribe': True,
-            'canPublishData': True,
-            'roomAdmin': True,
-            'roomCreate': True
+        # Create a room name based on the hub room ID
+        room_name = f"live-{room_id}"
+        
+        # Generate a token for the teacher with more permissions
+        import jwt
+        import time
+        import uuid
+        
+        # Token expiration time (1 hour)
+        exp = int(time.time()) + 3600
+        
+        # Create claims for the token with full teacher permissions
+        claims = {
+            'iss': api_key,
+            'sub': request.user.username,
+            'exp': exp,
+            'nbf': int(time.time()),
+            'jti': str(uuid.uuid4()),
+            'video': {
+                'room': room_name,
+                'roomJoin': True,
+                'canPublish': True,
+                'canSubscribe': True,
+                'canPublishData': True,
+                'roomAdmin': True,
+                'roomCreate': True,
+                'canPublishSources': ['camera', 'microphone', 'screen_share', 'screen_share_audio']
+            }
         }
-    }
-    
-    # Generate the token
-    token = jwt.encode(claims, api_secret, algorithm='HS256')
-    
-    # Create the LiveKit URL
-    room_url = f"{livekit_url}?token={token}"
-    
-    # Return template with LiveKit room
-    return render(request, 'livekit_folder/teacher_livestream.html', {
-        'room_name': room_name,
-        'room_url': room_url,
-        'teacher_name': request.user.username,
-    })
+        
+        # Generate the token
+        token = jwt.encode(claims, api_secret, algorithm='HS256')
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+        
+        # Create WebSocket URL for LiveKit
+        ws_url = f"wss://{livekit_instance}"
+        
+        # Return template with all necessary context
+        return render(request, 'livekit_folder/teacher_livestream.html', {
+            'room_name': room_name,
+            'room_url': f"https://{livekit_instance}?token={token}",
+            'token': token,
+            'ws_url': ws_url,
+            'teacher_name': request.user.username,
+            'slug': room_name,
+            'title': f"Live Class: {room_name}"
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse(f"Error setting up livestream: {str(e)}", status=500)

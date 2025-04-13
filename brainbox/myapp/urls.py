@@ -106,25 +106,13 @@ urlpatterns = [
 
 
 
-
-
-
-    # Update the URLs in your urls.py file to include these endpoints:
-
     # LiveKit integration URLs
     path('teacher-livestream/<str:room_id>/', teacher_livestream_view, name='teacher_livestream'),
     path('end-teacher-livestream/', end_teacher_livestream, name='end_teacher_livestream'),
-
-
     path('store-livestream-firebase/', store_livestream_firebase, name='store_livestream_firebase'),
     path('update-livestream-status/', update_livestream_status, name='update_livestream_status'),
     path('check-livestream-status/', check_livestream_status, name='check_livestream_status'),
     path('get-room-livestreams/', get_room_livestreams, name='get_room_livestreams'),
-
-
-
-
-
     path('create-room/', create_livestream_room, name='livekit_create_room'),
     path('get-token/', get_join_token, name='livekit_get_token'),
     path('room-participants/', get_room_participants, name='livekit_room_participants'),

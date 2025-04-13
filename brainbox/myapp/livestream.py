@@ -327,7 +327,7 @@ def teacher_livestream(request, room_id):
     room_url = f"{livekit_url}?token={token}"
     
     # Return template with LiveKit room
-    return render(request, 'livekit_folder/teacher_livestream.html', {
+    return render(request, 'myapp/teachers/teacher_livestream.html', {
         'room_name': room_name,
         'room_url': room_url,
         'teacher_name': request.user.username,

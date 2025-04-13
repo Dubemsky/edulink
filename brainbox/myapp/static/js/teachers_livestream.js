@@ -218,6 +218,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Start the livestream
   // In teachers_livestream.js - update the startLivestream function
 
+// In static/js/teachers_livestream.js
+// Update the startLivestream function
+
 async function startLivestream() {
   if (!mediaStream) {
     showError('Media stream not available. Please check your camera and microphone.');
@@ -272,31 +275,25 @@ async function startLivestream() {
     const modal = bootstrap.Modal.getInstance(goLiveModal);
     modal.hide();
     
-    // Open the LiveKit room in a new window
-    window.open(roomData.room.url, '_blank');
+    // CHANGE: Instead of opening in new window, redirect to the teacher livestream view
+    // The correct URL structure for teacher livestream
+    const teacherLivestreamUrl = `/livekit_folder/teacher-livestream/${roomId}/`;
+    window.location.href = teacherLivestreamUrl;
     
-    // Show livestream interface
-    showLiveIndicator(liveTitle, roomData.room.slug);
-    
-    // Store session info
-    sessionStorage.setItem('current_livestream_slug', roomData.room.slug);
-    sessionStorage.setItem('current_livestream_title', liveTitle);
-    
-    // Upload stream info to Firebase if needed
-    if (typeof uploadStreamInfoToFirebase === 'function') {
-      uploadStreamInfoToFirebase(roomData.room.slug, liveTitle, roomId);
-    }
+    // Store livestream info in Firebase in the background
+    uploadStreamInfoToFirebase(roomData.room.slug, liveTitle, roomId);
     
   } catch (error) {
     console.error('Error starting livestream:', error);
     showError(error.message || 'Failed to start livestream. Please try again.');
-  } finally {
+    
     // Reset button state
     startLivestreamBtn.disabled = false;
     startLivestreamBtn.innerHTML = '<i class="bi bi-broadcast"></i> Start Livestream';
   }
 }
   
+
   // New function to upload stream info to Firebase
   // In teachers_livestream.js
 // Update the uploadStreamInfoToFirebase function
