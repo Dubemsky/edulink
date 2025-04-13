@@ -55,6 +55,7 @@ urlpatterns = [
 
 
     # Other sections paths
+    path('delete-message/', delete_message, name='delete_message'),
     path('vote-reply/', vote_reply, name='vote_reply'),
     path('poll-voting/', poll_voting, name='poll_voting'),
     path('get_messages/',get_messages, name='get_messages'),

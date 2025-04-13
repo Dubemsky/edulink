@@ -1029,6 +1029,74 @@ def search_students(request):
             
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
+
+# Add to views_hub_room.py
+
+# Add this to views_hub_room.py
+@csrf_exempt
+def delete_message(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            message_id = data.get('message_id')
+            room_id = data.get('room_id')
+            username = data.get('username')
+            
+            if not all([message_id, room_id, username]):
+                return JsonResponse({'success': False, 'error': 'Missing required parameters'}, status=400)
+                
+            # Get the message from Firebase
+            message_ref = db.collection('hub_messages').document(message_id)
+            message_doc = message_ref.get()
+            
+            if not message_doc.exists:
+                return JsonResponse({'success': False, 'error': 'Message not found'}, status=404)
+                
+            message_data = message_doc.to_dict()
+            
+            # Check if the user is the sender of the message
+            if message_data.get('sender') != username:
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'You can only delete your own messages'
+                }, status=403)
+                
+            # Delete message from Firestore
+            message_ref.delete()
+            
+            # Also delete any replies to this message
+            replies_ref = db.collection('hub_message_reply')
+            replies_query = replies_ref.where('question_id', '==', message_id)
+            
+            for reply_doc in replies_query.stream():
+                reply_doc.reference.delete()
+                
+            # Also delete any bookmarks for this message
+            bookmarks_ref = db.collection('bookmarked_questions')
+            bookmarks_query = bookmarks_ref.where('question_id', '==', message_id)
+            
+            for bookmark_doc in bookmarks_query.stream():
+                bookmark_doc.reference.delete()
+                
+            # Also delete any poll votes for this message (if it's a poll)
+            if message_data.get('is_poll'):
+                poll_votes_ref = db.collection('poll_votes')
+                poll_votes_query = poll_votes_ref.where('poll_id', '==', message_id)
+                
+                for vote_doc in poll_votes_query.stream():
+                    vote_doc.reference.delete()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Message and associated data deleted successfully'
+            })
+                
+        except Exception as e:
+            print(f"Error deleting message: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+            
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
 @csrf_exempt
 def respond_to_invite(request):
     if request.method == "POST":

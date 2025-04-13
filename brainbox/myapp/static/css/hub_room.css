@@ -1412,6 +1412,38 @@ body.index-page {
 
 
 
+#deleteMessageButton {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+}
+
+#deleteMessageButton:hover {
+  background-color: #c82333;
+}
+
+/* Animation for message deletion */
+@keyframes fadeOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 1000px;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.message-box.deleting {
+  animation: fadeOutUp 0.5s forwards;
+}
+
+
+
 
 
 

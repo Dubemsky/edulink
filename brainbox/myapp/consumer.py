@@ -77,7 +77,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         
                         data_json["message_type"] = "image"
                         data_json["image_url"] = image_url
-                        saved_message = await self.create_message(data_json, False, None,attached_message) #saves the message.
+                        saved_message = await self.create_message(data_json, False, None,attached_message) 
 
                         if saved_message:
                             saved_message["image_url"] = image_url 
@@ -126,7 +126,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         video_data = base64.b64decode(file_data)
                         video_file = ContentFile(video_data, name=file_name)
                         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                        firebase_filename = f"hub_videos/{sender}/{timestamp}_{file_name}" #change the folder name
+                        firebase_filename = f"hub_videos/{sender}/{timestamp}_{file_name}"
 
                         blob = storage.bucket().blob(firebase_filename)
                         blob.upload_from_file(video_file, content_type=file_type)
@@ -249,7 +249,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "question_id": question_id
                 }
 
-            else:
+            else: # This is a question 
                 if 'image_url' in data:
                     message_id = add_message(
                         data['role'], data['room_url'], data['sender'],
