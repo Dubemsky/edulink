@@ -117,8 +117,9 @@ def students_homepage(request):
             students_hubs.append(hub_data)
 
         # Fetch notifications
-        notifications = get_notifications_by_username(current_student.lower())
+        notifications = get_notifications_by_username(current_student)
         number_of_nofications = len(notifications)
+
 
 
         print(f"\n\n\n You have livestreams {student_name} {notifications}\n\n")

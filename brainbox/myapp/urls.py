@@ -88,17 +88,14 @@ urlpatterns = [
 
 
 
-    path('get_mutual_connections/', get_mutual_connections, name='get_mutual_connections'),
-    
-    # Group chat management
-    path('create_group_chat/', create_group_chat, name='create_group_chat'),
-    path('get_group_chats/', get_group_chats, name='get_group_chats'),
-    path('add_to_group/', add_to_group, name='add_to_group'),
-    path('leave_group/', leave_group, name='leave_group'),
-    
-    # Group messages
-    path('send_group_message/', send_group_message, name='send_group_message'),
-    path('get_group_messages/<str:group_id>/', get_group_messages, name='get_group_messages'),
+    # Group chat
+    path('get-mutual-connections/', get_mutual_connections, name='get_mutual_connections'),
+    path('create-group-chat/', create_group_chat, name='create_group_chat'),
+    path('get-group-chats/', get_group_chats, name='get_group_chats'),
+    path('send-group-message/', send_group_message, name='send_group_message'),
+    path('get-group-messages/<str:group_id>/', get_group_messages, name='get_group_messages'),
+    path('add-to-group/', add_to_group, name='add_to_group'),
+    path('leave-group/', leave_group, name='leave_group'),
 
 
 

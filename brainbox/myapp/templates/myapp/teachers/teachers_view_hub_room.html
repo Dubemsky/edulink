@@ -206,6 +206,48 @@
   }
 }
 
+/* Delete Message Button Styling */
+.delete-message-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-message-button i {
+    margin-right: 5px;
+}
+
+.delete-message-button:hover {
+    background-color: #bd2130;
+}
+
+.delete-message-button:active {
+    transform: scale(0.98);
+}
+
+.delete-message-button:disabled {
+    background-color: #e4606b;
+    cursor: not-allowed;
+}
+
+/* Message actions container */
+.message-actions {
+    padding: 10px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f8f8f8;
+}
 
   </style>
 </head>
@@ -1039,7 +1081,7 @@
 
 
   <!-- Hidden element to store room ID for JavaScript -->
-  <div id="room-id-data" data-room-id="{{ room_id }}" style="display: none;"></div>
+  <div id="room-id-data" data-room-id="{{ room_id }}" data-username="{{ current_teachers_name|escapejs }}"  style="display: none;"></div>
   <div id="teacher-name" data-teacher-name="{{ current_teachers_name|escapejs }}" style="display: none;"></div>
 
 
@@ -2975,6 +3017,118 @@ function displayFilteredContent(filterType, messages) {
         });
     }
     
+
+    // JavaScript for message deletion functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the delete button
+    const deleteButton = document.getElementById('delete-message-button');
+    
+    if (deleteButton) {
+        deleteButton.addEventListener('click', function() {
+            // Confirm before deleting
+            if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+                deleteMessage(currentMessageId);
+            }
+        });
+    }
+});
+
+// Function to check if the current user is the owner of the message
+function checkMessageOwnership(messageId) {
+    // Get the message element to check ownership
+    const messageElement = document.querySelector(`.message-box[data-message-id="${messageId}"]`);
+    const deleteButton = document.getElementById('delete-message-button');
+    const currentTeacherName = document.getElementById('teacher-name').dataset.teacherName;
+    
+    if (messageElement) {
+        // Get the sender from the message element
+        const senderElement = messageElement.querySelector('.message-sender');
+        const senderText = senderElement ? senderElement.textContent.trim() : '';
+        
+        // Check if the sender is "Me" or matches the current teacher's name
+        if (senderText === 'Me' || messageElement.classList.contains('current-teacher-message')) {
+            // This is the current user's message, show delete button
+            if (deleteButton) {
+                deleteButton.style.display = 'flex';
+            }
+        } else {
+            // Not the current user's message, hide delete button
+            if (deleteButton) {
+                deleteButton.style.display = 'none';
+            }
+        }
+    } else {
+        // Message element not found, hide delete button as a precaution
+        if (deleteButton) {
+            deleteButton.style.display = 'none';
+        }
+    }
+}
+
+// Function to delete a message
+function deleteMessage(messageId) {
+    if (!messageId) {
+        showToast("Error: Cannot identify the message to delete", "error");
+        return;
+    }
+    
+    // Show loading state
+    const deleteButton = document.getElementById('delete-message-button');
+    const originalText = deleteButton.innerHTML;
+    deleteButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Deleting...';
+    deleteButton.disabled = true;
+    
+    // Send delete request to the server
+    fetch("/delete-message/", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            message_id: messageId,
+            room_id: currentRoomId,
+            username: currentUserName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close the side panel
+            const sidePanel = document.getElementById('side-panel');
+            sidePanel.classList.remove('open');
+            document.querySelector('.chat-section').style.marginLeft = '0';
+            document.querySelector('.right-sidebar').style.marginLeft = '0';
+            
+            // Remove the message from the DOM
+            const messageElement = document.querySelector(`.message-box[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                messageElement.remove();
+            }
+            
+            // Show success message
+            showToast("Message deleted successfully", "success");
+            
+            // Reset current message ID
+            currentMessageId = null;
+        } else {
+            // Show error message
+            showToast(data.error || "Failed to delete message", "error");
+            
+            // Reset button
+            deleteButton.innerHTML = originalText;
+            deleteButton.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting message:', error);
+        showToast("Network error while deleting message", "error");
+        
+        // Reset button
+        deleteButton.innerHTML = originalText;
+        deleteButton.disabled = false;
+    });
+}
     
     
     

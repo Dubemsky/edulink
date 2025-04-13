@@ -196,6 +196,7 @@ def get_room_livestreams(request):
         traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+
 # Send notifications about new livestreams to students in the room
 def send_livestream_notifications(room_id, teacher_name, stream_title, stream_slug):
     """Send notifications to students about new livestream"""
@@ -231,6 +232,9 @@ def send_livestream_notifications(room_id, teacher_name, stream_title, stream_sl
     
     except Exception as e:
         print(f"Error sending livestream notifications: {e}")
+
+
+
 
 # Notify about stream ending
 def notify_stream_ended(stream_slug):

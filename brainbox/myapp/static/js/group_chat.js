@@ -576,7 +576,7 @@ function openGroupChatWindow(group) {
   if (existingChat) {
     // If minimized, maximize it
     existingChat.classList.remove('minimized');
-    return;
+    return existingChat;
   }
   
   // Get the template

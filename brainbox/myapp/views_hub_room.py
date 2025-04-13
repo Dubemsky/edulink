@@ -1055,11 +1055,11 @@ def delete_message(request):
             message_data = message_doc.to_dict()
             
             # Check if the user is the sender of the message
-            if message_data.get('sender') != username:
-                return JsonResponse({
-                    'success': False, 
-                    'error': 'You can only delete your own messages'
-                }, status=403)
+            # if message_data.get('sender') != username:
+            #     return JsonResponse({
+            #         'success': False, 
+            #         'error': 'You can only delete your own messages'
+            #     }, status=403)
                 
             # Delete message from Firestore
             message_ref.delete()
