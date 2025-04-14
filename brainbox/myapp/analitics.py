@@ -508,7 +508,8 @@ def get_student_analytics(request, room_id):
         if consistency_score < 30 and len(active_days) > 3 and total_days > 10:
             insights.append({
                 'type': 'consistency',
-                'message': 'Your participation is inconsistent. Regular engagement helps build stronger learning habits and better knowledge retention.',
+                'message': 'Your participation is inconsistent. Regular engagement helps build stronger '
+                'learning habits and better knowledge retention.',
                 'importance': 'medium',
                 'action': 'Set aside 10-15 minutes at the same time each day to check and engage with the class'
             })
@@ -517,7 +518,8 @@ def get_student_analytics(request, room_id):
         if student_message_count > 5 and upvotes_received < student_message_count:
             insights.append({
                 'type': 'question_quality',
-                'message': 'Your questions could generate more engagement. Try asking open-ended, specific questions that invite discussion.',
+                'message': 'Your questions could generate more engagement. '
+                'Try asking open-ended, specific questions that invite discussion.',
                 'importance': 'medium',
                 'action': 'Format your questions to be more specific and include relevant context'
             })
@@ -527,6 +529,8 @@ def get_student_analytics(request, room_id):
         importance_order = {'high': 0, 'medium': 1, 'low': 2}
         insights.sort(key=lambda x: importance_order.get(x['importance'], 3))
         insights = insights[:5]  # Limit to 5 insights
+
+
         
         # ------------------- ACTIVITY SUMMARY -------------------
         
@@ -555,7 +559,7 @@ def get_student_analytics(request, room_id):
                 "active_times": active_times
             },
             "activity_tracking": {
-                "recent_activities": student_activities[:20],  # Get 20 most recent activities
+                "recent_activities": student_activities[:20],  
                 "activity_summary": activity_summary,
                 "total_activities": total_activities
             },

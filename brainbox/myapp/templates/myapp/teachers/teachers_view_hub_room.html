@@ -1160,15 +1160,7 @@
   <script src="{% static 'js/summarize.js' %}"></script>
   <script src="{% static 'js/invite_students.js' %}"></script> 
   <script src="{% static 'js/room-analytics.js' %}"></script> 
-  <script src="{% static 'js/teachers_livestream.js' %}"></script> 
-  <script>
-    // Include the livestream JavaScript
-    document.addEventListener('DOMContentLoaded', function() {
-      const script = document.createElement('script');
-      script.textContent = `{{ teacher_livestream_js|safe }}`;
-      document.body.appendChild(script);
-    });
-  </script>
+  
   <script>
 
 
