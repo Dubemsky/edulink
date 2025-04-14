@@ -3,6 +3,7 @@ from .analitics import *
 from .summarise import *
 from django.urls import path
 from .group_chat import *
+from .livestream import *
 from .views_teachers import *
 from .views_students import *
 from .community_page import *
@@ -48,6 +49,17 @@ urlpatterns = [
     path('teachers-dashboard/hub-room/<str:id>/<str:message_id>/', hub_room_message_teacher_replies, name='hub_room_message_teacher_replies'),
     path('teachers-dashboard/teachers-profile/security-settings',teacher_profile_page_securty_settings,name='teacher_profile_page_securty_settings'),
     path('teachers-dashboard/teachers-profile/activity-contribution',teacher_profile_page_activity_contribution,name='teacher_profile_page_activity_contribution'),
+
+
+    # Livestreaming
+    path('start-livestream/', start_livestream, name='start_livestream'),
+    path('end-livestream/', end_livestream, name='end_livestream'),
+    path('join-livestream/', join_livestream, name='join_livestream'),
+    path('get-active-streams/', get_active_streams, name='get_active_streams'),
+    path('schedule-livestream/', schedule_livestream, name='schedule_livestream'),
+    path('get-scheduled-streams/', get_scheduled_streams, name='get_scheduled_streams'),
+    path('cancel-scheduled-stream/', cancel_scheduled_stream, name='cancel_scheduled_stream'),
+
 
 
 
