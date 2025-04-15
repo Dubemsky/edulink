@@ -59,7 +59,12 @@ urlpatterns = [
     path('schedule-livestream/', schedule_livestream, name='schedule_livestream'),
     path('get-scheduled-streams/', get_scheduled_streams, name='get_scheduled_streams'),
     path('cancel-scheduled-stream/', cancel_scheduled_stream, name='cancel_scheduled_stream'),
+    path('livestream-message/', livestream_message, name='livestream_message'),
+    path('get-livestream-messages/', get_livestream_messages, name='get_livestream_messages'),
 
+    # Screen sharing endpoints
+    path('start-screen-share/', start_screen_share, name='start_screen_share'),
+    path('stop-screen-share/', stop_screen_share, name='stop_screen_share'),
 
 
 

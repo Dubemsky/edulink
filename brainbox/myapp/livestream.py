@@ -52,6 +52,7 @@ def generate_stream_id():
 def start_livestream(request):
     """
     Start a new livestream. This endpoint handles the teacher's request to go live.
+    Updated to handle cases where the hub_rooms document doesn't exist yet.
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
@@ -96,34 +97,57 @@ def start_livestream(request):
         }
         stream_ref.set(stream_data)
         
-        # Update the room to indicate there's an active livestream
+        # Check if hub_rooms document exists, create if it doesn't
         room_ref = db.collection('hub_rooms').document(room_id)
-        room_ref.update({
-            'has_active_livestream': True,
-            'active_stream_id': stream_id
-        })
+        room_doc = room_ref.get()
         
-        # If notification is enabled, store notifications for all students in the room
+        if room_doc.exists:
+            # Update existing document
+            room_ref.update({
+                'has_active_livestream': True,
+                'active_stream_id': stream_id
+            })
+        else:
+            # Create new document with livestream info
+            room_ref.set({
+                'room_id': room_id,
+                'has_active_livestream': True,
+                'active_stream_id': stream_id,
+                'created_at': firestore.SERVER_TIMESTAMP
+            })
+        
+        # If notification is enabled, notify students using Django models
         if notify_students:
-            # Get all students in the room
-            students_query = db.collection('room_members').where('room_id', '==', room_id).stream()
-            
-            for student_doc in students_query:
-                student_data = student_doc.to_dict()
-                student_id = student_data.get('user_id')
+            from .models import Students_joined_hub, Teachers_created_hub
+            try:
+                # Get the hub using room_id
+                hub = Teachers_created_hub.objects.get(room_url=room_id)
                 
-                if student_id and student_id != teacher_id:  # Don't notify the teacher
-                    notification_ref = db.collection('notifications').document()
-                    notification_ref.set({
-                        'user_id': student_id,
-                        'type': 'livestream_started',
-                        'room_id': room_id,
-                        'stream_id': stream_id,
-                        'title': title,
-                        'sender_id': teacher_id,
-                        'read': False,
-                        'created_at': firestore.SERVER_TIMESTAMP
-                    })
+                # Get all students in this room using the Django model
+                students = Students_joined_hub.objects.filter(hub=hub)
+                
+                for student in students:
+                    student_id = student.student
+                    
+                    # Skip if this is the teacher
+                    if student_id != teacher_id:  # Only notify students, not the teacher
+                        notification_ref = db.collection('notifications').document()
+                        notification_ref.set({
+                            'user_id': student_id,
+                            'username': student_id,
+                            'type': 'livestream_started',
+                            'room_id': room_id,
+                            'stream_id': stream_id,
+                            'title': title,
+                            'sender_id': teacher_id,
+                            'read': False,
+                            'created_at': firestore.SERVER_TIMESTAMP,
+                            'message': f"Livestream started: {title}"
+                        })
+            except Teachers_created_hub.DoesNotExist:
+                print(f"Error: Hub with room_url {room_id} does not exist")
+            except Exception as e:
+                print(f"Error sending livestream notifications: {e}")
         
         # Return success response with necessary data for the client
         return JsonResponse({
@@ -137,11 +161,13 @@ def start_livestream(request):
     except Exception as e:
         print(f"Error starting livestream: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
+    
+
 
 @csrf_exempt
 def end_livestream(request):
     """
-    End an active livestream.
+    End an active livestream. Updated to handle cases where the hub_rooms document doesn't exist.
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
@@ -177,16 +203,23 @@ def end_livestream(request):
         room_id = stream_data.get('room_id')
         if room_id:
             room_ref = db.collection('hub_rooms').document(room_id)
-            room_ref.update({
-                'has_active_livestream': False,
-                'active_stream_id': None
-            })
+            room_doc = room_ref.get()
+            
+            if room_doc.exists:
+                # Only update if document exists
+                room_ref.update({
+                    'has_active_livestream': False,
+                    'active_stream_id': None
+                })
+            # If document doesn't exist, no need to update it
         
         return JsonResponse({'success': True})
         
     except Exception as e:
         print(f"Error ending livestream: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
+
+
 
 @csrf_exempt
 def join_livestream(request):
@@ -299,7 +332,7 @@ def get_active_streams(request):
 @csrf_exempt
 def schedule_livestream(request):
     """
-    Schedule a future livestream.
+    Schedule a future livestream. Updated to use Django models for notifications.
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
@@ -335,28 +368,39 @@ def schedule_livestream(request):
         }
         schedule_ref.set(schedule_data)
         
-        # Notify students if enabled
+        # Notify students if enabled, using Django models
         if notify_students:
-            # Get all students in the room
-            students_query = db.collection('room_members').where('room_id', '==', room_id).stream()
-            
-            for student_doc in students_query:
-                student_data = student_doc.to_dict()
-                student_id = student_data.get('user_id')
+            from .models import Students_joined_hub, Teachers_created_hub
+            try:
+                # Get the hub using room_id
+                hub = Teachers_created_hub.objects.get(room_url=room_id)
                 
-                if student_id and student_id != teacher_id:
-                    notification_ref = db.collection('notifications').document()
-                    notification_ref.set({
-                        'user_id': student_id,
-                        'type': 'livestream_scheduled',
-                        'room_id': room_id,
-                        'schedule_id': schedule_id,
-                        'title': title,
-                        'scheduled_time': scheduled_time,
-                        'sender_id': teacher_id,
-                        'read': False,
-                        'created_at': firestore.SERVER_TIMESTAMP
-                    })
+                # Get all students in this room using the Django model
+                students = Students_joined_hub.objects.filter(hub=hub)
+                
+                for student in students:
+                    student_id = student.student
+                    
+                    # Skip if this is the teacher
+                    if student_id != teacher_id:
+                        notification_ref = db.collection('notifications').document()
+                        notification_ref.set({
+                            'user_id': student_id,
+                            'username': student_id,
+                            'type': 'livestream_scheduled',
+                            'room_id': room_id,
+                            'schedule_id': schedule_id,
+                            'title': title,
+                            'scheduled_time': scheduled_time,
+                            'sender_id': teacher_id,
+                            'read': False,
+                            'created_at': firestore.SERVER_TIMESTAMP,
+                            'message': f"Livestream scheduled: {title} on {scheduled_time}"
+                        })
+            except Teachers_created_hub.DoesNotExist:
+                print(f"Error: Hub with room_url {room_id} does not exist")
+            except Exception as e:
+                print(f"Error sending livestream notifications: {e}")
         
         return JsonResponse({
             'success': True,
@@ -366,6 +410,8 @@ def schedule_livestream(request):
     except Exception as e:
         print(f"Error scheduling livestream: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
+
+
 
 @csrf_exempt
 def get_scheduled_streams(request):
@@ -416,7 +462,7 @@ def get_scheduled_streams(request):
 @csrf_exempt
 def cancel_scheduled_stream(request):
     """
-    Cancel a scheduled livestream.
+    Cancel a scheduled livestream. Updated to use Django models for notifications.
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
@@ -441,11 +487,47 @@ def cancel_scheduled_stream(request):
         if schedule_data.get('teacher_id') != teacher_id:
             return JsonResponse({'success': False, 'error': 'Unauthorized to cancel this stream'})
         
+        # Get the room_id before updating the status
+        room_id = schedule_data.get('room_id')
+        title = schedule_data.get('title', 'Unnamed Stream')
+        
         # Update status to cancelled
         schedule_ref.update({
             'status': 'cancelled',
             'cancelled_at': firestore.SERVER_TIMESTAMP
         })
+        
+        # Notify students about cancellation using Django models
+        from .models import Students_joined_hub, Teachers_created_hub
+        try:
+            # Get the hub using room_id
+            hub = Teachers_created_hub.objects.get(room_url=room_id)
+            
+            # Get all students in this room using the Django model
+            students = Students_joined_hub.objects.filter(hub=hub)
+            
+            for student in students:
+                student_id = student.student
+                
+                # Skip if this is the teacher
+                if student_id != teacher_id:
+                    notification_ref = db.collection('notifications').document()
+                    notification_ref.set({
+                        'user_id': student_id,
+                        'username': student_id,
+                        'type': 'livestream_cancelled',
+                        'room_id': room_id,
+                        'schedule_id': schedule_id,
+                        'title': title,
+                        'sender_id': teacher_id,
+                        'read': False,
+                        'created_at': firestore.SERVER_TIMESTAMP,
+                        'message': f"Livestream cancelled: {title}"
+                    })
+        except Teachers_created_hub.DoesNotExist:
+            print(f"Error: Hub with room_url {room_id} does not exist")
+        except Exception as e:
+            print(f"Error sending livestream cancellation notifications: {e}")
         
         return JsonResponse({'success': True})
         
@@ -453,3 +535,186 @@ def cancel_scheduled_stream(request):
         print(f"Error cancelling scheduled stream: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
     
+
+"""
+Add these functions to your livestream.py file to handle the additional
+messaging functionality for the livestream feature.
+"""
+
+@csrf_exempt
+def livestream_message(request):
+    """
+    Handle livestream messages (chat and questions) between teachers and students.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
+    
+    try:
+        data = json.loads(request.body)
+        message_type = data.get('type')  # 'chat' or 'question'
+        sender_id = data.get('sender_id')
+        room_id = data.get('room_id')
+        stream_id = data.get('stream_id')
+        content = data.get('content')
+        
+        if not all([message_type, sender_id, room_id, stream_id, content]):
+            return JsonResponse({'success': False, 'error': 'Missing required fields'})
+        
+        # Verify the stream exists and is active
+        stream_ref = db.collection('livestreams').document(stream_id)
+        stream_doc = stream_ref.get()
+        
+        if not stream_doc.exists:
+            return JsonResponse({'success': False, 'error': 'Stream not found'})
+            
+        stream_data = stream_doc.to_dict()
+        if stream_data.get('status') != 'live':
+            return JsonResponse({'success': False, 'error': 'Stream is not active'})
+        
+        # Create a message record in Firebase
+        message_ref = db.collection('livestream_messages').document()
+        message_data = {
+            'type': message_type,
+            'sender_id': sender_id,
+            'room_id': room_id,
+            'stream_id': stream_id,
+            'content': content,
+            'created_at': firestore.SERVER_TIMESTAMP
+        }
+        message_ref.set(message_data)
+        
+        # Add the message ID to the data
+        message_data['message_id'] = message_ref.id
+        
+        return JsonResponse({
+            'success': True,
+            'message': message_data
+        })
+        
+    except Exception as e:
+        print(f"Error handling livestream message: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+def get_livestream_messages(request):
+    """
+    Get all messages for a specific livestream.
+    """
+    stream_id = request.GET.get('stream_id')
+    last_message_id = request.GET.get('last_message_id')  # For pagination
+    
+    if not stream_id:
+        return JsonResponse({'success': False, 'error': 'Stream ID is required'})
+    
+    try:
+        # Query Firebase for messages in this stream
+        messages_ref = db.collection('livestream_messages')
+        query = messages_ref.where('stream_id', '==', stream_id).order_by('created_at')
+        
+        # Add pagination if last_message_id is provided
+        if last_message_id:
+            last_message = messages_ref.document(last_message_id).get()
+            if last_message.exists:
+                query = query.start_after(last_message)
+        
+        # Limit the number of messages to retrieve
+        query = query.limit(50)
+        
+        # Execute the query
+        messages = []
+        for doc in query.stream():
+            message_data = doc.to_dict()
+            message_data['message_id'] = doc.id
+            
+            # Convert Firestore timestamp to string
+            if 'created_at' in message_data and message_data['created_at']:
+                message_data['created_at'] = message_data['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                
+            messages.append(message_data)
+        
+        return JsonResponse({
+            'success': True,
+            'messages': messages
+        })
+        
+    except Exception as e:
+        print(f"Error retrieving livestream messages: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+def start_screen_share(request):
+    """
+    Update the livestream record to indicate screen sharing has started.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
+    
+    try:
+        data = json.loads(request.body)
+        stream_id = data.get('stream_id')
+        teacher_id = data.get('teacher_id')
+        
+        if not stream_id or not teacher_id:
+            return JsonResponse({'success': False, 'error': 'Missing required fields'})
+        
+        # Verify the teacher owns this stream
+        stream_ref = db.collection('livestreams').document(stream_id)
+        stream_doc = stream_ref.get()
+        
+        if not stream_doc.exists:
+            return JsonResponse({'success': False, 'error': 'Stream not found'})
+        
+        stream_data = stream_doc.to_dict()
+        
+        if stream_data.get('teacher_id') != teacher_id:
+            return JsonResponse({'success': False, 'error': 'Unauthorized to update this stream'})
+        
+        # Update stream to indicate screen sharing is active
+        stream_ref.update({
+            'is_screen_sharing': True
+        })
+        
+        return JsonResponse({'success': True})
+        
+    except Exception as e:
+        print(f"Error starting screen share: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+def stop_screen_share(request):
+    """
+    Update the livestream record to indicate screen sharing has stopped.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
+    
+    try:
+        data = json.loads(request.body)
+        stream_id = data.get('stream_id')
+        teacher_id = data.get('teacher_id')
+        
+        if not stream_id or not teacher_id:
+            return JsonResponse({'success': False, 'error': 'Missing required fields'})
+        
+        # Verify the teacher owns this stream
+        stream_ref = db.collection('livestreams').document(stream_id)
+        stream_doc = stream_ref.get()
+        
+        if not stream_doc.exists:
+            return JsonResponse({'success': False, 'error': 'Stream not found'})
+        
+        stream_data = stream_doc.to_dict()
+        
+        if stream_data.get('teacher_id') != teacher_id:
+            return JsonResponse({'success': False, 'error': 'Unauthorized to update this stream'})
+        
+        # Update stream to indicate screen sharing is inactive
+        stream_ref.update({
+            'is_screen_sharing': False
+        })
+        
+        return JsonResponse({'success': True})
+        
+    except Exception as e:
+        print(f"Error stopping screen share: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})

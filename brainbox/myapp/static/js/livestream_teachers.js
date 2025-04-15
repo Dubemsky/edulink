@@ -539,6 +539,7 @@ function updateToggleButtons() {
 }
 
 // Handle start livestream button click
+// Update handleStartLivestream function to work with the enhanced interface
 async function handleStartLivestream() {
     console.log("Handle start livestream called");
     

@@ -6,15 +6,18 @@
  */
 
 // Global variables
+// Global variables
 let agoraRtcClient = null;
-let localStream = null;
-let remoteStreams = {};
+let localTracks = null;
+let screenTracks = null;
+let remoteUsers = {};
 let isLive = false;
 let currentRoomId = null;
 let currentStreamId = null;
 let currentChannelName = null;
 let userRole = 'audience'; // 'host' or 'audience'
 let videoEnabled = true;
+let streamTimerInterval = null;
 let audioEnabled = true;
 
 // DOM element IDs (ensure these match your HTML)
@@ -28,20 +31,20 @@ const streamTimerId = 'stream-timer';
 // Initialize the Agora client
 async function initAgoraClient(appId, channelName, token, uid, role) {
     try {
-        console.log('Initializing Agora client:', { appId, channelName, uid, role });
+        console.log('Initializing Agora client with 4.x API:', { appId, channelName, uid, role });
         
-        // Initialize the RTC client
+        // Initialize the RTC client with the new API
         agoraRtcClient = AgoraRTC.createClient({ mode: 'live', codec: 'h264' });
         
         // Set the client role
         userRole = role;
-        await agoraRtcClient.setClientRole(role);
+        await agoraRtcClient.setClientRole(role === 'host' ? 'host' : 'audience');
         
         // Initialize event listeners
         setupEventListeners();
         
         // Join the channel
-        await agoraRtcClient.join(appId, channelName, token, uid);
+        await agoraRtcClient.join(appId, channelName, token, uid || null);
         console.log('Successfully joined channel:', channelName);
         
         currentChannelName = channelName;
@@ -59,31 +62,52 @@ async function initAgoraClient(appId, channelName, token, uid, role) {
     }
 }
 
+
+
+
 // Initialize the local stream (for teacher/host)
 async function initLocalStream() {
     try {
-        // Create a local stream
-        localStream = AgoraRTC.createStream({
-            audio: true,
-            video: true,
-            screen: false
-        });
+        console.log("Initializing local stream with Agora 4.x API...");
         
-        // Initialize the local stream
-        await localStream.init();
-        
-        // Play the local stream
-        const localVideoContainer = document.getElementById(localVideoId);
-        if (localVideoContainer) {
-            localStream.play(localVideoId);
-            console.log('Local stream playing in element:', localVideoId);
-        } else {
-            console.error('Local video container not found:', localVideoId);
+        // Create an Agora client with the new API
+        if (!agoraRtcClient) {
+            console.error("Agora client not initialized");
+            return false;
         }
         
-        // Publish the local stream to the channel
-        await agoraRtcClient.publish(localStream);
-        console.log('Local stream published successfully');
+        // Create local tracks (this replaces createStream in the new API)
+        const [microphoneTrack, cameraTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+        
+        // Store the local tracks
+        localTracks = {
+            audioTrack: microphoneTrack,
+            videoTrack: cameraTrack
+        };
+        
+        // Display local video track
+        const localVideoContainer = document.getElementById('local-stream-container');
+        if (localVideoContainer) {
+            // Play video in the container
+            localTracks.videoTrack.play('local-stream-container');
+            console.log("Local video track playing successfully");
+        } else {
+            console.error("Local stream container not found, creating interface");
+            createStreamingInterface();
+            
+            // Try playing again after a short delay
+            setTimeout(() => {
+                const newContainer = document.getElementById('local-stream-container');
+                if (newContainer) {
+                    localTracks.videoTrack.play('local-stream-container');
+                    console.log("Playing in newly created container");
+                }
+            }, 500);
+        }
+        
+        // Publish the local tracks
+        await agoraRtcClient.publish(Object.values(localTracks));
+        console.log("Local tracks published successfully");
         
         isLive = true;
         updateStreamStatus('live');
@@ -92,10 +116,304 @@ async function initLocalStream() {
         return true;
     } catch (error) {
         console.error('Error initializing local stream:', error);
-        showError('Failed to initialize camera and microphone.');
+        showError('Failed to initialize camera and microphone: ' + error.message);
         return false;
     }
 }
+
+
+
+function createStreamingInterface() {
+    // Remove any existing streaming interface
+    const existingInterface = document.getElementById('enhanced-streaming-interface');
+    if (existingInterface) {
+        existingInterface.remove();
+    }
+    
+    // Create the main container
+    const interfaceContainer = document.createElement('div');
+    interfaceContainer.id = 'enhanced-streaming-interface';
+    interfaceContainer.classList.add('enhanced-streaming-interface');
+    
+    // Create the interface HTML
+    interfaceContainer.innerHTML = `
+        <div class="streaming-header">
+            <div class="streaming-status">
+                <span class="streaming-indicator"></span>
+                <span class="status-text">Live</span>
+                <span class="streaming-timer" id="stream-timer">00:00</span>
+            </div>
+            <div class="streaming-viewers">
+                <i class="bi bi-people-fill"></i>
+                <span id="viewer-count">0</span> viewers
+            </div>
+        </div>
+        
+        <div class="streaming-body">
+            <div class="video-section">
+                <div class="local-stream-wrapper">
+                    <div id="local-stream-container" class="stream-container"></div>
+                    <div class="stream-label">You (Host)</div>
+                </div>
+                <div class="screen-share-wrapper" style="display: none;">
+                    <div id="screen-share-container" class="stream-container"></div>
+                    <div class="stream-label">Screen Share</div>
+                </div>
+            </div>
+            
+            <div class="interaction-section">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <h3>Live Chat</h3>
+                    </div>
+                    <div class="chat-messages" id="live-chat-messages">
+                        <!-- Chat messages will be added here -->
+                        <div class="system-message">Welcome to the livestream! Chat with viewers here.</div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="live-chat-input" placeholder="Type a message...">
+                        <button id="send-chat-button">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="questions-container">
+                    <div class="questions-header">
+                        <h3>Questions</h3>
+                    </div>
+                    <div class="questions-list" id="live-questions-list">
+                        <!-- Questions will be added here -->
+                        <div class="system-message">Questions from viewers will appear here.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="streaming-controls">
+            <button id="toggle-camera-btn" class="control-button">
+                <i class="bi bi-camera-video"></i>
+            </button>
+            <button id="toggle-mic-btn" class="control-button">
+                <i class="bi bi-mic"></i>
+            </button>
+            <button id="toggle-screen-share-btn" class="control-button">
+                <i class="bi bi-display"></i>
+            </button>
+            <button id="toggle-interaction-btn" class="control-button">
+                <i class="bi bi-chat-dots"></i>
+            </button>
+            <button id="end-stream-btn" class="control-button end-stream">
+                End Stream
+            </button>
+        </div>
+    `;
+    
+    // Append the interface to the body
+    document.body.appendChild(interfaceContainer);
+    
+    // Add event listeners to the control buttons
+    document.getElementById('toggle-camera-btn').addEventListener('click', toggleCamera);
+    document.getElementById('toggle-mic-btn').addEventListener('click', toggleMicrophone);
+    document.getElementById('toggle-screen-share-btn').addEventListener('click', toggleScreenShare);
+    document.getElementById('toggle-interaction-btn').addEventListener('click', toggleInteractionPanel);
+    document.getElementById('end-stream-btn').addEventListener('click', endLivestream);
+    
+    // Add event listener to chat input
+    document.getElementById('send-chat-button').addEventListener('click', sendChatMessage);
+    document.getElementById('live-chat-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendChatMessage();
+        }
+    });
+    
+    // Add the styles for the enhanced interface
+    addEnhancedInterfaceStyles();
+}
+
+
+
+async function toggleScreenShare() {
+    if (!isLive) return;
+    
+    const screenShareBtn = document.getElementById('toggle-screen-share-btn');
+    const screenShareWrapper = document.querySelector('.screen-share-wrapper');
+    
+    // If we're already sharing screen, stop sharing
+    if (screenTracks) {
+        // Stop the screen tracks
+        for (const track of Object.values(screenTracks)) {
+            if (track) {
+                track.stop();
+                track.close();
+            }
+        }
+        
+        // Unpublish screen tracks
+        if (agoraRtcClient) {
+            await agoraRtcClient.unpublish(Object.values(screenTracks));
+        }
+        
+        screenTracks = null;
+        
+        // Update UI
+        screenShareBtn.innerHTML = '<i class="bi bi-display"></i>';
+        screenShareWrapper.style.display = 'none';
+        
+        // Adjust the layout
+        document.querySelector('.local-stream-wrapper').style.width = '100%';
+        
+        return;
+    }
+    
+    try {
+        // Create screen sharing tracks
+        screenTracks = {
+            videoTrack: await AgoraRTC.createScreenVideoTrack()
+        };
+        
+        // Play the screen sharing track locally
+        screenShareWrapper.style.display = 'block';
+        screenTracks.videoTrack.play('screen-share-container');
+        
+        // Adjust the layout
+        document.querySelector('.local-stream-wrapper').style.width = '50%';
+        
+        // Publish the screen sharing track
+        await agoraRtcClient.publish(Object.values(screenTracks));
+        
+        // Update the button UI
+        screenShareBtn.innerHTML = '<i class="bi bi-display-fill"></i>';
+        
+        // Handle screen share stopped event
+        screenTracks.videoTrack.on('track-ended', async () => {
+            // Stop and close screen track
+            screenTracks.videoTrack.stop();
+            screenTracks.videoTrack.close();
+            
+            // Unpublish screen track
+            if (agoraRtcClient) {
+                await agoraRtcClient.unpublish([screenTracks.videoTrack]);
+            }
+            
+            screenTracks = null;
+            
+            // Update UI
+            screenShareBtn.innerHTML = '<i class="bi bi-display"></i>';
+            screenShareWrapper.style.display = 'none';
+            document.querySelector('.local-stream-wrapper').style.width = '100%';
+        });
+        
+    } catch (error) {
+        console.error('Error sharing screen:', error);
+        showError('Failed to share screen: ' + error.message);
+        
+        // Reset UI if there was an error
+        screenShareBtn.innerHTML = '<i class="bi bi-display"></i>';
+        screenShareWrapper.style.display = 'none';
+        document.querySelector('.local-stream-wrapper').style.width = '100%';
+    }
+}
+
+function toggleInteractionPanel() {
+    const interactionSection = document.querySelector('.interaction-section');
+    const videoSection = document.querySelector('.video-section');
+    const button = document.getElementById('toggle-interaction-btn');
+    
+    if (interactionSection.style.display === 'none') {
+        interactionSection.style.display = 'flex';
+        videoSection.style.width = '70%';
+        button.innerHTML = '<i class="bi bi-chat-dots-fill"></i>';
+    } else {
+        interactionSection.style.display = 'none';
+        videoSection.style.width = '100%';
+        button.innerHTML = '<i class="bi bi-chat-dots"></i>';
+    }
+}
+
+
+
+
+function sendChatMessage() {
+    const chatInput = document.getElementById('live-chat-input');
+    const message = chatInput.value.trim();
+    
+    if (!message) return;
+    
+    // Clear the input
+    chatInput.value = '';
+    
+    // Add message to the chat
+    addChatMessage('You (Host)', message, true);
+    
+    // Send the message to viewers (implementation depends on your backend)
+    // This is a placeholder - you'll need to integrate with your actual backend
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+            type: 'livestream_chat',
+            message: message,
+            sender: currentUserName,
+            role: 'teacher',
+            room_id: currentRoomId,
+            timestamp: new Date().toISOString()
+        }));
+    }
+}
+
+// Function to add a chat message to the UI
+function addChatMessage(sender, message, isHost = false) {
+    const chatMessages = document.getElementById('live-chat-messages');
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('chat-message');
+    
+    if (isHost) {
+        messageElement.classList.add('host-message');
+    }
+    
+    messageElement.innerHTML = `
+        <div class="message-sender">${sender}</div>
+        <div class="message-content">${message}</div>
+    `;
+    
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Function to add a question to the UI
+function addQuestion(sender, question) {
+    const questionsList = document.getElementById('live-questions-list');
+    const questionElement = document.createElement('div');
+    questionElement.classList.add('question-item');
+    
+    questionElement.innerHTML = `
+        <div class="question-sender">${sender}</div>
+        <div class="question-content">${question}</div>
+        <div class="question-actions">
+            <button class="answer-question-btn">Answer</button>
+            <button class="dismiss-question-btn">Dismiss</button>
+        </div>
+    `;
+    
+    // Add event listeners to the buttons
+    questionElement.querySelector('.answer-question-btn').addEventListener('click', function() {
+        // Highlight this question as being answered
+        this.closest('.question-item').classList.add('being-answered');
+        
+        // Add a system message to the chat
+        addChatMessage('System', `Now answering: "${question}"`, false);
+    });
+    
+    questionElement.querySelector('.dismiss-question-btn').addEventListener('click', function() {
+        // Remove this question from the list
+        this.closest('.question-item').remove();
+    });
+    
+    questionsList.appendChild(questionElement);
+    questionsList.scrollTop = questionsList.scrollHeight;
+}
+
+
+
 
 // Set up event listeners for the Agora client
 function setupEventListeners() {
@@ -193,6 +511,361 @@ function setupEventListeners() {
     });
 }
 
+
+function addEnhancedInterfaceStyles() {
+    const styleId = 'enhanced-streaming-styles';
+    
+    // Only add styles once
+    if (document.getElementById(styleId)) return;
+    
+    
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+        .enhanced-streaming-interface {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1a1a1a;
+            color: white;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .streaming-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .streaming-status {
+            display: flex;
+            align-items: center;
+        }
+        
+        .streaming-indicator {
+            width: 12px;
+            height: 12px;
+            background-color: #f44336;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-text {
+            font-weight: 600;
+            margin-right: 15px;
+        }
+        
+        .streaming-timer {
+            font-family: monospace;
+            font-size: 1.1rem;
+        }
+        
+        .streaming-viewers {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        
+        .streaming-viewers i {
+            margin-right: 5px;
+        }
+        
+        .streaming-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .video-section {
+            width: 70%;
+            height: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            overflow: hidden;
+            background-color: #0f0f0f;
+        }
+        
+        .local-stream-wrapper, .screen-share-wrapper {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            transition: width 0.3s ease;
+        }
+        
+        .local-stream-wrapper.with-screen-share {
+            width: 50%;
+        }
+        
+        .stream-container {
+            width: 100%;
+            height: 100%;
+            background-color: #2a2a2a;
+            overflow: hidden;
+        }
+        
+        .stream-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .interaction-section {
+            width: 30%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: #212121;
+        }
+        
+        .chat-container, .questions-container {
+            display: flex;
+            flex-direction: column;
+            height: 50%;
+            overflow: hidden;
+        }
+        
+        .chat-container {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chat-header, .questions-header {
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .chat-header h3, .questions-header h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+        
+        .chat-messages, .questions-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chat-input-container input {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            padding: 8px 12px;
+            margin-right: 10px;
+        }
+        
+        .chat-input-container button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+        }
+        
+        .chat-message {
+            margin-bottom: 10px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            padding: 8px 12px;
+        }
+        
+        .chat-message.host-message {
+            background-color: rgba(66, 133, 244, 0.2);
+        }
+        
+        .message-sender {
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+        
+        .message-content {
+            word-break: break-word;
+        }
+        
+        .system-message {
+            color: #a0a0a0;
+            font-style: italic;
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .question-item {
+            margin-bottom: 15px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            padding: 10px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .question-item.being-answered {
+            background-color: rgba(76, 175, 80, 0.2);
+        }
+        
+        .question-sender {
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+        
+        .question-content {
+            margin-bottom: 10px;
+        }
+        
+        .question-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .answer-question-btn, .dismiss-question-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        
+        .answer-question-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .dismiss-question-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .streaming-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            margin: 0 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .control-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .control-button.end-stream {
+            background-color: #f44336;
+            color: white;
+            border-radius: 25px;
+            width: auto;
+            padding: 0 20px;
+        }
+        
+        .control-button.end-stream:hover {
+            background-color: #d32f2f;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    `;
+
+    const additionalStyles = `
+    #local-stream-container {
+        width: 100% !important;
+        height: 100% !important;
+        display: block !important;
+        position: relative !important;
+        overflow: hidden !important;
+        background-color: #333 !important;
+    }
+    
+    .local-stream-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        min-height: 300px;
+    }
+    
+    .agora_video_player {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+`;
+
+    // Append the additional styles
+    style.textContent += additionalStyles;
+    
+    document.head.appendChild(style);
+}
+
+// Variables to track state
+let screenStream = null;
+
+
+// Add this function to help diagnose camera issues
+function debugCameraAccess() {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+            console.log("Camera access successful:", stream);
+            
+            // Create a temporary video element to test
+            const videoElement = document.createElement('video');
+            videoElement.srcObject = stream;
+            videoElement.autoplay = true;
+            videoElement.style.width = '320px';
+            videoElement.style.height = '240px';
+            videoElement.style.border = '3px solid red';
+            videoElement.style.position = 'fixed';
+            videoElement.style.bottom = '10px';
+            videoElement.style.left = '10px';
+            videoElement.style.zIndex = '9999';
+            
+            document.body.appendChild(videoElement);
+            
+            console.log("Debug video element added to page");
+        })
+        .catch(error => {
+            console.error("Camera access failed:", error);
+            alert("Camera access failed: " + error.message);
+        });
+}
 // Start a livestream (for teachers)
 async function startLivestream(roomId, title, notifyStudents = true) {
     if (isLive) {
@@ -233,6 +906,9 @@ async function startLivestream(roomId, title, notifyStudents = true) {
         currentRoomId = roomId;
         currentStreamId = data.stream_id;
         
+        // Create the enhanced streaming interface before initializing
+        createStreamingInterface();
+        
         // Initialize the Agora client
         const initialized = await initAgoraClient(
             data.app_id,
@@ -250,13 +926,14 @@ async function startLivestream(roomId, title, notifyStudents = true) {
         hideLoading();
         showMessage('You are now live!');
         
-        // Update UI to show that streaming is active
-        document.getElementById('goLiveModal').classList.remove('show');
-        document.body.classList.remove('modal-open');
-        document.getElementsByClassName('modal-backdrop')[0]?.remove();
-        
-        // Show streaming controls
-        showStreamingControls();
+        // Close the modal if open
+        const goLiveModal = document.getElementById('goLiveModal');
+        if (goLiveModal) {
+            const bsModal = bootstrap.Modal.getInstance(goLiveModal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+        }
         
         return true;
     } catch (error) {
@@ -267,7 +944,7 @@ async function startLivestream(roomId, title, notifyStudents = true) {
     }
 }
 
-// End a livestream (for teachers)
+// Update the endLivestream function to work with the enhanced interface
 async function endLivestream() {
     if (!isLive || !currentStreamId) {
         console.warn('No active livestream to end.');
@@ -304,8 +981,11 @@ async function endLivestream() {
         stopStreamTimer();
         updateStreamStatus('ended');
         
-        // Hide streaming controls
-        hideStreamingControls();
+        // Remove the enhanced streaming interface
+        const interfaceContainer = document.getElementById('enhanced-streaming-interface');
+        if (interfaceContainer) {
+            interfaceContainer.remove();
+        }
         
         hideLoading();
         showMessage('Livestream ended successfully.');
@@ -316,6 +996,12 @@ async function endLivestream() {
         
         // Try to leave the channel anyway
         await leaveChannel();
+        
+        // Remove the enhanced streaming interface
+        const interfaceContainer = document.getElementById('enhanced-streaming-interface');
+        if (interfaceContainer) {
+            interfaceContainer.remove();
+        }
         
         hideLoading();
         showError('Error ending livestream, but stream was stopped.');
@@ -389,18 +1075,27 @@ async function joinLivestream(streamId) {
 // Leave the current channel
 async function leaveChannel() {
     try {
-        // Stop and close local stream if it exists
-        if (localStream) {
-            localStream.stop();
-            localStream.close();
-            localStream = null;
+        // Close and dispose of local tracks
+        if (localTracks) {
+            for (const track of Object.values(localTracks)) {
+                if (track) {
+                    track.stop();
+                    track.close();
+                }
+            }
+            localTracks = null;
         }
         
-        // Stop and clear all remote streams
-        Object.values(remoteStreams).forEach(stream => {
-            stream.stop();
-        });
-        remoteStreams = {};
+        // Close and dispose of screen sharing tracks
+        if (screenTracks) {
+            for (const track of Object.values(screenTracks)) {
+                if (track) {
+                    track.stop();
+                    track.close();
+                }
+            }
+            screenTracks = null;
+        }
         
         // Leave the channel
         if (agoraRtcClient) {
@@ -424,31 +1119,221 @@ async function leaveChannel() {
     }
 }
 
-// Toggle camera on/off
+// Function to process incoming chat messages during livestream
+function processLivestreamMessage(data) {
+    if (!isLive) return;
+    
+    // Check if this is a chat message for the livestream
+    if (data.type === 'livestream_chat') {
+        // Add the message to the chat
+        addChatMessage(data.sender, data.message, data.sender === getCurrentUserId());
+    }
+    // Check if this is a question for the livestream
+    else if (data.type === 'livestream_question') {
+        // Add the question to the questions list
+        addQuestion(data.sender, data.question);
+    }
+}
+
+// Update the socket event handler to support livestream messages
+if (socket) {
+    const originalOnMessage = socket.onmessage;
+    socket.onmessage = function(event) {
+        try {
+            const data = JSON.parse(event.data);
+            
+            // Handle livestream-specific messages
+            if (data.type && (data.type.startsWith('livestream_'))) {
+                processLivestreamMessage(data);
+            }
+            // Pass to the original handler for regular messages
+            else if (originalOnMessage) {
+                originalOnMessage(event);
+            }
+        } catch (error) {
+            console.error('Error processing message:', error);
+            if (originalOnMessage) {
+                originalOnMessage(event);
+            }
+        }
+    };
+}
+
+
+
+
+
+
+
+// Update the websocket messaging to handle livestream events
+
+// Add this to your existing socket connection/message handler code
+function setupWebSocketForLivestream() {
+    // Use existing socket if available or create a new one
+    let socket = window.socket;
+    
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        const roomId = currentRoomId || document.getElementById('room-id-data').dataset.roomId;
+        const userRole = 'teacher'; // Assuming this is in the teacher view
+        const socketURL = `ws://${window.location.host}/ws/${userRole}s-dashboard/hub-room/${roomId}/`;
+        
+        socket = new WebSocket(socketURL);
+        window.socket = socket;
+        
+        socket.onopen = function() {
+            console.log("WebSocket connection established for livestream");
+        };
+        
+        socket.onerror = function(error) {
+            console.error("WebSocket error:", error);
+        };
+        
+        socket.onclose = function(event) {
+            console.log("WebSocket closed:", event);
+        };
+    }
+    
+    // Set up the message handler to handle livestream messages
+    const originalOnMessage = socket.onmessage;
+    socket.onmessage = function(event) {
+        try {
+            const data = JSON.parse(event.data);
+            
+            // Check if this is a livestream message
+            if (data.type === 'livestream_chat' && isLive) {
+                // Handle chat message in the livestream UI
+                console.log("Received livestream chat:", data);
+                addChatMessage(data.sender, data.message, data.sender === getCurrentUserId());
+                return;
+            } else if (data.type === 'livestream_question' && isLive) {
+                // Handle question in the livestream UI
+                console.log("Received livestream question:", data);
+                addQuestion(data.sender, data.message);
+                return;
+            } else if (data.type === 'livestream_join' && isLive) {
+                // Handle viewer join event
+                console.log("Viewer joined livestream:", data);
+                updateViewerCount(data.viewer_count);
+                // Optionally show a notification
+                const chatMessages = document.getElementById('live-chat-messages');
+                if (chatMessages) {
+                    const notification = document.createElement('div');
+                    notification.classList.add('system-message');
+                    notification.textContent = `${data.username} joined the livestream`;
+                    chatMessages.appendChild(notification);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+                return;
+            } else if (data.type === 'livestream_leave' && isLive) {
+                // Handle viewer leave event
+                console.log("Viewer left livestream:", data);
+                updateViewerCount(data.viewer_count);
+                return;
+            }
+            
+            // If not a livestream message, pass to the original handler
+            if (originalOnMessage) {
+                originalOnMessage(event);
+            }
+        } catch (error) {
+            console.error("Error processing WebSocket message:", error);
+            // Still try to call the original handler
+            if (originalOnMessage) {
+                originalOnMessage(event);
+            }
+        }
+    };
+    
+    return socket;
+}
+
+// Function to send a chat message via WebSocket
+function sendLivestreamChatMessage(message) {
+    if (!window.socket || window.socket.readyState !== WebSocket.OPEN) {
+        console.error("WebSocket is not open");
+        return false;
+    }
+    
+    const messageData = {
+        type: 'livestream_chat',
+        message: message,
+        sender: getCurrentUserId(),
+        sender_name: getCurrentUsername(),
+        room_id: currentRoomId,
+        stream_id: currentStreamId,
+        timestamp: new Date().toISOString()
+    };
+    
+    window.socket.send(JSON.stringify(messageData));
+    return true;
+}
+
+// Function to update the viewer count display
+function updateViewerCount(count) {
+    const viewerCountElement = document.getElementById('viewer-count');
+    if (viewerCountElement) {
+        viewerCountElement.textContent = count;
+    }
+}
+
+// Initialize WebSocket when starting livestream
+function initializeLivestreamCommunication() {
+    setupWebSocketForLivestream();
+    
+    // Set up chat message sending
+    const sendChatButton = document.getElementById('send-chat-button');
+    const chatInput = document.getElementById('live-chat-input');
+    
+    if (sendChatButton && chatInput) {
+        sendChatButton.addEventListener('click', function() {
+            const message = chatInput.value.trim();
+            if (message) {
+                sendLivestreamChatMessage(message);
+                // Also add to local UI
+                addChatMessage('You (Host)', message, true);
+                chatInput.value = '';
+            }
+        });
+        
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const message = chatInput.value.trim();
+                if (message) {
+                    sendLivestreamChatMessage(message);
+                    // Also add to local UI
+                    addChatMessage('You (Host)', message, true);
+                    chatInput.value = '';
+                }
+            }
+        });
+    }
+}
+
+
+
 function toggleCamera() {
-    if (!localStream) return;
+    if (!localTracks || !localTracks.videoTrack) return;
     
     if (videoEnabled) {
-        localStream.muteVideo();
-        document.getElementById('toggleCameraBtn').innerHTML = '<i class="bi bi-camera-video-off"></i> Enable Camera';
+        localTracks.videoTrack.setEnabled(false);
+        document.getElementById('toggle-camera-btn').innerHTML = '<i class="bi bi-camera-video-off"></i>';
     } else {
-        localStream.unmuteVideo();
-        document.getElementById('toggleCameraBtn').innerHTML = '<i class="bi bi-camera-video"></i> Disable Camera';
+        localTracks.videoTrack.setEnabled(true);
+        document.getElementById('toggle-camera-btn').innerHTML = '<i class="bi bi-camera-video"></i>';
     }
     
     videoEnabled = !videoEnabled;
 }
 
-// Toggle microphone on/off
 function toggleMicrophone() {
-    if (!localStream) return;
+    if (!localTracks || !localTracks.audioTrack) return;
     
     if (audioEnabled) {
-        localStream.muteAudio();
-        document.getElementById('toggleMicBtn').innerHTML = '<i class="bi bi-mic-mute"></i> Unmute Mic';
+        localTracks.audioTrack.setEnabled(false);
+        document.getElementById('toggle-mic-btn').innerHTML = '<i class="bi bi-mic-mute"></i>';
     } else {
-        localStream.unmuteAudio();
-        document.getElementById('toggleMicBtn').innerHTML = '<i class="bi bi-mic"></i> Mute Mic';
+        localTracks.audioTrack.setEnabled(true);
+        document.getElementById('toggle-mic-btn').innerHTML = '<i class="bi bi-mic"></i>';
     }
     
     audioEnabled = !audioEnabled;
@@ -639,8 +1524,6 @@ async function cancelScheduledLivestream(scheduleId) {
     }
 }
 
-// Timer functions
-let streamTimerInterval = null;
 let streamDuration = 0;
 
 function startStreamTimer() {
