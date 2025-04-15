@@ -66,7 +66,10 @@ urlpatterns = [
     path('start-screen-share/', start_screen_share, name='start_screen_share'),
     path('stop-screen-share/', stop_screen_share, name='stop_screen_share'),
 
-
+    
+    # Student livestream endpoints
+    path('leave-livestream/', leave_livestream, name='leave_livestream'),
+    path('get-stream-viewers/', get_stream_viewers, name='get_stream_viewers'),
 
     # Other sections paths
     path('delete-message/', delete_message, name='delete_message'),

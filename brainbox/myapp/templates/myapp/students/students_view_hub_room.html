@@ -50,11 +50,9 @@
 
           <li><a data-bs-toggle="modal" data-bs-target="#upcomingLivestreamsModal" style="cursor: pointer;">
             <i class="bi bi-broadcast"></i> Livestreams
+            <span id="live-indicator" class="badge bg-danger ms-2 d-none">LIVE</span>
           </a></li>
-          
-
-
-          
+    
           <li><a href="{% url 'students_homepage' %}" class="active">
             <i class="bi bi-house"></i> Dashboard
           </a></li>
@@ -364,77 +362,84 @@
     </div>
 </div>
 
-
-
-
-<!-- Student Upcoming Livestreams Section -->
-<div class="modal fade" id="upcomingLivestreamsModal" tabindex="-1" aria-labelledby="upcomingLivestreamsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="upcomingLivestreamsModalLabel">Upcoming Livestreams</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div id="studentLivestreamsList" class="livestream-list">
-          <!-- Livestreams will be loaded here -->
-          <div class="text-center py-4" id="student-livestreams-loading">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-          <div class="no-streams-message" id="no-student-livestreams" style="display: none;">
-            <p>No upcoming livestreams scheduled. Check back later!</p>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Livestream Notification Template -->
-<template id="livestreamNotificationTemplate">
-  <div class="livestream-notification">
-    <div class="livestream-notification-header">
-      <span class="livestream-notification-title">New Livestream Scheduled</span>
-      <button class="livestream-notification-close" aria-label="Close notification">×</button>
-    </div>
-    <p class="notification-message">A new livestream has been scheduled for [Room Name]</p>
-    <div class="notification-details">
-      <div><strong>Title:</strong> <span class="notification-title">[Livestream Title]</span></div>
-      <div><strong>Date & Time:</strong> <span class="notification-datetime">[Date and Time]</span></div>
-    </div>
-    <div class="notification-actions">
-      <button class="btn btn-sm btn-primary view-livestream-btn">View Details</button>
-      <button class="btn btn-sm btn-outline-secondary remind-later-btn">Remind Me Later</button>
-    </div>
-  </div>
-</template>
-
-<!-- Student Upcoming Livestreams Section - Simplified Styling -->
+<!-- Student Upcoming Livestreams Modal -->
 <div class="modal fade" id="upcomingLivestreamsModal" tabindex="-1" aria-labelledby="upcomingLivestreamsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="upcomingLivestreamsModalLabel">
-          <i class="bi bi-broadcast"></i> Upcoming Livestreams
+          <i class="bi bi-broadcast"></i> Livestreams
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div id="studentLivestreamsList" class="livestream-list">
-          <!-- Livestreams will be loaded here -->
-          <div class="text-center py-4" id="student-livestreams-loading">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+        <!-- Tabs for different livestream states -->
+        <ul class="nav nav-tabs mb-3" id="livestreamTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="active-streams-tab" data-bs-toggle="tab" data-bs-target="#active-streams" 
+                    type="button" role="tab" aria-controls="active-streams" aria-selected="true">
+              Active <span id="active-streams-count" class="badge bg-danger ms-1">0</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="upcoming-streams-tab" data-bs-toggle="tab" data-bs-target="#upcoming-streams" 
+                    type="button" role="tab" aria-controls="upcoming-streams" aria-selected="false">
+              Upcoming <span id="upcoming-streams-count" class="badge bg-primary ms-1">0</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="past-streams-tab" data-bs-toggle="tab" data-bs-target="#past-streams" 
+                    type="button" role="tab" aria-controls="past-streams" aria-selected="false">
+              Past Streams
+            </button>
+          </li>
+        </ul>
+        
+        <!-- Tab content -->
+        <div class="tab-content" id="livestreamTabContent">
+          <!-- Active livestreams tab -->
+          <div class="tab-pane fade show active" id="active-streams" role="tabpanel" aria-labelledby="active-streams-tab">
+            <div id="activeLivestreamsList" class="livestream-list">
+              <div class="text-center py-4" id="active-streams-loading">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+              <div class="no-streams-message text-center py-4" id="no-active-streams" style="display: none;">
+                <i class="bi bi-camera-video-off fs-4 mb-2 text-muted"></i>
+                <p>No active livestreams at the moment.</p>
+              </div>
             </div>
           </div>
-          <div class="no-streams-message text-center py-4" id="no-student-livestreams" style="display: none;">
-            <i class="bi bi-camera-video-off fs-4 mb-2 text-muted"></i>
-            <p>No upcoming livestreams scheduled. Check back later!</p>
+          
+          <!-- Upcoming livestreams tab -->
+          <div class="tab-pane fade" id="upcoming-streams" role="tabpanel" aria-labelledby="upcoming-streams-tab">
+            <div id="upcomingLivestreamsList" class="livestream-list">
+              <div class="text-center py-4" id="upcoming-streams-loading">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+              <div class="no-streams-message text-center py-4" id="no-upcoming-streams" style="display: none;">
+                <i class="bi bi-calendar-x fs-4 mb-2 text-muted"></i>
+                <p>No upcoming livestreams scheduled. Check back later!</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Past livestreams tab -->
+          <div class="tab-pane fade" id="past-streams" role="tabpanel" aria-labelledby="past-streams-tab">
+            <div id="pastLivestreamsList" class="livestream-list">
+              <div class="text-center py-4" id="past-streams-loading">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+              <div class="no-streams-message text-center py-4" id="no-past-streams" style="display: none;">
+                <i class="bi bi-clock-history fs-4 mb-2 text-muted"></i>
+                <p>No past livestreams available.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -445,152 +450,391 @@
   </div>
 </div>
 
-<!-- Livestream Notification Template -->
+<!-- Livestream View Modal (for watching livestreams) -->
+<div class="modal fade" id="livestreamViewModal" tabindex="-1" aria-labelledby="livestreamViewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="livestreamViewModalLabel">
+          <i class="bi bi-broadcast"></i> <span id="livestream-title">Teacher's Livestream</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="row g-0">
+          <div class="col-md-8">
+            <div id="livestream-video-container" class="livestream-video-container">
+              <div class="stream-placeholder">
+                <i class="bi bi-camera-video-off"></i>
+                <p>Waiting for teacher's stream to start...</p>
+              </div>
+            </div>
+            <div class="stream-info py-2 px-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="badge bg-danger live-badge">LIVE</span>
+                  <span class="stream-timer ms-2" id="stream-duration">00:00</span>
+                </div>
+                <div>
+                  <span class="viewer-count"><i class="bi bi-people-fill"></i> <span id="viewer-count">0</span> viewers</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="livestream-chat">
+              <div class="chat-header">
+                <h6>Live Chat</h6>
+              </div>
+              <div id="livestream-chat-messages" class="chat-messages">
+                <div class="system-message">
+                  Welcome to the livestream chat! Be respectful and engage with your teacher.
+                </div>
+              </div>
+              <div class="chat-input-area">
+                <input type="text" id="livestream-chat-input" placeholder="Type your message...">
+                <button id="livestream-chat-send">
+                  <i class="bi bi-send"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Leave Stream</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Livestream notification template (created dynamically by JS) -->
 <template id="livestreamNotificationTemplate">
   <div class="livestream-notification">
     <div class="livestream-notification-header">
-      <span class="livestream-notification-title">New Livestream Scheduled</span>
-      <button class="livestream-notification-close" aria-label="Close notification">×</button>
+      <div class="livestream-notification-title">
+        <i class="bi bi-broadcast"></i> Live Now
+      </div>
+      <button class="livestream-notification-close">
+        <i class="bi bi-x"></i>
+      </button>
     </div>
-    <p class="notification-message">A new livestream has been scheduled for [Room Name]</p>
-    <div class="notification-details">
-      <div><strong>Title:</strong> <span class="notification-title">[Livestream Title]</span></div>
-      <div><strong>Date & Time:</strong> <span class="notification-datetime">[Date and Time]</span></div>
+    <div>
+      <p><strong class="notification-title">Teacher's Livestream</strong></p>
+      <p>Your teacher is currently livestreaming.</p>
     </div>
-    <div class="notification-actions">
-      <button class="btn btn-sm btn-primary view-livestream-btn">View Details</button>
-      <button class="btn btn-sm btn-outline-secondary remind-later-btn">Remind Me Later</button>
+    <button class="btn btn-danger btn-sm w-100 mt-2 join-stream-btn">
+      <i class="bi bi-play-fill"></i> Join Livestream
+    </button>
+  </div>
+</template>
+
+<!-- Livestream card template (for listing livestreams) -->
+<template id="livestreamCardTemplate">
+  <div class="livestream-card">
+    <div class="livestream-header">
+      <div>
+        <h5 class="livestream-title">Livestream Title</h5>
+        <p class="livestream-meta">
+          <i class="bi bi-calendar"></i> <span class="stream-date">Date</span> at <span class="stream-time">Time</span>
+          <span class="stream-duration-info">
+            <span class="mx-2">|</span> <i class="bi bi-clock"></i> <span class="stream-duration">60</span> min
+          </span>
+        </p>
+      </div>
+      <div class="livestream-status status-upcoming">UPCOMING</div>
+    </div>
+    
+    <p class="stream-description mb-3"></p>
+    
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="countdown-container"></div>
+      <div class="stream-actions"></div>
     </div>
   </div>
 </template>
 
-<!-- Add this minimal CSS to your stylesheet -->
+<!-- CSS styles for livestream functionality -->
 <style>
-/* Simplified Livestream Styles */
-.livestream-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.no-streams-message {
-  color: #6c757d;
-}
-
-/* Livestream card styles */
-.livestream-card {
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 16px;
-  background-color: #fff;
-}
-
-.livestream-title {
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.livestream-details {
-  margin: 10px 0;
-  color: #6c757d;
-}
-
-.livestream-status {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  margin-bottom: 10px;
-}
-
-.status-upcoming {
-  background-color: #e3f2fd;
-  color: #0d6efd;
-}
-
-.status-live {
-  background-color: #f8d7da;
-  color: #dc3545;
-}
-
-/* Countdown timer */
-.countdown-timer {
-  display: flex;
-  justify-content: center;
-  margin: 15px 0;
-}
-
-.countdown-segment {
-  margin: 0 8px;
-  text-align: center;
-}
-
-.countdown-number {
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  padding: 5px 10px;
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.countdown-label {
-  font-size: 0.75rem;
-  color: #6c757d;
-  margin-top: 4px;
-}
-
-/* Notification styles */
-.livestream-notification {
-  background-color: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  margin-bottom: 10px;
-  width: 300px;
-}
-
-.livestream-notification-header {
-  background-color: #f8f9fa;
-  padding: 10px 15px;
-  border-bottom: 1px solid #dee2e6;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.livestream-notification-title {
-  font-weight: 600;
-}
-
-.livestream-notification-close {
-  background: none;
-  border: none;
-  font-size: 1.25rem;
-  cursor: pointer;
-  color: #6c757d;
-}
-
-.notification-message {
-  padding: 10px 15px 5px;
-  margin: 0;
-}
-
-.notification-details {
-  padding: 0 15px 10px;
-  font-size: 0.875rem;
-}
-
-.notification-details div {
-  margin-bottom: 5px;
-}
-
-.notification-actions {
-  padding: 10px 15px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  border-top: 1px solid #eee;
-}
+  /* Livestream styles */
+  .livestream-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .livestream-video-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background-color: #111;
+    overflow: hidden;
+  }
+  
+  .stream-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+  }
+  
+  .stream-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+  
+  .livestream-chat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-left: 1px solid #dee2e6;
+  }
+  
+  .chat-header {
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .chat-header h6 {
+    margin: 0;
+  }
+  
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 15px;
+    background-color: white;
+  }
+  
+  .chat-message {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background-color: #f1f3f5;
+  }
+  
+  .chat-message.own-message {
+    background-color: #d1ecf1;
+    margin-left: 20px;
+  }
+  
+  .chat-message.teacher-message {
+    background-color: #f8d7da;
+  }
+  
+  .message-sender {
+    font-weight: bold;
+    margin-bottom: 3px;
+    font-size: 0.85rem;
+  }
+  
+  .message-content {
+    word-break: break-word;
+  }
+  
+  .system-message {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    margin: 10px 0;
+    font-size: 0.85rem;
+  }
+  
+  .chat-input-area {
+    display: flex;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+  }
+  
+  .chat-input-area input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px 0 0 4px;
+  }
+  
+  .chat-input-area button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 0 4px 4px 0;
+    padding: 0 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .stream-info {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .stream-timer {
+    font-family: monospace;
+    font-weight: bold;
+  }
+  
+  .live-badge {
+    animation: pulse 1.5s infinite;
+  }
+  
+  .viewer-count {
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+  
+  .livestream-card {
+    margin-bottom: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .livestream-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  .livestream-card.live {
+    border-color: #dc3545;
+    border-width: 2px;
+  }
+  
+  .livestream-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  
+  .livestream-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .livestream-meta {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-bottom: 0;
+  }
+  
+  .livestream-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+  
+  .status-live {
+    background-color: #dc3545;
+    color: white;
+    animation: pulse 1.5s infinite;
+  }
+  
+  .status-upcoming {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .countdown-timer {
+    display: flex;
+    margin-top: 10px;
+  }
+  
+  .countdown-segment {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 10px;
+  }
+  
+  .countdown-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+    background-color: #f8f9fa;
+    padding: 5px 8px;
+    border-radius: 4px;
+    min-width: 36px;
+    text-align: center;
+  }
+  
+  .countdown-label {
+    font-size: 0.7rem;
+    color: #6c757d;
+    margin-top: 3px;
+  }
+  
+  .livestream-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 300px;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 15px;
+    z-index: 1050;
+    border-left: 4px solid #dc3545;
+    animation: slideIn 0.3s ease;
+  }
+  
+  .livestream-notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .livestream-notification-title {
+    font-weight: bold;
+    color: #dc3545;
+  }
+  
+  .livestream-notification-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+  }
+  
+  @keyframes slideIn {
+    from { transform: translateX(-50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .livestream-video-container {
+      height: 250px;
+    }
+    
+    .livestream-chat {
+      border-left: none;
+      border-top: 1px solid #dee2e6;
+      height: 250px;
+    }
+    
+    .livestream-notification {
+      width: calc(100% - 40px);
+      max-width: 350px;
+      left: 20px;
+    }
+  }
 </style>
 
 <!-- Hidden data elements to pass information to the JavaScript -->
@@ -676,7 +920,12 @@
   }
 </script>
 
-
+<script>
+  // Initialize the student livestream module
+  document.addEventListener('DOMContentLoaded', function() {
+    StudentLivestream.init();
+  });
+</script>
 
 <script>
     // Make sure the modal is properly initialized by Bootstrap
@@ -701,10 +950,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   <!-- Main JS Files -->
   <script src="{% static 'js/students-analitics.js' %}"></script>
-  <script src="{% static 'js/student_livestream.js' %}"></script>
+  <script src="{% static 'js/livestream_students.js' %}"></script>
   <script src="{% static 'js/main.js' %}"></script>
   <script src="{% static 'js/summarize.js' %}"></script>
-
+  <!-- Agora SDK -->
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script> 
     
         

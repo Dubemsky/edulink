@@ -328,6 +328,123 @@ def get_active_streams(request):
     except Exception as e:
         print(f"Error getting active streams: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
+    
+@csrf_exempt
+def leave_livestream(request):
+    """
+    Handle when a viewer leaves a livestream.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
+    
+    try:
+        data = json.loads(request.body)
+        stream_id = data.get('stream_id')
+        user_id = data.get('user_id')
+        
+        if not stream_id or not user_id:
+            return JsonResponse({'success': False, 'error': 'Missing required fields'})
+        
+        # Check if stream exists
+        stream_ref = db.collection('livestreams').document(stream_id)
+        stream_doc = stream_ref.get()
+        
+        if not stream_doc.exists:
+            return JsonResponse({'success': False, 'error': 'Stream not found'})
+        
+        # Find the viewer record
+        viewers_query = db.collection('livestream_viewers') \
+                         .where('stream_id', '==', stream_id) \
+                         .where('user_id', '==', user_id) \
+                         .limit(1) \
+                         .stream()
+        
+        viewer_docs = list(viewers_query)
+        
+        if viewer_docs:
+            # Update the viewer record with left_at timestamp
+            viewer_ref = db.collection('livestream_viewers').document(viewer_docs[0].id)
+            viewer_ref.update({
+                'left_at': firestore.SERVER_TIMESTAMP,
+                'is_active': False
+            })
+            
+            # Decrement viewer count
+            stream_ref.update({
+                'viewer_count': firestore.Increment(-1)
+            })
+            
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'error': 'Viewer record not found'})
+        
+    except Exception as e:
+        print(f"Error leaving livestream: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+def get_stream_viewers(request):
+    """
+    Get all active viewers for a specific livestream.
+    """
+    stream_id = request.GET.get('stream_id')
+    
+    if not stream_id:
+        return JsonResponse({'success': False, 'error': 'Stream ID is required'})
+    
+    try:
+        # Verify the stream exists
+        stream_ref = db.collection('livestreams').document(stream_id)
+        stream_doc = stream_ref.get()
+        
+        if not stream_doc.exists:
+            return JsonResponse({'success': False, 'error': 'Stream not found'})
+        
+        # Query Firebase for active viewers in this stream
+        viewers_query = db.collection('livestream_viewers') \
+                         .where('stream_id', '==', stream_id) \
+                         .where('is_active', '==', True) \
+                         .stream()
+        
+        viewers = []
+        for viewer_doc in viewers_query:
+            viewer_data = viewer_doc.to_dict()
+            
+            # Add the user details if needed (you might want to fetch user profiles here)
+            # For example, if you have user profiles in Firebase or Django models
+            try:
+                # This assumes you have a User model in Django that can be queried by user_id
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.get(username=viewer_data.get('user_id'))
+                
+                # Add basic user info to viewer data
+                viewer_data['display_name'] = f"{user.first_name} {user.last_name}"
+                viewer_data['profile_pic'] = user.profile.profile_pic.url if hasattr(user, 'profile') and user.profile.profile_pic else None
+            except Exception as e:
+                # If user details can't be fetched, continue with base data
+                print(f"Error fetching user details: {e}")
+                viewer_data['display_name'] = viewer_data.get('user_id')
+                viewer_data['profile_pic'] = None
+            
+            viewers.append(viewer_data)
+        
+        # Get the stream details
+        stream_data = stream_doc.to_dict()
+        # Remove sensitive data
+        if 'token' in stream_data:
+            del stream_data['token']
+        
+        return JsonResponse({
+            'success': True,
+            'stream': stream_data,
+            'viewers': viewers,
+            'viewer_count': len(viewers)
+        })
+        
+    except Exception as e:
+        print(f"Error getting stream viewers: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
 
 @csrf_exempt
 def schedule_livestream(request):
