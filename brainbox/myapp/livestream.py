@@ -75,7 +75,7 @@ def start_livestream(request):
         token = generate_rtc_token(
             channel_name=channel_name,
             uid=0,  # Use 0 for the host
-            role=agora_token_builder.RtcTokenBuilder.RolePublisher
+            role=1
         )
         
         if not token:

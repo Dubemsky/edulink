@@ -15,31 +15,50 @@ let currentRoomId = null;
 let cameraEnabled = true;
 let micEnabled = true;
 
+console.log("Livestream Teachers JS loaded - Initial declarations complete");
+
 // Initialize when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM Content Loaded event triggered");
+    
     // Get the current room ID
     const roomIdElement = document.getElementById('room-id-data');
+    console.log("Room ID Element:", roomIdElement);
+    
     if (roomIdElement) {
         currentRoomId = roomIdElement.dataset.roomId;
+        console.log("Current Room ID set to:", currentRoomId);
+    } else {
+        console.warn("Room ID Element not found in the DOM");
     }
     
     // Set up the Go Live modal
+    console.log("Initializing Go Live modal");
     initLivestreamModal();
     
     // Set up the Schedule Livestream modal
+    console.log("Initializing Schedule Livestream modal");
     initScheduleModal();
     
     // Load scheduled livestreams
+    console.log("Loading scheduled livestreams");
     loadScheduledLivestreams();
 });
 
 // Initialize the Go Live modal
 function initLivestreamModal() {
     const modal = document.getElementById('goLiveModal');
-    if (!modal) return;
+    console.log("Go Live Modal element:", modal);
+    
+    if (!modal) {
+        console.warn("Go Live Modal not found in the DOM");
+        return;
+    }
     
     // Handle modal open event
+    console.log("Setting up modal open event listener");
     modal.addEventListener('show.bs.modal', function (event) {
+        console.log("Modal show event triggered");
         // Reset form
         resetLivestreamForm();
         
@@ -51,76 +70,132 @@ function initLivestreamModal() {
     });
     
     // Handle modal close event
+    console.log("Setting up modal close event listener");
     modal.addEventListener('hidden.bs.modal', function (event) {
+        console.log("Modal hidden event triggered");
         // Stop camera preview
         stopCameraPreview();
     });
     
     // Set up toggle buttons
     const toggleCameraBtn = document.getElementById('toggleCameraBtn');
+    console.log("Toggle Camera Button:", toggleCameraBtn);
+    
     if (toggleCameraBtn) {
-        toggleCameraBtn.addEventListener('click', toggleCameraPreview);
+        toggleCameraBtn.addEventListener('click', function() {
+            console.log("Toggle Camera clicked");
+            toggleCameraPreview();
+        });
+    } else {
+        console.warn("Toggle Camera Button not found in the DOM");
     }
     
     const toggleMicBtn = document.getElementById('toggleMicBtn');
+    console.log("Toggle Mic Button:", toggleMicBtn);
+    
     if (toggleMicBtn) {
-        toggleMicBtn.addEventListener('click', toggleMicPreview);
+        toggleMicBtn.addEventListener('click', function() {
+            console.log("Toggle Mic clicked");
+            toggleMicPreview();
+        });
+    } else {
+        console.warn("Toggle Mic Button not found in the DOM");
     }
     
     // Set up start livestream button
     const startLivestreamBtn = document.getElementById('startLivestreamBtn');
+    console.log("Start Livestream Button:", startLivestreamBtn);
+    
     if (startLivestreamBtn) {
-        startLivestreamBtn.addEventListener('click', handleStartLivestream);
+        startLivestreamBtn.addEventListener('click', function() {
+            console.log("Start Livestream clicked");
+            handleStartLivestream();
+        });
+    } else {
+        console.warn("Start Livestream Button not found in the DOM");
     }
+    
+    console.log("Go Live Modal initialization complete");
 }
 
 // Initialize the Schedule Livestream modal
 function initScheduleModal() {
+    console.log("Initializing Schedule Modal");
+    
     const scheduleBtn = document.getElementById('scheduleLivestreamBtn');
+    console.log("Schedule Livestream Button:", scheduleBtn);
+    
     if (scheduleBtn) {
         scheduleBtn.addEventListener('click', function() {
+            console.log("Schedule Livestream Button clicked");
             // Close the manage livestreams modal
             const manageModal = bootstrap.Modal.getInstance(document.getElementById('manageLivestreamModal'));
+            console.log("Manage Modal instance:", manageModal);
+            
             if (manageModal) {
                 manageModal.hide();
             }
             
             // Open the schedule form modal
             const scheduleFormModal = new bootstrap.Modal(document.getElementById('scheduleLivestreamFormModal'));
+            console.log("Schedule Form Modal instance:", scheduleFormModal);
             scheduleFormModal.show();
         });
+    } else {
+        console.warn("Schedule Livestream Button not found in the DOM");
     }
     
     // Set minimum date for the date picker
     const dateInput = document.getElementById('livestreamDate');
+    console.log("Date Input element:", dateInput);
+    
     if (dateInput) {
         const today = new Date().toISOString().split('T')[0];
         dateInput.min = today;
         dateInput.value = today;
+    } else {
+        console.warn("Date Input not found in the DOM");
     }
     
     // Set up create button
     const createLivestreamBtn = document.getElementById('createLivestreamBtn');
+    console.log("Create Livestream Button:", createLivestreamBtn);
+    
     if (createLivestreamBtn) {
-        createLivestreamBtn.addEventListener('click', handleScheduleLivestream);
+        createLivestreamBtn.addEventListener('click', function() {
+            console.log("Create Livestream Button clicked");
+            handleScheduleLivestream();
+        });
+    } else {
+        console.warn("Create Livestream Button not found in the DOM");
     }
+    
+    console.log("Schedule Modal initialization complete");
 }
 
 // Reset the livestream form
 function resetLivestreamForm() {
+    console.log("Resetting livestream form");
+    
     const titleInput = document.getElementById('liveTitleInput');
     if (titleInput) {
         titleInput.value = '';
+    } else {
+        console.warn("Live Title Input not found in the DOM");
     }
     
     const notifyCheckbox = document.getElementById('notifyStudentsLive');
     if (notifyCheckbox) {
         notifyCheckbox.checked = true;
+    } else {
+        console.warn("Notify Students Checkbox not found in the DOM");
     }
     
     const errorAlert = document.getElementById('liveErrorAlert');
     if (errorAlert) {
         errorAlert.style.display = 'none';
+    } else {
+        console.warn("Live Error Alert not found in the DOM");
     }
     
     // Reset device selection
@@ -130,15 +205,22 @@ function resetLivestreamForm() {
     // Reset preview state
     cameraEnabled = true;
     micEnabled = true;
+    
+    console.log("Livestream form reset complete");
 }
 
 // Initialize device selectors with available cameras and microphones
 async function initDeviceSelectors() {
+    console.log("Initializing device selectors");
+    
     try {
         // Get available media devices
+        console.log("Getting available media devices");
         const devices = await getMediaDevices();
+        console.log("Retrieved devices:", devices);
         
         if (devices.error) {
+            console.error("Error getting media devices:", devices.error);
             showDeviceError('Failed to access camera and microphone: ' + devices.error);
             return;
         }
@@ -146,13 +228,19 @@ async function initDeviceSelectors() {
         availableCameras = devices.videoDevices;
         availableMicrophones = devices.audioDevices;
         
+        console.log("Available cameras:", availableCameras.length);
+        console.log("Available microphones:", availableMicrophones.length);
+        
         // Populate camera dropdown
         const cameraSelect = document.getElementById('cameraSelect');
+        console.log("Camera Select element:", cameraSelect);
+        
         if (cameraSelect) {
             // Clear existing options
             cameraSelect.innerHTML = '';
             
             if (availableCameras.length === 0) {
+                console.log("No cameras available");
                 const option = document.createElement('option');
                 option.value = '';
                 option.textContent = 'No cameras available';
@@ -173,23 +261,30 @@ async function initDeviceSelectors() {
                 if (availableCameras.length > 0) {
                     selectedCameraId = availableCameras[0].deviceId;
                     cameraSelect.value = selectedCameraId;
+                    console.log("Default camera set to:", selectedCameraId);
                 }
                 
                 // Handle camera change
                 cameraSelect.addEventListener('change', function() {
+                    console.log("Camera selection changed to:", this.value);
                     selectedCameraId = this.value;
                     updateCameraPreview();
                 });
             }
+        } else {
+            console.warn("Camera Select not found in the DOM");
         }
         
         // Populate microphone dropdown
         const micSelect = document.getElementById('micSelect');
+        console.log("Mic Select element:", micSelect);
+        
         if (micSelect) {
             // Clear existing options
             micSelect.innerHTML = '';
             
             if (availableMicrophones.length === 0) {
+                console.log("No microphones available");
                 const option = document.createElement('option');
                 option.value = '';
                 option.textContent = 'No microphones available';
@@ -210,9 +305,14 @@ async function initDeviceSelectors() {
                 if (availableMicrophones.length > 0) {
                     selectedMicrophoneId = availableMicrophones[0].deviceId;
                     micSelect.value = selectedMicrophoneId;
+                    console.log("Default microphone set to:", selectedMicrophoneId);
                 }
             }
+        } else {
+            console.warn("Mic Select not found in the DOM");
         }
+        
+        console.log("Device selectors initialization complete");
     } catch (error) {
         console.error('Error initializing device selectors:', error);
         showDeviceError('Failed to initialize device selectors');
@@ -221,12 +321,23 @@ async function initDeviceSelectors() {
 
 // Start camera preview
 async function startCameraPreview() {
-    if (isPreviewActive) return;
+    console.log("Starting camera preview, isPreviewActive:", isPreviewActive);
+    
+    if (isPreviewActive) {
+        console.log("Preview already active, returning");
+        return;
+    }
     
     const previewContainer = document.getElementById('localPreview');
     const cameraOffMessage = document.getElementById('camera-off-message');
     
-    if (!previewContainer) return;
+    console.log("Preview container:", previewContainer);
+    console.log("Camera off message element:", cameraOffMessage);
+    
+    if (!previewContainer) {
+        console.warn("Preview container not found in the DOM");
+        return;
+    }
     
     try {
         // Create constraints
@@ -235,8 +346,12 @@ async function startCameraPreview() {
             video: selectedCameraId ? { deviceId: { exact: selectedCameraId } } : true
         };
         
+        console.log("Media constraints:", constraints);
+        
         // Get user media
+        console.log("Requesting user media");
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("Media stream obtained:", stream);
         
         // Store the stream
         cameraPreview = stream;
@@ -244,12 +359,16 @@ async function startCameraPreview() {
         // Display the preview
         previewContainer.srcObject = stream;
         previewContainer.style.display = 'block';
-        if (cameraOffMessage) cameraOffMessage.style.display = 'none';
+        
+        if (cameraOffMessage) {
+            cameraOffMessage.style.display = 'none';
+        }
         
         isPreviewActive = true;
         
         // Update toggle buttons
         updateToggleButtons();
+        console.log("Camera preview started successfully");
     } catch (error) {
         console.error('Error starting camera preview:', error);
         
@@ -263,20 +382,32 @@ async function startCameraPreview() {
 
 // Stop camera preview
 function stopCameraPreview() {
-    if (!isPreviewActive || !cameraPreview) return;
+    console.log("Stopping camera preview, isPreviewActive:", isPreviewActive, "cameraPreview:", cameraPreview);
+    
+    if (!isPreviewActive || !cameraPreview) {
+        console.log("No active preview to stop");
+        return;
+    }
     
     try {
         // Stop all tracks
-        cameraPreview.getTracks().forEach(track => track.stop());
+        console.log("Stopping all tracks in the stream");
+        cameraPreview.getTracks().forEach(track => {
+            console.log("Stopping track:", track.kind);
+            track.stop();
+        });
         
         // Reset preview
         const previewContainer = document.getElementById('localPreview');
+        console.log("Preview container for cleanup:", previewContainer);
+        
         if (previewContainer) {
             previewContainer.srcObject = null;
         }
         
         isPreviewActive = false;
         cameraPreview = null;
+        console.log("Camera preview stopped successfully");
     } catch (error) {
         console.error('Error stopping camera preview:', error);
     }
@@ -284,18 +415,30 @@ function stopCameraPreview() {
 
 // Update camera preview with new device
 async function updateCameraPreview() {
-    if (!isPreviewActive) return;
+    console.log("Updating camera preview with new device, isPreviewActive:", isPreviewActive);
+    
+    if (!isPreviewActive) {
+        console.log("No active preview to update");
+        return;
+    }
     
     // Stop current preview
+    console.log("Stopping current preview before updating");
     stopCameraPreview();
     
     // Start new preview
+    console.log("Starting new preview with updated device");
     await startCameraPreview();
 }
 
 // Toggle camera preview on/off
 function toggleCameraPreview() {
-    if (!isPreviewActive || !cameraPreview) return;
+    console.log("Toggling camera preview, isPreviewActive:", isPreviewActive, "cameraPreview:", cameraPreview);
+    
+    if (!isPreviewActive || !cameraPreview) {
+        console.log("No active preview to toggle");
+        return;
+    }
     
     try {
         const previewContainer = document.getElementById('localPreview');
@@ -304,13 +447,16 @@ function toggleCameraPreview() {
         
         // Get video tracks
         const videoTracks = cameraPreview.getVideoTracks();
+        console.log("Video tracks:", videoTracks);
         
         if (videoTracks.length > 0) {
             // Toggle enabled state
             cameraEnabled = !cameraEnabled;
+            console.log("Camera enabled set to:", cameraEnabled);
             
             // Update tracks
             videoTracks.forEach(track => {
+                console.log("Setting video track enabled to:", cameraEnabled);
                 track.enabled = cameraEnabled;
             });
             
@@ -332,20 +478,28 @@ function toggleCameraPreview() {
 
 // Toggle microphone preview on/off
 function toggleMicPreview() {
-    if (!isPreviewActive || !cameraPreview) return;
+    console.log("Toggling microphone preview, isPreviewActive:", isPreviewActive, "cameraPreview:", cameraPreview);
+    
+    if (!isPreviewActive || !cameraPreview) {
+        console.log("No active preview to toggle microphone");
+        return;
+    }
     
     try {
         const toggleButton = document.getElementById('toggleMicBtn');
         
         // Get audio tracks
         const audioTracks = cameraPreview.getAudioTracks();
+        console.log("Audio tracks:", audioTracks);
         
         if (audioTracks.length > 0) {
             // Toggle enabled state
             micEnabled = !micEnabled;
+            console.log("Microphone enabled set to:", micEnabled);
             
             // Update tracks
             audioTracks.forEach(track => {
+                console.log("Setting audio track enabled to:", micEnabled);
                 track.enabled = micEnabled;
             });
             
@@ -363,8 +517,13 @@ function toggleMicPreview() {
 
 // Update toggle buttons state
 function updateToggleButtons() {
+    console.log("Updating toggle buttons, cameraEnabled:", cameraEnabled, "micEnabled:", micEnabled);
+    
     const cameraButton = document.getElementById('toggleCameraBtn');
     const micButton = document.getElementById('toggleMicBtn');
+    
+    console.log("Camera button:", cameraButton);
+    console.log("Mic button:", micButton);
     
     if (cameraButton) {
         cameraButton.innerHTML = cameraEnabled ? 
@@ -381,16 +540,23 @@ function updateToggleButtons() {
 
 // Handle start livestream button click
 async function handleStartLivestream() {
+    console.log("Handle start livestream called");
+    
     // Validate form
     const titleInput = document.getElementById('liveTitleInput');
     const title = titleInput ? titleInput.value.trim() : '';
     
+    console.log("Live title input:", titleInput);
+    console.log("Title value:", title);
+    
     if (!title) {
+        console.warn("No title provided");
         showDeviceError('Please enter a title for your livestream');
         return;
     }
     
     if (!currentRoomId) {
+        console.warn("No room ID available");
         showDeviceError('Room ID is not available');
         return;
     }
@@ -399,8 +565,13 @@ async function handleStartLivestream() {
     const notifyCheckbox = document.getElementById('notifyStudentsLive');
     const notifyStudents = notifyCheckbox ? notifyCheckbox.checked : true;
     
+    console.log("Notify students checkbox:", notifyCheckbox);
+    console.log("Notify students:", notifyStudents);
+    
     // Disable the button to prevent multiple clicks
     const startButton = document.getElementById('startLivestreamBtn');
+    console.log("Start button:", startButton);
+    
     if (startButton) {
         startButton.disabled = true;
         startButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Starting...';
@@ -408,19 +579,30 @@ async function handleStartLivestream() {
     
     try {
         // Stop preview
+        console.log("Stopping preview before starting livestream");
         stopCameraPreview();
         
         // Close the modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('goLiveModal'));
+        console.log("Modal instance:", modal);
+        
         if (modal) {
             modal.hide();
         }
         
         // Start the livestream
-        await startLivestream(currentRoomId, title, notifyStudents);
+        console.log("Calling startLivestream with roomId:", currentRoomId, "title:", title, "notifyStudents:", notifyStudents);
         
-        // Show success message
-        showToast('You are now live! Your students can join your stream.', 'success');
+        // Check if startLivestream function exists
+        if (typeof startLivestream === 'function') {
+            await startLivestream(currentRoomId, title, notifyStudents);
+            
+            // Show success message
+            showToast('You are now live! Your students can join your stream.', 'success');
+        } else {
+            console.error("startLivestream function is not defined");
+            showDeviceError('The livestream functionality is not properly loaded. Please refresh the page.');
+        }
     } catch (error) {
         console.error('Error starting livestream:', error);
         showDeviceError('Failed to start livestream: ' + error.message);
@@ -433,109 +615,39 @@ async function handleStartLivestream() {
     }
 }
 
-// Handle schedule livestream button click
-async function handleScheduleLivestream() {
-    // Get form values
-    const titleInput = document.getElementById('livestreamTitle');
-    const descriptionInput = document.getElementById('livestreamDescription');
-    const dateInput = document.getElementById('livestreamDate');
-    const timeInput = document.getElementById('livestreamTime');
-    const durationInput = document.getElementById('livestreamDuration');
-    const notifyCheckbox = document.getElementById('notifyStudents');
-    
-    // Validate inputs
-    if (!titleInput || !titleInput.value.trim()) {
-        showScheduleError('Please enter a title for your livestream');
-        return;
-    }
-    
-    if (!dateInput || !dateInput.value) {
-        showScheduleError('Please select a date for your livestream');
-        return;
-    }
-    
-    if (!timeInput || !timeInput.value) {
-        showScheduleError('Please select a time for your livestream');
-        return;
-    }
-    
-    if (!durationInput || !durationInput.value || durationInput.value < 15) {
-        showScheduleError('Please specify a duration of at least 15 minutes');
-        return;
-    }
-    
-    // Prepare data
-    const title = titleInput.value.trim();
-    const description = descriptionInput ? descriptionInput.value.trim() : '';
-    const date = dateInput.value;
-    const time = timeInput.value;
-    const duration = parseInt(durationInput.value);
-    const notifyStudents = notifyCheckbox ? notifyCheckbox.checked : true;
-    
-    // Disable the button to prevent multiple clicks
-    const scheduleButton = document.getElementById('createLivestreamBtn');
-    if (scheduleButton) {
-        scheduleButton.disabled = true;
-        scheduleButton.textContent = 'Scheduling...';
-    }
-    
-    try {
-        // Schedule the livestream
-        const success = await scheduleLivestream(
-            currentRoomId,
-            title,
-            description,
-            date,
-            time,
-            duration,
-            notifyStudents
-        );
-        
-        if (success) {
-            // Close the modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleLivestreamFormModal'));
-            if (modal) {
-                modal.hide();
-            }
-            
-            // Reload scheduled livestreams
-            loadScheduledLivestreams();
-            
-            // Open manage livestreams modal again
-            setTimeout(() => {
-                const manageModal = new bootstrap.Modal(document.getElementById('manageLivestreamModal'));
-                manageModal.show();
-            }, 500);
-            
-            // Show success message
-            showToast('Livestream scheduled successfully!', 'success');
-        }
-    } catch (error) {
-        console.error('Error scheduling livestream:', error);
-        showScheduleError('Failed to schedule livestream: ' + error.message);
-    } finally {
-        // Re-enable the button
-        if (scheduleButton) {
-            scheduleButton.disabled = false;
-            scheduleButton.textContent = 'Schedule Livestream';
-        }
-    }
-}
-
-// Load scheduled livestreams
+// Load scheduled livestreams 
 async function loadScheduledLivestreams() {
-    if (!currentRoomId) return;
+    console.log("Loading scheduled livestreams, currentRoomId:", currentRoomId);
+    
+    if (!currentRoomId) {
+        console.warn("No room ID available for loading scheduled livestreams");
+        return;
+    }
     
     try {
         // Show loading indicators
-        document.getElementById('upcoming-loading')?.style.display = 'block';
-        document.getElementById('past-loading')?.style.display = 'block';
-        document.getElementById('no-upcoming-streams')?.style.display = 'none';
-        document.getElementById('no-past-streams')?.style.display = 'none';
+        const upcomingLoading = document.getElementById('upcoming-loading');
+        const pastLoading = document.getElementById('past-loading');
+        const noUpcomingStreams = document.getElementById('no-upcoming-streams');
+        const noPastStreams = document.getElementById('no-past-streams');
+        
+        console.log("Loading indicators:", {
+            upcomingLoading, 
+            pastLoading, 
+            noUpcomingStreams, 
+            noPastStreams
+        });
+        
+        if (upcomingLoading) upcomingLoading.style.display = 'block';
+        if (pastLoading) pastLoading.style.display = 'block';
+        if (noUpcomingStreams) noUpcomingStreams.style.display = 'none';
+        if (noPastStreams) noPastStreams.style.display = 'none';
         
         // Clear existing content
         const upcomingList = document.getElementById('upcomingStreamsList');
         const pastList = document.getElementById('pastStreamsList');
+        
+        console.log("Livestream lists:", {upcomingList, pastList});
         
         if (upcomingList) {
             // Keep the loading indicator
@@ -551,214 +663,140 @@ async function loadScheduledLivestreams() {
             if (loading) pastList.appendChild(loading);
         }
         
+        // Check if getScheduledLivestreams function exists
+        if (typeof getScheduledLivestreams !== 'function') {
+            console.error("getScheduledLivestreams function is not defined");
+            throw new Error("The livestream functionality is not properly loaded");
+        }
+        
         // Fetch scheduled livestreams
+        console.log("Fetching scheduled livestreams for roomId:", currentRoomId);
         const livestreams = await getScheduledLivestreams(currentRoomId);
+        console.log("Received livestreams data:", livestreams);
         
         // Hide loading indicators
-        document.getElementById('upcoming-loading')?.style.display = 'none';
-        document.getElementById('past-loading')?.style.display = 'none';
+        if (upcomingLoading) upcomingLoading.style.display = 'none';
+        if (pastLoading) pastLoading.style.display = 'none';
         
         // Process upcoming livestreams
         if (upcomingList) {
             if (livestreams.upcoming && livestreams.upcoming.length > 0) {
+                console.log("Processing", livestreams.upcoming.length, "upcoming livestreams");
                 livestreams.upcoming.forEach(stream => {
                     upcomingList.appendChild(createLivestreamCard(stream, 'upcoming'));
                 });
             } else {
-                document.getElementById('no-upcoming-streams')?.style.display = 'block';
+                console.log("No upcoming livestreams");
+                if (noUpcomingStreams) noUpcomingStreams.style.display = 'block';
             }
         }
         
         // Process past livestreams
         if (pastList) {
             if (livestreams.past && livestreams.past.length > 0) {
+                console.log("Processing", livestreams.past.length, "past livestreams");
                 livestreams.past.forEach(stream => {
                     pastList.appendChild(createLivestreamCard(stream, 'past'));
                 });
             } else {
-                document.getElementById('no-past-streams')?.style.display = 'block';
+                console.log("No past livestreams");
+                if (noPastStreams) noPastStreams.style.display = 'block';
             }
         }
     } catch (error) {
         console.error('Error loading scheduled livestreams:', error);
         
         // Hide loading indicators
-        document.getElementById('upcoming-loading')?.style.display = 'none';
-        document.getElementById('past-loading')?.style.display = 'none';
+        const upcomingLoading = document.getElementById('upcoming-loading');
+        const pastLoading = document.getElementById('past-loading');
+        const noUpcomingStreams = document.getElementById('no-upcoming-streams');
+        const noPastStreams = document.getElementById('no-past-streams');
+        
+        if (upcomingLoading) upcomingLoading.style.display = 'none';
+        if (pastLoading) pastLoading.style.display = 'none';
         
         // Show error message
-        document.getElementById('no-upcoming-streams')?.style.display = 'block';
-        document.getElementById('no-past-streams')?.style.display = 'block';
-        
-        if (document.getElementById('no-upcoming-streams')) {
-            document.getElementById('no-upcoming-streams').innerHTML = 
-                '<p>Error loading livestreams. Please try again.</p>';
+        if (noUpcomingStreams) {
+            noUpcomingStreams.style.display = 'block';
+            noUpcomingStreams.innerHTML = '<p>Error loading livestreams. Please try again.</p>';
         }
         
-        if (document.getElementById('no-past-streams')) {
-            document.getElementById('no-past-streams').innerHTML = 
-                '<p>Error loading livestreams. Please try again.</p>';
+        if (noPastStreams) {
+            noPastStreams.style.display = 'block';
+            noPastStreams.innerHTML = '<p>Error loading livestreams. Please try again.</p>';
         }
     }
 }
 
-// Create a livestream card element
-function createLivestreamCard(stream, type) {
-    const card = document.createElement('div');
-    card.className = 'livestream-card';
-    card.dataset.streamId = stream.id || stream.schedule_id;
+// Helper to get media devices
+async function getMediaDevices() {
+    console.log("Getting media devices");
     
-    // Parse the scheduled time
-    const scheduledTime = new Date(stream.scheduled_time);
-    const formattedDate = scheduledTime.toLocaleDateString(undefined, { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
-    });
-    const formattedTime = scheduledTime.toLocaleTimeString(undefined, { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    });
-    
-    // Calculate if the stream is today
-    const today = new Date();
-    const isToday = 
-        scheduledTime.getDate() === today.getDate() &&
-        scheduledTime.getMonth() === today.getMonth() &&
-        scheduledTime.getFullYear() === today.getFullYear();
-    
-    // Generate card content
-    let cardContent = `
-        <div class="livestream-header">
-            <div>
-                <h4 class="livestream-title">${stream.title || 'Untitled Livestream'}</h4>
-                <div class="livestream-meta">
-                    <span>${isToday ? 'Today' : formattedDate} at ${formattedTime}</span>
-                    ${stream.duration_minutes ? `<span> · ${stream.duration_minutes} minutes</span>` : ''}
-                </div>
-            </div>
-            <span class="livestream-status ${type}">${
-                type === 'upcoming' ? 'Scheduled' : 
-                (stream.status === 'cancelled' ? 'Cancelled' : 'Completed')
-            }</span>
-        </div>
-    `;
-    
-    if (stream.description) {
-        cardContent += `<div class="livestream-description">${stream.description}</div>`;
-    }
-    
-    // Add countdown or actions based on type
-    if (type === 'upcoming') {
-        // Calculate time until the stream
-        const now = new Date();
-        const timeUntil = scheduledTime - now;
-        
-        // Only show the countdown if it's within 24 hours
-        if (timeUntil > 0 && timeUntil < 24 * 60 * 60 * 1000) {
-            const hours = Math.floor(timeUntil / (1000 * 60 * 60));
-            const minutes = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
-            
-            cardContent += `
-                <div class="countdown-timer">
-                    Starts in: 
-                    <div class="countdown-segment">
-                        <div class="countdown-number">${hours}</div>
-                        <div class="countdown-label">hr</div>
-                    </div>
-                    <div class="countdown-segment">
-                        <div class="countdown-number">${minutes}</div>
-                        <div class="countdown-label">min</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Add actions
-        cardContent += `
-            <div class="livestream-footer">
-                <div></div>
-                <div class="livestream-actions">
-                    <button class="btn btn-sm btn-danger cancel-stream-btn" 
-                            onclick="cancelScheduledStream('${stream.id || stream.schedule_id}')">
-                        <i class="bi bi-x-circle"></i> Cancel
-                    </button>
-                </div>
-            </div>
-        `;
-    } else {
-        // Past livestream
-        cardContent += `
-            <div class="livestream-footer">
-                <div></div>
-                <div class="livestream-actions">
-                    ${stream.status !== 'cancelled' ? `
-                        <button class="btn btn-sm btn-outline-secondary view-details-btn">
-                            <i class="bi bi-info-circle"></i> Details
-                        </button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    }
-    
-    card.innerHTML = cardContent;
-    return card;
-}
-
-// Cancel a scheduled livestream
-async function cancelScheduledStream(scheduleId) {
-    if (!confirm('Are you sure you want to cancel this scheduled livestream?')) {
-        return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        console.error("Media devices API not supported in this browser");
+        return {
+            videoDevices: [],
+            audioDevices: [],
+            error: 'Media devices API not supported in this browser'
+        };
     }
     
     try {
-        showToast('Cancelling scheduled livestream...', 'info');
+        // Request permissions
+        console.log("Requesting media permissions");
+        await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
         
-        const success = await cancelScheduledLivestream(scheduleId);
+        // Enumerate devices
+        console.log("Enumerating devices");
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        console.log("All devices:", devices);
         
-        if (success) {
-            // Reload scheduled livestreams
-            loadScheduledLivestreams();
-            
-            showToast('Livestream cancelled successfully', 'success');
-        } else {
-            showToast('Failed to cancel livestream', 'error');
-        }
+        // Filter by type
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        const audioDevices = devices.filter(device => device.kind === 'audioinput');
+        
+        console.log("Video devices:", videoDevices);
+        console.log("Audio devices:", audioDevices);
+        
+        return {
+            videoDevices,
+            audioDevices
+        };
     } catch (error) {
-        console.error('Error cancelling scheduled livestream:', error);
-        showToast('Error cancelling livestream: ' + error.message, 'error');
+        console.error('Error accessing media devices:', error);
+        return {
+            videoDevices: [],
+            audioDevices: [],
+            error: error.message || 'Error accessing camera and microphone'
+        };
     }
 }
 
 // Show device error
 function showDeviceError(message) {
+    console.error("Device error:", message);
+    
     const errorAlert = document.getElementById('liveErrorAlert');
+    console.log("Error alert element:", errorAlert);
+    
     if (errorAlert) {
         errorAlert.textContent = message;
         errorAlert.style.display = 'block';
     } else {
-        alert(message);
-    }
-}
-
-// Show schedule error
-function showScheduleError(message) {
-    const errorAlert = document.getElementById('scheduleLivestreamError');
-    if (errorAlert) {
-        errorAlert.textContent = message;
-        errorAlert.style.display = 'block';
-    } else {
+        console.warn("Error alert element not found, falling back to alert()");
         alert(message);
     }
 }
 
 // Show toast notification
 function showToast(message, type = 'info') {
+    console.log("Showing toast:", message, "type:", type);
+    
     // Create a toast container if it doesn't exist
     let toastContainer = document.getElementById('toast-container');
+    
     if (!toastContainer) {
+        console.log("Creating toast container");
         toastContainer = document.createElement('div');
         toastContainer.id = 'toast-container';
         toastContainer.style.position = 'fixed';
@@ -789,6 +827,7 @@ function showToast(message, type = 'info') {
     
     // Add the toast to the container
     toastContainer.appendChild(toast);
+    console.log("Toast added to container");
     
     // Make the toast visible
     setTimeout(() => {
@@ -800,41 +839,9 @@ function showToast(message, type = 'info') {
         toast.style.opacity = '0';
         setTimeout(() => {
             toast.remove();
+            console.log("Toast removed");
         }, 300);
     }, 5000);
 }
 
-// Helper to get media devices
-async function getMediaDevices() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        return {
-            videoDevices: [],
-            audioDevices: [],
-            error: 'Media devices API not supported in this browser'
-        };
-    }
-    
-    try {
-        // Request permissions
-        await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        
-        // Enumerate devices
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        
-        // Filter by type
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        const audioDevices = devices.filter(device => device.kind === 'audioinput');
-        
-        return {
-            videoDevices,
-            audioDevices
-        };
-    } catch (error) {
-        console.error('Error accessing media devices:', error);
-        return {
-            videoDevices: [],
-            audioDevices: [],
-            error: error.message || 'Error accessing camera and microphone'
-        };
-    }
-}
+console.log("Debug livestream_teachers.js script loaded completely");
