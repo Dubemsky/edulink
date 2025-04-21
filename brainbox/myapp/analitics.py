@@ -923,7 +923,6 @@ def get_room_analytics(request, **kwargs):
                 "sentiment_ratio": round(upvotes_total / max(downvotes_total, 1), 2) if downvotes_total > 0 else upvotes_total
             }
         }
-        print(f"\n\n{analytics['polls']}\n\n")
         
         return JsonResponse({
             "success": True,

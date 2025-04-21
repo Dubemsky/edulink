@@ -101,6 +101,50 @@ def track_hub_join_activity(user_id, hub_id, hub_name):
     )
 
 
+
+user_profile = {
+    "uid": "4mE4NOBKTqTIkdaY4bs79NPORF22",  
+    "email": "c21418732@mytudublin.ie",
+    "role": "student",  
+    "is_email_verified": True,
+    "Followers" : 27,
+    "Following" : 14,
+    "profile": {
+        "full_name": "Chidubem Amechi",
+        "bio": "Final year CS student interested in AI and web development.",
+        "profile_picture_url": "https://firebase.storage.link/dubem_profile.jpg",
+        "interests": ["AI", "Web Dev", "Data Science", "Football"]
+    },
+    "websites" :{
+        "website1": "https://www.tiktok.com/@pythonify",
+        "website2": "https://www.github.com/Pythonify"
+    },
+    "activities": {
+        "questions_asked": [
+            {"id": "ad335aff4", "title": "How to use Firebase with Django?", "date": "2025-04-01"},
+            {"id": "afa34422r", "title": "What is the difference between GET and POST?", "date": "2025-04-10"}
+        ],
+        "answers_given": [
+            {"id": "a567", "question_id": "q110", "date": "2025-04-05"},
+            {"id": "a568", "question_id": "q111", "date": "2025-04-11"}
+        ],
+        "rooms_joined": ["System Intigration", "Python"]
+    },
+    "settings": {
+        "notifications": {
+            "email_notifications": False,
+            "push_notifications": False
+        },
+        "privacy": {
+            "show_email": False,
+            "show_activity": True,
+            "private_account":False
+        }
+    },
+    "created_at": "2025-01-15"
+}
+
+
 def track_hub_join(student_name, hub_name, hub_id=None):
     """
     Simplified function to track when a student joins a hub
