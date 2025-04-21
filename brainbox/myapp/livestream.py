@@ -134,7 +134,7 @@ def start_livestream(request):
                         notification_ref = db.collection('notifications').document()
                         notification_ref.set({
                             'user_id': student_id,
-                            'username': student_id,
+                            'username': student_id.upper(),
                             'type': 'livestream_started',
                             'room_id': room_id,
                             'stream_id': stream_id,

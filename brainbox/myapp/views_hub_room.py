@@ -914,42 +914,93 @@ def respond_to_invitation(request):
             
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
+# Updated backend function to support inviting by name
+
 @csrf_exempt
 def send_invite(request):
     if request.method == "POST":
+        print("\n\n===== SENDING INVITE =====")
         try:
             data = json.loads(request.body)
-            student_email = data.get("student_email")
+            student_name = data.get("student_name")
+            student_email = data.get("student_email")  # This is optional now
             room_id = data.get("room_id")
             teacher_name = request.session.get("teachers_name")
             
-            if not all([student_email, room_id, teacher_name]):
-                print(" This is the issue here\n\n")
-                return JsonResponse({"success": False, "error": "Missing required parameters"}, status=400)
+            print(f"Student name: {student_name}")
+            print(f"Student email: {student_email}")
+            print(f"Room ID: {room_id}")
+            print(f"Teacher name from session: {teacher_name}")
+            
+            if not all([student_name, room_id, teacher_name]):
+                missing = []
+                if not student_name: missing.append("student_name")
+                if not room_id: missing.append("room_id")
+                if not teacher_name: missing.append("teacher_name")
+                print(f"Missing required parameters: {', '.join(missing)}")
+                return JsonResponse({"success": False, "error": f"Missing required parameters: {', '.join(missing)}"}, status=400)
                 
             # Get the room details
             try:
                 room = Teachers_created_hub.objects.get(room_url=room_id)
                 room_name = room.hub_name
+                print(f"Found room: {room_name}")
             except Teachers_created_hub.DoesNotExist:
-                print(" This is the issue here\n\n 1111")
+                print(f"Room not found with ID: {room_id}")
                 return JsonResponse({"success": False, "error": "Room not found"}, status=404)
             
-            # Find the student by email in Firebase
+            # Find the student by name in Firebase
+            print(f"Searching for student with name: {student_name}")
             students_ref = db.collection("users_profile")
-            query = students_ref.where("email", "==", student_email).where("role", "==", "student").limit(1)
+            
+            # First try exact match by name
+            query = students_ref.where("name", "==", student_name).where("role", "==", "student").limit(1)
             students = list(query.stream())
             
+            # If no exact match, try case-insensitive search if needed
+            if not students and student_email:
+                # Try to find by email as fallback
+                query = students_ref.where("email", "==", student_email).where("role", "==", "student").limit(1)
+                students = list(query.stream())
+            
             if not students:
-                return JsonResponse({"success": False, "error": "Student not found"}, status=404)
+                # If still no match, try a more flexible search - get all students and filter
+                print(f"No exact match found, trying flexible search")
+                all_students_query = students_ref.where("role", "==", "student").stream()
+                
+                # Filter for partial name matches (case insensitive)
+                student_name_lower = student_name.lower()
+                matching_students = []
+                
+                for doc in all_students_query:
+                    student_data = doc.to_dict()
+                    if student_data.get("name", "").lower() == student_name_lower:
+                        matching_students.append((doc, student_data))
+                    elif student_name_lower in student_data.get("name", "").lower():
+                        # Add as a fallback match
+                        matching_students.append((doc, student_data))
+                
+                if matching_students:
+                    # Use the first (best) match
+                    students = [matching_students[0][0]]
+            
+            if not students:
+                print(f"No student found with name: {student_name}")
+                return JsonResponse({"success": False, "error": f"Student '{student_name}' not found"}, status=404)
                 
             student_data = students[0].to_dict()
             student_name = student_data.get("name")
+            print(f"Found student: {student_name}")
+            
+            # Check if the student is already a member of the room
+            if Students_joined_hub.objects.filter(student=student_name, hub_url=room_id).exists():
+                print(f"Student {student_name} is already a member of room {room_name}")
+                return JsonResponse({"success": False, "error": f"{student_name} is already a member of this room"}, status=400)
             
             # Create notification in Firestore
             notification_data = {
                 "username": student_name,
-                "message": encryption_manager.encrypt(f"{teacher_name} invited you to join {room_name}"),
+                "message": f"{teacher_name} invited you to join {room_name}",
                 "type": "room_invite",
                 "room_id": room_id,
                 "room_name": room_name,
@@ -958,10 +1009,13 @@ def send_invite(request):
                 "status": "pending",  # pending, accepted, or rejected
             }
             
+            print(f"Creating notification for student: {student_name}")
+            
             # Add notification to Firestore
             notification_ref = db.collection("notifications").add(notification_data)
             notification_id = notification_ref[1].id
-            print(f" I invited {student_name} to the room\n\n")
+            print(f"Created notification with ID: {notification_id}")
+            print("===== INVITE SENT =====\n\n")
             
             return JsonResponse({
                 "success": True, 
@@ -970,50 +1024,82 @@ def send_invite(request):
             })
             
         except json.JSONDecodeError:
+            print("Error: Invalid JSON")
             return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
         except Exception as e:
             print(f"Error sending invite: {e}")
+           
             return JsonResponse({"success": False, "error": str(e)}, status=500)
 
+    print("Invalid request method for send_invite")
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+
+# Updated search_students function to better support name-based searches
 
 @csrf_exempt
 def search_students(request):
     if request.method == "POST":
         try:
+            print("\n\n===== SEARCHING STUDENTS =====")
             data = json.loads(request.body)
-            search_term = data.get("search_term", "").strip().lower()
+            search_term = data.get("search_term", "").strip()
             room_id = data.get("room_id")
             
+            print(f"Search term: {search_term}")
+            print(f"Room ID: {room_id}")
+            
             if not search_term:
+                print("Error: Search term is required")
                 return JsonResponse({"success": False, "error": "Search term is required"}, status=400)
                 
             # Get existing room members to exclude them
             existing_members = set(get_members_by_hub_url(room_id))
+            print(f"Existing members: {existing_members}")
             
             # Search for students in Firebase
             students_ref = db.collection("users_profile")
+            
+            # Convert search term to lowercase for case-insensitive comparison
+            search_term_lower = search_term.lower()
+            
+            # Get all students and filter manually for more flexible matching
             query = students_ref.where("role", "==", "student").stream()
             
-            # Filter students whose name or email contains the search term
+            # Filter students whose name contains the search term
             # and who are not already members of the room
             results = []
             for student in query:
                 student_data = student.to_dict()
-                student_name = student_data.get("name", "").lower()
-                student_email = student_data.get("email", "").lower()
+                student_name = student_data.get("name", "")
+                student_email = student_data.get("email", "")
                 
-                if (search_term in student_name or search_term in student_email) and student_name not in existing_members:
+                # Skip if no name available
+                if not student_name:
+                    continue
+                    
+                # For debugging
+                print(f"Checking student: {student_name}")
+                
+                # Check if this student matches our search term
+                if (search_term_lower in student_name.lower()) and student_name not in existing_members:
+                    print(f"Match found: {student_name}")
                     results.append({
                         "id": student.id,
-                        "name": student_data.get("name", ""),
-                        "email": student_data.get("email", ""),
+                        "name": student_name,
+                        "email": student_email,
                         "profile_picture": student_data.get("profile_picture", 
                             "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png")
                     })
             
+            # Sort results by relevance - exact matches first, then partial matches
+            # This prioritizes exact name matches
+            results.sort(key=lambda x: 0 if x["name"].lower() == search_term_lower else 1)
+            
             # Limit to 10 results for performance
             results = results[:10]
+            
+            print(f"Final results count: {len(results)}")
+            print("===== SEARCH COMPLETE =====\n\n")
             
             return JsonResponse({
                 "success": True,
@@ -1022,6 +1108,7 @@ def search_students(request):
             })
             
         except json.JSONDecodeError:
+            print("Error: Invalid JSON")
             return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
         except Exception as e:
             print(f"Error searching students: {e}")

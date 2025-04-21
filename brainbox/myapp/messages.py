@@ -127,59 +127,86 @@ def notifications_for_bookmarked_questions(question_id, room_id, sender):
 
 def get_notifications_by_username(username):
     """
-    Retrieve notifications for a specific user from Firebase, including livestreams.
+    Retrieve notifications for a specific user from Firebase, including livestreams and room invites.
     """
     notifications_ref = db.collection("notifications")
-    query = notifications_ref.where("username", "==", username)
+    query = notifications_ref.where("username", "==", username.upper())
     notifications_list = []  # Use a list to store all notifications
-
+    
     notifications = query.stream()
-
+    
     for notification in notifications:
         notification_data = notification.to_dict()
-
-        # Decrypt the message
-        encrypted_message = notification_data.get("message")
-        decrypted_message = encryption_manager.decrypt(encrypted_message)
-
-        # Common notification structure
+        
+        # Prepare the base notification structure
         notification_item = {
             "notification_id": notification.id,
-            "question_id": notification_data.get("question_id"),
-            "message": decrypted_message,
             "username": notification_data.get("username"),
-            "room_id": notification_data.get("room_id"),
             "timestamp": notification_data.get("timestamp"),
             "type": notification_data.get("type"),
+            "room_id": notification_data.get("room_id"),
         }
-
-        # Check if it's a livestream and add livestream-specific details
+        
+        # Process based on notification type
         if notification_data.get("type") == "livestream":
-
-            s = str(notification_data.get("content"),)
-            result = s.split(" for ")[0]
+            # Decrypt and process livestream notifications
+            encrypted_message = notification_data.get("message")
+            if encrypted_message:
+                decrypted_message = encryption_manager.decrypt(encrypted_message)
+                # Extract the livestream info
+                s = str(decrypted_message)
+                result = s.split(" for ")[0] if " for " in s else decrypted_message
+            else:
+                result = "New livestream notification"
             
             notification_item.update({
                 "livestream_id": notification_data.get("livestream_id"),
                 "message": result,
-                "timestamp": notification_data.get("created_at"),
-                "read": notification_data.get("read"),
+                "timestamp": notification_data.get("created_at") or notification_data.get("timestamp"),
+                "read": notification_data.get("read", False),
             })
-
-            print(f"This is a livestream notification\n\nn\n\n")
+            
+            print(f"This is a livestream notification")
             
         elif notification_data.get("type") == "room_invite":
+            
             notification_item.update({
-                "room_name": notification_data.get("room_name"),
+                "message": notification_data.get("message"),
                 "sender": notification_data.get("sender"),
+                "room_name": notification_data.get("room_name"),
                 "status": notification_data.get("status", "pending"),
+                "response_time": notification_data.get("response_time"),
             })
-
+            
+            print(f"This is a room invite notification")
+            
+        else:
+            # Handle other notification types
+            encrypted_message = notification_data.get("message")
+            if encrypted_message:
+                try:
+                    decrypted_message = encryption_manager.decrypt(encrypted_message)
+                except Exception as e:
+                    print(f"Error decrypting message: {e}")
+                    decrypted_message = "New notification"
+            else:
+                decrypted_message = "New notification"
+                
+            notification_item.update({
+                "message": decrypted_message,
+                "question_id": notification_data.get("question_id"),
+            })
+        
         # Append the notification data to the list
         notifications_list.append(notification_item)
-
+    
+    # Sort notifications by timestamp, newest first
+    try:
+        notifications_list.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+    except Exception as e:
+        print(f"Error sorting notifications: {e}")
+    
     return notifications_list  # Return the list of notifications
-
 
 @csrf_exempt
 def mark_notification_read(request):
