@@ -367,6 +367,13 @@
   background-color: #f9f9fb;
 }
 
+/* Make sure the message container properly clears floats */
+.group-chat-messages::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
 .group-chat-input-container {
   padding: 10px;
   border-top: 1px solid var(--group-color-border);
@@ -447,18 +454,21 @@
 
 .group-message.outgoing {
   float: right;
-  background-color: var(--group-color-primary-light);
+  background-color: rgba(75, 114, 250, 0.1); /* Light blue for current user */
   color: #333;
   border-radius: 12px 12px 4px 12px;
+  margin-left: auto;
+  margin-right: 0;
 }
 
 .group-message.incoming {
   float: left;
-  background-color: white;
+  background-color: white; /* White for other users */
   color: #333;
   border-radius: 12px 12px 12px 4px;
+  margin-right: auto;
+  margin-left: 0;
 }
-
 
 .group-message-content {
   font-size: 0.9rem;
@@ -485,6 +495,7 @@
   padding: 8px 12px;
   font-size: 0.85rem;
   box-shadow: none;
+  clear: both;
 }
 
 .group-message.error {
@@ -880,17 +891,6 @@
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 /* Additional CSS to fix profile picture display in group chat */
 
 /* Improve avatar display in messages */
@@ -916,7 +916,6 @@
   font-weight: 500;
   color: #555;
 }
-
 
 /* Display all content nicely */
 .group-message.incoming .group-message-content {

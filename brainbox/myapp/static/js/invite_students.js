@@ -123,16 +123,21 @@ document.addEventListener("DOMContentLoaded", function() {
     function sendInvite() {
         // Check if student email is provided or a student is selected
         const studentEmail = studentEmailInput.value.trim();
-        
+    
         if (!studentEmail) {
             showToast("Please enter a student email or select a student", "error");
             return;
         }
-        
+    
         // Show loading state
         sendInviteBtn.disabled = true;
         sendInviteBtn.innerHTML = "Sending...";
-        showToast("You have sent an invite to ",studentEmail);
+        
+        console.log("Sending invite to backend with email:", studentEmail); // Log the request
+    
+        // Show toast early (maybe move this inside `if (data.success)` if you only want it after confirmation)
+        showToast("You have sent an invite to " + studentEmail, "info");
+    
         // Make AJAX request to send invite
         fetch("/send-invite/", {
             method: "POST",
@@ -147,43 +152,39 @@ document.addEventListener("DOMContentLoaded", function() {
         })
         .then(response => response.json())
         .then(data => {
+            console.log("Backend response:", data); // Log the response
+    
             // Reset button state
             sendInviteBtn.disabled = false;
             sendInviteBtn.innerHTML = "Send Invite";
-            
+    
             if (data.success) {
-                // Show success message
                 showToast(data.message, "success");
-                
-                // Clear form
+    
                 studentEmailInput.value = "";
                 if (studentButtonsDiv) {
                     studentButtonsDiv.innerHTML = "";
                 }
                 selectedStudent = null;
-                
-                // Close modal
+    
                 const modal = bootstrap.Modal.getInstance(document.getElementById('inviteStudentModal'));
                 if (modal) {
                     modal.hide();
                 }
             } else {
-                // Show error message
                 showToast(data.error || "Error sending invite", "error");
             }
         })
         .catch(error => {
             console.error("Error sending invite:", error);
-            
-            // Reset button state
-            // Reset button state
+    
             sendInviteBtn.disabled = false;
             sendInviteBtn.innerHTML = "Send Invite";
-            
-            // Show error toast
+    
             showToast("Error sending invite. Please try again.", "error");
         });
     }
+    
     
     // Helper function to create debounce functionality for search
     function debounce(func, delay) {
