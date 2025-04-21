@@ -944,7 +944,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
   </script>
 
-<!-- Updated HTML for Direct Messaging Panel with integrated Group Chat tab -->
+<!-- Add this before the closing </body> tag -->
+
+<!-- Direct Messaging Component (remains on bottom right) -->
 <div class="direct-messaging-container">
   <!-- Direct Messaging Button -->
   <div class="direct-messaging-button" id="directMessagingButton" aria-label="Open messaging">
@@ -955,7 +957,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <!-- Direct Messaging Panel -->
   <div class="direct-messaging-panel" id="directMessagingPanel">
     <div class="direct-messaging-header">
-      <h3>Messaging</h3>
+      <h3>Private Messages</h3>
       <div class="dm-header-actions">
         <button class="dm-action-btn" id="dmNewMessageBtn" aria-label="New message">
           <i class="bi bi-pencil-square"></i>
@@ -984,10 +986,6 @@ document.addEventListener('DOMContentLoaded', function() {
         Connections
         <span class="dm-tab-badge" id="dmPrimaryInboxBadge">0</span>
       </button>
-      <button class="dm-tab-btn" id="dmGroupChatsTab" data-tab="groupChats">
-        Group Chats
-        <span class="dm-tab-badge" id="groupChatBadge">0</span>
-      </button>
       <button class="dm-tab-btn" id="dmMessageRequestsTab" data-tab="messageRequests">
         Pending
         <span class="dm-tab-badge" id="dmMessageRequestsBadge">0</span>
@@ -1002,21 +1000,6 @@ document.addEventListener('DOMContentLoaded', function() {
           <p>Loading conversations...</p>
         </div>
       </div>
-    </div>
-    
-    <div class="dm-tab-content" id="dmGroupChats">
-      <div class="dm-chat-list" id="groupChatList">
-        <!-- Group chats will be added here dynamically -->
-        <div class="group-loading">
-          <div class="group-spinner"></div>
-          <p>Loading group chats...</p>
-        </div>
-      </div>
-      <button class="group-chat-create-btn" id="openCreateGroupBtn">
-        <i class="bi bi-plus-circle"></i>
-        Create New Group
-      </button>
-
     </div>
     
     <div class="dm-tab-content" id="dmMessageRequests">
@@ -1061,6 +1044,39 @@ document.addEventListener('DOMContentLoaded', function() {
   
   <!-- Modal Overlay -->
   <div class="dm-modal-overlay" id="dmModalOverlay"></div>
+</div>
+
+<!-- NEW Group Chat Component (position on bottom left) -->
+<div class="group-chat-component">
+  <!-- Group Chat Button -->
+  <div class="group-chat-button-main" id="openGroupChatBtn" aria-label="Open group chats">
+    <i class="bi bi-people-fill"></i>
+    <span class="group-chat-badge" id="groupChatBadge">0</span>
+  </div>
+  
+  <!-- Group Chat Panel -->
+  <div class="group-chat-panel" id="groupChatPanel">
+    <div class="group-chat-header">
+      <h3>Group Chats</h3>
+      <div class="group-chat-actions">
+        <button class="group-chat-create-btn" id="openCreateGroupBtn">
+          <i class="bi bi-plus-circle"></i>
+          New Group
+        </button>
+        <button class="group-chat-close-btn" id="closeGroupChatPanelBtn">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="group-chat-list" id="groupChatList">
+      <!-- Group chats will be added here dynamically -->
+      <div class="group-loading">
+        <div class="group-spinner"></div>
+        <p>Loading group chats...</p>
+      </div>
+    </div>
+  </div>
   
   <!-- Create Group Chat Modal -->
   <div class="group-chat-modal" id="createGroupModal">
@@ -1105,204 +1121,204 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
   
-  <!-- Chat Window Template (for direct messages) -->
-  <template id="dmChatWindowTemplate">
-    <div class="dm-chat-window" data-chat-id="">
-      <div class="dm-chat-header">
-        <div class="dm-chat-user-info">
-          <img src="" alt="" class="dm-chat-user-img">
-          <div class="dm-chat-user-details">
-            <h4 class="dm-chat-user-name"></h4>
-            <span class="dm-chat-user-role"></span>
-          </div>
-        </div>
-        <div class="dm-chat-actions">
-          <button class="dm-action-btn dm-more-options-btn" aria-label="More options">
-            <i class="bi bi-three-dots"></i>
-          </button>
-          <button class="dm-action-btn dm-minimize-chat-btn" aria-label="Minimize">
-            <i class="bi bi-dash-lg"></i>
-          </button>
-          <button class="dm-action-btn dm-close-chat-btn" aria-label="Close">
-            <i class="bi bi-x-lg"></i>
-          </button>
+  <!-- Modal Overlay for Group Chat -->
+  <div class="group-modal-overlay" id="groupModalOverlay"></div>
+</div>
+
+<!-- Templates for chat components -->
+<!-- Chat Window Template (for direct messages) -->
+<template id="dmChatWindowTemplate">
+  <div class="dm-chat-window" data-chat-id="">
+    <div class="dm-chat-header">
+      <div class="dm-chat-user-info">
+        <img src="" alt="" class="dm-chat-user-img">
+        <div class="dm-chat-user-details">
+          <h4 class="dm-chat-user-name"></h4>
+          <span class="dm-chat-user-role"></span>
         </div>
       </div>
-      
-      <div class="dm-chat-messages">
-        <!-- Messages will be added here dynamically -->
-        <div class="dm-chat-loading">
-          <div class="dm-spinner"></div>
-        </div>
-      </div>
-      
-      <div class="dm-chat-input-container">
-        <div class="dm-chat-tools">
-          <button class="dm-tool-btn" aria-label="Add attachment">
-            <i class="bi bi-paperclip"></i>
-          </button>
-          <button class="dm-tool-btn" aria-label="Add emoji">
-            <i class="bi bi-emoji-smile"></i>
-          </button>
-          <button class="dm-tool-btn" aria-label="Add GIF">
-            <i class="bi bi-filetype-gif"></i>
-          </button>
-        </div>
-        <div class="dm-chat-input-wrapper">
-          <textarea class="dm-chat-input" placeholder="Write a message..."></textarea>
-          <button class="dm-send-message-btn" aria-label="Send message">
-            <i class="bi bi-send-fill"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </template>
-  
-  <!-- Group Chat Window Template -->
-  <template id="groupChatWindowTemplate">
-    <div class="group-chat-window" data-group-id="">
-      <div class="group-chat-window-header">
-        <div class="group-chat-info">
-          <div class="group-chat-avatar">
-            <i class="bi bi-people-fill"></i>
-          </div>
-          <div class="group-chat-details">
-            <h4 class="group-chat-name"></h4>
-            <span class="group-members-count"></span>
-          </div>
-        </div>
-        <div class="group-chat-window-actions">
-          <button class="group-action-btn group-info-btn" aria-label="Group info">
-            <i class="bi bi-info-circle"></i>
-          </button>
-          <button class="group-action-btn group-leave-btn" aria-label="Leave group">
-            <i class="bi bi-box-arrow-right"></i>
-          </button>
-          <button class="group-action-btn group-minimize-btn" aria-label="Minimize">
-            <i class="bi bi-dash-lg"></i>
-          </button>
-          <button class="group-action-btn group-close-btn" aria-label="Close">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-      </div>
-      
-      <div class="group-chat-messages">
-        <!-- Messages will be added here dynamically -->
-        <div class="group-chat-loading">
-          <div class="group-spinner"></div>
-        </div>
-      </div>
-      
-      <div class="group-chat-input-container">
-        <div class="group-chat-tools">
-          <button class="group-tool-btn" aria-label="Add attachment">
-            <i class="bi bi-paperclip"></i>
-          </button>
-          <button class="group-tool-btn" aria-label="Add emoji">
-            <i class="bi bi-emoji-smile"></i>
-          </button>
-        </div>
-        <div class="group-chat-input-wrapper">
-          <textarea class="group-chat-input" placeholder="Write a message..."></textarea>
-          <button class="group-send-message-btn" aria-label="Send message">
-            <i class="bi bi-send-fill"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </template>
-  
-  <!-- Message Template (for both DM and group chats) -->
-  <template id="dmMessageTemplate">
-    <div class="dm-message">
-      <div class="dm-message-content"></div>
-      <div class="dm-message-footer">
-        <span class="dm-message-time"></span>
-        <div class="dm-message-reactions"></div>
-      </div>
-    </div>
-  </template>
-  
-  <!-- Group Message Template -->
-  <template id="groupMessageTemplate">
-    <div class="group-message">
-      <div class="group-message-sender"></div>
-      <div class="group-message-content"></div>
-      <div class="group-message-time"></div>
-    </div>
-  </template>
-  
-  <!-- Chat Item Template (for conversation list) -->
-  <template id="dmChatItemTemplate">
-    <div class="dm-chat-item">
-      <div class="dm-chat-item-avatar">
-        <img src="" alt="" class="dm-chat-item-img">
-        <span class="dm-online-indicator"></span>
-      </div>
-      <div class="dm-chat-item-details">
-        <div class="dm-chat-item-header">
-          <h4 class="dm-chat-item-name"></h4>
-          <span class="dm-chat-item-time"></span>
-        </div>
-        <div class="dm-chat-item-preview">
-          <p class="dm-chat-item-last-message"></p>
-          <span class="dm-chat-item-badge"></span>
-        </div>
-      </div>
-    </div>
-  </template>
-  
-  <!-- Group Member Item Template -->
-  <template id="groupMemberItemTemplate">
-    <div class="group-member-item" data-user-id="">
-      <div class="group-member-avatar">
-        <img src="" alt="" class="group-member-img">
-      </div>
-      <div class="group-member-details">
-        <h5 class="group-member-name"></h5>
-        <span class="group-member-role"></span>
-      </div>
-      <div class="group-member-action">
-        <button class="group-add-member-btn">
-          <i class="bi bi-plus-circle"></i>
+      <div class="dm-chat-actions">
+        <button class="dm-action-btn dm-more-options-btn" aria-label="More options">
+          <i class="bi bi-three-dots"></i>
         </button>
-        <button class="group-remove-member-btn" style="display: none;">
-          <i class="bi bi-dash-circle"></i>
+        <button class="dm-action-btn dm-minimize-chat-btn" aria-label="Minimize">
+          <i class="bi bi-dash-lg"></i>
+        </button>
+        <button class="dm-action-btn dm-close-chat-btn" aria-label="Close">
+          <i class="bi bi-x-lg"></i>
         </button>
       </div>
     </div>
-  </template>
-  
-  <!-- Group Chat Item Template -->
-  <template id="groupChatItemTemplate">
-    <div class="group-chat-item" data-group-id="">
-      <div class="group-chat-item-avatar">
-        <div class="group-avatar-placeholder">
+    
+    <div class="dm-chat-messages">
+      <!-- Messages will be added here dynamically -->
+      <div class="dm-chat-loading">
+        <div class="dm-spinner"></div>
+      </div>
+    </div>
+    
+    <div class="dm-chat-input-container">
+      <div class="dm-chat-tools">
+        <button class="dm-tool-btn" aria-label="Add attachment">
+          <i class="bi bi-paperclip"></i>
+        </button>
+        <button class="dm-tool-btn" aria-label="Add emoji">
+          <i class="bi bi-emoji-smile"></i>
+        </button>
+        <button class="dm-tool-btn" aria-label="Add GIF">
+          <i class="bi bi-filetype-gif"></i>
+        </button>
+      </div>
+      <div class="dm-chat-input-wrapper">
+        <textarea class="dm-chat-input" placeholder="Write a message..."></textarea>
+        <button class="dm-send-message-btn" aria-label="Send message">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- Group Chat Window Template -->
+<template id="groupChatWindowTemplate">
+  <div class="group-chat-window" data-group-id="">
+    <div class="group-chat-window-header">
+      <div class="group-chat-info">
+        <div class="group-chat-avatar">
           <i class="bi bi-people-fill"></i>
         </div>
+        <div class="group-chat-details">
+          <h4 class="group-chat-name"></h4>
+          <span class="group-members-count"></span>
+        </div>
       </div>
-      <div class="group-chat-item-details">
-        <div class="group-chat-item-header">
-          <h4 class="group-chat-item-name"></h4>
-          <span class="group-chat-item-time"></span>
-        </div>
-        <div class="group-chat-item-preview">
-          <p class="group-chat-item-last-message"></p>
-          <div class="group-chat-item-members-count">
-            <i class="bi bi-people"></i>
-            <span class="group-members-count">0</span>
-          </div>
-          <span class="group-chat-item-badge"></span>
-        </div>
+      <div class="group-chat-window-actions">
+        <button class="group-action-btn group-info-btn" aria-label="Group info">
+          <i class="bi bi-info-circle"></i>
+        </button>
+        <button class="group-action-btn group-leave-btn" aria-label="Leave group">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+        <button class="group-action-btn group-minimize-btn" aria-label="Minimize">
+          <i class="bi bi-dash-lg"></i>
+        </button>
+        <button class="group-action-btn group-close-btn" aria-label="Close">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
     </div>
-  </template>
+    
+    <div class="group-chat-messages">
+      <!-- Messages will be added here dynamically -->
+      <div class="group-chat-loading">
+        <div class="group-spinner"></div>
+      </div>
+    </div>
+    
+    <div class="group-chat-input-container">
+      <div class="group-chat-tools">
+        <button class="group-tool-btn" aria-label="Add attachment">
+          <i class="bi bi-paperclip"></i>
+        </button>
+        <button class="group-tool-btn" aria-label="Add emoji">
+          <i class="bi bi-emoji-smile"></i>
+        </button>
+      </div>
+      <div class="group-chat-input-wrapper">
+        <textarea class="group-chat-input" placeholder="Write a message..."></textarea>
+        <button class="group-send-message-btn" aria-label="Send message">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
 
+<!-- Message Template (for DM) -->
+<template id="dmMessageTemplate">
+  <div class="dm-message">
+    <div class="dm-message-content"></div>
+    <div class="dm-message-footer">
+      <span class="dm-message-time"></span>
+      <div class="dm-message-reactions"></div>
+    </div>
+  </div>
+</template>
 
+<!-- Group Message Template -->
+<template id="groupMessageTemplate">
+  <div class="group-message">
+    <div class="group-message-sender"></div>
+    <div class="group-message-content"></div>
+    <div class="group-message-time"></div>
+  </div>
+</template>
 
+<!-- Chat Item Template (for conversation list) -->
+<template id="dmChatItemTemplate">
+  <div class="dm-chat-item">
+    <div class="dm-chat-item-avatar">
+      <img src="" alt="" class="dm-chat-item-img">
+      <span class="dm-online-indicator"></span>
+    </div>
+    <div class="dm-chat-item-details">
+      <div class="dm-chat-item-header">
+        <h4 class="dm-chat-item-name"></h4>
+        <span class="dm-chat-item-time"></span>
+      </div>
+      <div class="dm-chat-item-preview">
+        <p class="dm-chat-item-last-message"></p>
+        <span class="dm-chat-item-badge"></span>
+      </div>
+    </div>
+  </div>
+</template>
 
+<!-- Group Member Item Template -->
+<template id="groupMemberItemTemplate">
+  <div class="group-member-item" data-user-id="">
+    <div class="group-member-avatar">
+      <img src="" alt="" class="group-member-img">
+    </div>
+    <div class="group-member-details">
+      <h5 class="group-member-name"></h5>
+      <span class="group-member-role"></span>
+    </div>
+    <div class="group-member-action">
+      <button class="group-add-member-btn">
+        <i class="bi bi-plus-circle"></i>
+      </button>
+      <button class="group-remove-member-btn" style="display: none;">
+        <i class="bi bi-dash-circle"></i>
+      </button>
+    </div>
+  </div>
+</template>
 
+<!-- Group Chat Item Template -->
+<template id="groupChatItemTemplate">
+  <div class="group-chat-item" data-group-id="">
+    <div class="group-chat-item-avatar">
+      <div class="group-avatar-placeholder">
+        <i class="bi bi-people-fill"></i>
+      </div>
+    </div>
+    <div class="group-chat-item-details">
+      <div class="group-chat-item-header">
+        <h4 class="group-chat-item-name"></h4>
+        <span class="group-chat-item-time"></span>
+      </div>
+      <div class="group-chat-item-preview">
+        <p class="group-chat-item-last-message"></p>
+        <div class="group-chat-item-members-count">
+          <i class="bi bi-people"></i>
+          <span class="group-members-count">0</span>
+        </div>
+        <span class="group-chat-item-badge"></span>
+      </div>
+    </div>
+  </div>
+</template>
 
 </div>
 </div>

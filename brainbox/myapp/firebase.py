@@ -21,6 +21,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile  # Import for ha
 from django.utils.timezone import now
 
 cred = credentials.Certificate(r"C:\Users\chidu\Downloads\edulink-8db1f-firebase-adminsdk-7zzrp-1c64f2a16f.json")
+# "C:\Users\chidu\Downloads\edulink-8db1f-firebase-adminsdk-7zzrp-e66fc0962d.json"
 
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred, {
@@ -120,7 +121,6 @@ def update_user_bio(user_id, bio):
 
 
 
-# Utility function for Firebase authentication
 def authenticate_user(email, password):
     # Firebase Auth REST API endpoint
     firebase_url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
@@ -130,8 +130,6 @@ def authenticate_user(email, password):
         "password": password,
         "returnSecureToken": True
     }
-
-    # Send a POST request to Firebase to authenticate
     try:
         response = requests.post(f"{firebase_url}?key={api_key}", json=payload)
         response_data = response.json()

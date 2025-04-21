@@ -536,7 +536,7 @@ const LivestreamModule = {
         this.state.currentRoomId = roomId;
         this.state.currentStreamId = data.stream_id;
         
-        // Create the enhanced streaming interface before initializing
+        // Create the streaming interface before initializing
         this.createStreamingInterface();
         
         // Initialize the Agora client

@@ -806,6 +806,9 @@ function openGroupChatWindow(group) {
 /**
  * Initialize WebSocket connection for real-time group chat
  */
+/**
+ * Initialize WebSocket connection for real-time group chat with profile handling
+ */
 function initGroupChatWebSocket(groupId, userId, chatWindow) {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
   const socket = new WebSocket(`${wsProtocol}${window.location.host}/ws/group_chat/${groupId}/${userId}/`);
@@ -814,23 +817,65 @@ function initGroupChatWebSocket(groupId, userId, chatWindow) {
   
   socket.onopen = function(e) {
     console.log('WebSocket connection established for group chat:', groupId);
-    // Update connection status in UI if needed
+    
+    // Add a connected message to the chat
+    const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+    if (messagesContainer) {
+      const connectionMessage = document.createElement('div');
+      connectionMessage.className = 'group-message system-message';
+      connectionMessage.innerHTML = `
+        <div class="group-message-content">
+          <i class="bi bi-wifi"></i> Connected - Messages will appear in real-time
+        </div>
+      `;
+      messagesContainer.appendChild(connectionMessage);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
   };
   
   socket.onmessage = function(e) {
-    const data = JSON.parse(e.data);
-    
-    // Handle different message types
-    if (data.type === 'message') {
-      addMessageToGroupChat(chatWindow, data);
-    } else if (data.type === 'history') {
-      displayGroupChatHistory(chatWindow, data.messages);
+    try {
+      const data = JSON.parse(e.data);
+      
+      // Handle different message types
+      if (data.type === 'message') {
+        // Ensure the message has all needed properties for display
+        if (!data.sender_profile_picture) {
+          // Try to find the sender in group members
+          const group = window.groupChats.find(g => g.id === groupId);
+          if (group && group.members) {
+            const sender = group.members.find(m => m.id === data.sender_id);
+            if (sender) {
+              data.sender_profile_picture = sender.profile_picture;
+            }
+          }
+        }
+        
+        addMessageToGroupChat(chatWindow, data);
+      } else if (data.type === 'history') {
+        displayGroupChatHistory(chatWindow, data.messages);
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
     }
   };
   
   socket.onclose = function(e) {
     console.log('WebSocket connection closed:', e);
-    // Update connection status in UI if needed
+    
+    // Show disconnected status in chat window
+    const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+    if (messagesContainer) {
+      const disconnectionMessage = document.createElement('div');
+      disconnectionMessage.className = 'group-message system-message';
+      disconnectionMessage.innerHTML = `
+        <div class="group-message-content">
+          <i class="bi bi-wifi-off"></i> Disconnected - Trying to reconnect...
+        </div>
+      `;
+      messagesContainer.appendChild(disconnectionMessage);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
     
     // Attempt to reconnect after a delay if the window is still open
     if (!chatWindow.classList.contains('closed')) {
@@ -842,13 +887,25 @@ function initGroupChatWebSocket(groupId, userId, chatWindow) {
   
   socket.onerror = function(e) {
     console.error('WebSocket error:', e);
-    // Show error in UI if needed
+    
+    // Show error in chat
+    const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+    if (messagesContainer) {
+      const errorMessage = document.createElement('div');
+      errorMessage.className = 'group-message system-message error';
+      errorMessage.innerHTML = `
+        <div class="group-message-content">
+          Connection error. Please check your network.
+        </div>
+      `;
+      messagesContainer.appendChild(errorMessage);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
   };
+  
+  return socket;
 }
 
-/**
- * Leave a group chat
- */
 function leaveGroupChat(groupId, chatWindow) {
   fetch('/leave-group', {
     method: 'POST',
@@ -1025,204 +1082,7 @@ function loadGroupChatMessages(groupId, chatWindow) {
   });
 }
 
-/**
- * Display message history in the chat window
- */
-function displayGroupChatHistory(chatWindow, messages) {
-  const messagesContainer = chatWindow.querySelector('.group-chat-messages');
-  if (!messagesContainer) return;
-  
-  // Clear existing messages
-  messagesContainer.innerHTML = '';
-  
-  if (!messages || messages.length === 0) {
-    // Add welcome message if no messages
-    const welcomeMessage = document.createElement('div');
-    welcomeMessage.className = 'group-message system-message';
-    welcomeMessage.innerHTML = `
-      <div class="group-message-content">
-        Group chat created. Your messages are private to the group members.
-      </div>
-    `;
-    messagesContainer.appendChild(welcomeMessage);
-  } else {
-    // Add all messages
-    messages.forEach(message => {
-      addMessageToGroupChat(chatWindow, message, false);
-    });
-  }
-  
-  // Scroll to bottom
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
 
-/**
- * Add a message to the group chat UI
- */
-function addMessageToGroupChat(chatWindow, message, scrollToBottom = true) {
-  const messagesContainer = chatWindow.querySelector('.group-chat-messages');
-  if (!messagesContainer) return;
-  
-  // Create message element
-  const messageElement = document.createElement('div');
-  
-  // Determine if it's an outgoing message (from current user)
-  const isCurrentUser = message.sender_id === currentUserId;
-  const isSystemMessage = message.sender_id === 'system' || message.type === 'system';
-  
-  // Set appropriate class
-  if (isSystemMessage) {
-    messageElement.className = 'group-message system-message';
-  } else if (isCurrentUser) {
-    messageElement.className = 'group-message outgoing';
-  } else {
-    messageElement.className = 'group-message incoming';
-  }
-  
-  // Format timestamp
-  let timeStr = 'Just now';
-  if (message.timestamp) {
-    try {
-      const timestamp = new Date(message.timestamp);
-      timeStr = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      console.error('Error formatting timestamp:', e);
-    }
-  }
-  
-  // Create message content based on message type
-  if (isSystemMessage) {
-    messageElement.innerHTML = `
-      <div class="group-message-content">${message.content}</div>
-    `;
-  } else {
-    // For regular messages, include sender info for incoming messages
-    if (!isCurrentUser) {
-      messageElement.innerHTML = `
-        <div class="group-message-sender">
-          <img src="${message.sender_profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'}" 
-               alt="${message.sender_name}" class="group-message-avatar">
-          <span class="group-message-name">${message.sender_name}</span>
-        </div>
-        <div class="group-message-content">${message.content}</div>
-        <div class="group-message-time">${timeStr}</div>
-      `;
-    } else {
-      messageElement.innerHTML = `
-        <div class="group-message-content">${message.content}</div>
-        <div class="group-message-time">${timeStr}</div>
-      `;
-    }
-  }
-  
-  // Add to the chat
-  messagesContainer.appendChild(messageElement);
-  
-  // Scroll to bottom if needed
-  if (scrollToBottom) {
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }
-  
-  // Mark as read immediately for outgoing messages
-  if (isCurrentUser) {
-    // Update group in the list with the latest message
-    updateGroupLastMessage(message.group_id || chatWindow.getAttribute('data-group-id'), message.content);
-  }
-}
-
-/**
- * Send a message to a group chat
- */
-function sendGroupMessage(groupId, message, chatWindow) {
-  message = message.trim();
-  if (!message) return;
-  
-  const messageInput = chatWindow.querySelector('.group-chat-input');
-  
-  // Clear input immediately for better UX
-  if (messageInput) {
-    messageInput.value = '';
-  }
-  
-  // If WebSocket is connected, send through that
-  if (chatWindow.socket && chatWindow.socket.readyState === WebSocket.OPEN) {
-    chatWindow.socket.send(JSON.stringify({
-      type: 'message',
-      message: message
-    }));
-    return;
-  }
-  
-  // If WebSocket is not connected, use REST API as fallback
-  fetch('/send-group-message/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken()
-    },
-    body: JSON.stringify({
-      group_id: groupId,
-      message: message
-    })
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    return response.json();
-  })
-  .then(data => {
-    if (data.success) {
-      // Create a message object for local display
-      const messageObj = {
-        sender_id: currentUserId,
-        sender_name: 'You', // Fallback
-        content: message,
-        timestamp: new Date().toISOString(),
-        message_id: data.message_id
-      };
-      
-      // Add to the chat UI
-      addMessageToGroupChat(chatWindow, messageObj);
-      
-      // Update the group in the list with the latest message
-      updateGroupLastMessage(groupId, message);
-    } else {
-      console.error('Error sending message:', data.error);
-      
-      // Show error in chat
-      const messagesContainer = chatWindow.querySelector('.group-chat-messages');
-      if (messagesContainer) {
-        const errorMessage = document.createElement('div');
-        errorMessage.className = 'group-message system-message error';
-        errorMessage.innerHTML = `
-          <div class="group-message-content">
-            Failed to send message. ${data.error || 'Please try again.'}
-          </div>
-        `;
-        messagesContainer.appendChild(errorMessage);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      }
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    
-    // Show error in chat
-    const messagesContainer = chatWindow.querySelector('.group-chat-messages');
-    if (messagesContainer) {
-      const errorMessage = document.createElement('div');
-      errorMessage.className = 'group-message system-message error';
-      errorMessage.innerHTML = `
-        <div class="group-message-content">
-          Failed to send message. Please try again later.
-        </div>
-      `;
-      messagesContainer.appendChild(errorMessage);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-  });
-}
 
 /**
  * Update the last message for a group
@@ -1320,4 +1180,258 @@ function getCsrfToken() {
     }
   }
   return cookieValue;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Fix for group chat profile pictures not displaying properly
+
+/**
+ * Add a message to the group chat UI with fixed profile picture handling
+ */
+function addMessageToGroupChat(chatWindow, message, scrollToBottom = true) {
+  const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+  if (!messagesContainer) return;
+  
+  // Create message element
+  const messageElement = document.createElement('div');
+  
+  // Determine if it's an outgoing message (from current user)
+  const isCurrentUser = message.sender_id === currentUserId;
+  const isSystemMessage = message.sender_id === 'system' || message.type === 'system';
+  
+  // Set appropriate class
+  if (isSystemMessage) {
+    messageElement.className = 'group-message system-message';
+  } else if (isCurrentUser) {
+    messageElement.className = 'group-message outgoing';
+  } else {
+    messageElement.className = 'group-message incoming';
+  }
+  
+  // Format timestamp
+  let timeStr = 'Just now';
+  if (message.timestamp) {
+    try {
+      const timestamp = new Date(message.timestamp);
+      timeStr = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      console.error('Error formatting timestamp:', e);
+    }
+  }
+  
+  // Ensure profile picture URL is available and valid
+  const profilePicture = message.sender_profile_picture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+  const senderName = message.sender_name || 'Unknown User';
+  
+  // Create message content based on message type
+  if (isSystemMessage) {
+    messageElement.innerHTML = `
+      <div class="group-message-content">${message.content}</div>
+    `;
+  } else {
+    // For regular messages
+    if (!isCurrentUser) {
+      // For incoming messages, include sender info with enhanced profile picture handling
+      messageElement.innerHTML = `
+        <div class="group-message-sender">
+          <img src="${profilePicture}" 
+               alt="${senderName}" 
+               class="group-message-avatar"
+               onerror="this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'">
+          <span class="group-message-name">${senderName}</span>
+        </div>
+        <div class="group-message-content">${message.content}</div>
+        <div class="group-message-time">${timeStr}</div>
+      `;
+    } else {
+      // For outgoing messages
+      messageElement.innerHTML = `
+        <div class="group-message-content">${message.content}</div>
+        <div class="group-message-time">${timeStr}</div>
+      `;
+    }
+  }
+  
+  // Add to the chat
+  messagesContainer.appendChild(messageElement);
+  
+  // Scroll to bottom if needed
+  if (scrollToBottom) {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+  
+  // Mark as read immediately for outgoing messages
+  if (isCurrentUser) {
+    // Update group in the list with the latest message
+    updateGroupLastMessage(message.group_id || chatWindow.getAttribute('data-group-id'), message.content);
+  }
+}
+
+/**
+ * Display message history in the chat window with fixed profile pictures
+ */
+function displayGroupChatHistory(chatWindow, messages) {
+  const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+  if (!messagesContainer) return;
+  
+  // Clear existing messages
+  messagesContainer.innerHTML = '';
+  
+  if (!messages || messages.length === 0) {
+    // Add welcome message if no messages
+    const welcomeMessage = document.createElement('div');
+    welcomeMessage.className = 'group-message system-message';
+    welcomeMessage.innerHTML = `
+      <div class="group-message-content">
+        Group chat created. Your messages are private to the group members.
+      </div>
+    `;
+    messagesContainer.appendChild(welcomeMessage);
+  } else {
+    // Add all messages with enhanced profile picture handling
+    messages.forEach(message => {
+      // Ensure sender data is present
+      if (!message.sender_name && message.sender_id) {
+        // Try to find sender info from the group members if available
+        const group = window.groupChats.find(g => g.id === chatWindow.getAttribute('data-group-id'));
+        if (group && group.members) {
+          const sender = group.members.find(m => m.id === message.sender_id);
+          if (sender) {
+            message.sender_name = sender.name;
+            message.sender_profile_picture = sender.profile_picture;
+          }
+        }
+      }
+      
+      addMessageToGroupChat(chatWindow, message, false);
+    });
+  }
+  
+  // Scroll to bottom
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+/**
+ * Send a message to a group chat with enhanced profile handling
+ */
+function sendGroupMessage(groupId, message, chatWindow) {
+  message = message.trim();
+  if (!message) return;
+  
+  const messageInput = chatWindow.querySelector('.group-chat-input');
+  
+  // Clear input immediately for better UX
+  if (messageInput) {
+    messageInput.value = '';
+  }
+  
+  // If WebSocket is connected, send through that
+  if (chatWindow.socket && chatWindow.socket.readyState === WebSocket.OPEN) {
+    chatWindow.socket.send(JSON.stringify({
+      type: 'message',
+      message: message
+    }));
+    return;
+  }
+  
+  // Get current user info for local message display
+  let currentUserName = 'You';
+  let currentUserProfilePic = '';
+  
+  // Try to get current user's profile picture from the page if available
+  const profileImgElement = document.querySelector('.user-profile-image, .profile-image, .avatar-image');
+  if (profileImgElement) {
+    currentUserProfilePic = profileImgElement.src;
+  }
+  
+  // If WebSocket is not connected, use REST API as fallback
+  fetch('/send-group-message/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken()
+    },
+    body: JSON.stringify({
+      group_id: groupId,
+      message: message
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Create a message object for local display with profile picture
+      const messageObj = {
+        sender_id: currentUserId,
+        sender_name: currentUserName,
+        sender_profile_picture: currentUserProfilePic || data.sender_profile_picture,
+        content: message,
+        timestamp: new Date().toISOString(),
+        message_id: data.message_id
+      };
+      
+      // Add to the chat UI
+      addMessageToGroupChat(chatWindow, messageObj);
+      
+      // Update the group in the list with the latest message
+      updateGroupLastMessage(groupId, message);
+    } else {
+      console.error('Error sending message:', data.error);
+      
+      // Show error in chat
+      const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+      if (messagesContainer) {
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'group-message system-message error';
+        errorMessage.innerHTML = `
+          <div class="group-message-content">
+            Failed to send message. ${data.error || 'Please try again.'}
+          </div>
+        `;
+        messagesContainer.appendChild(errorMessage);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    
+    // Show error in chat
+    const messagesContainer = chatWindow.querySelector('.group-chat-messages');
+    if (messagesContainer) {
+      const errorMessage = document.createElement('div');
+      errorMessage.className = 'group-message system-message error';
+      errorMessage.innerHTML = `
+        <div class="group-message-content">
+          Failed to send message. Please try again later.
+        </div>
+      `;
+      messagesContainer.appendChild(errorMessage);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  });
 }

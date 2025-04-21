@@ -13,10 +13,12 @@ from django.contrib.auth.decorators import login_required
 
 from .firebase import db, auth, firestore  # Import Firebase components
 
-# Agora configuration - replace with your Agora app details
+
 AGORA_APP_ID = "87aeb278aa8848bab0b629a91e053db2"
 AGORA_APP_CERTIFICATE = "56facf85182849ada0e83568ec6465b3"
 AGORA_REST_API_URL = "https://api.agora.io/v1"
+
+
 
 def generate_rtc_token(channel_name, uid, role, expire_time_in_seconds=3600):
     """
@@ -116,20 +118,18 @@ def start_livestream(request):
                 'created_at': firestore.SERVER_TIMESTAMP
             })
         
-        # If notification is enabled, notify students using Django models
         if notify_students:
             from .models import Students_joined_hub, Teachers_created_hub
             try:
                 # Get the hub using room_id
                 hub = Teachers_created_hub.objects.get(room_url=room_id)
                 
-                # Get all students in this room using the Django model
+                # Get all students in this room 
                 students = Students_joined_hub.objects.filter(hub=hub)
                 
                 for student in students:
                     student_id = student.student
                     
-                    # Skip if this is the teacher
                     if student_id != teacher_id:  # Only notify students, not the teacher
                         notification_ref = db.collection('notifications').document()
                         notification_ref.set({
@@ -162,6 +162,12 @@ def start_livestream(request):
         print(f"Error starting livestream: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
     
+
+
+
+
+
+
 
 
 @csrf_exempt

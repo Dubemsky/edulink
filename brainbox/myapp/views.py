@@ -62,7 +62,6 @@ def login_page_teachers(request):
 def signup_page(request):
     error_message = None
     role = request.GET.get('role')
-
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')

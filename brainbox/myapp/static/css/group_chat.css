@@ -1,4 +1,4 @@
-/* Updated Group Chat CSS to match private messaging style */
+/* Updated Group Chat CSS for separate left-side positioning */
 
 /* Colors and variables */
 :root {
@@ -12,20 +12,73 @@
   --group-border-radius: 10px;
 }
 
-/* Main component container - now matching DM container positioning */
+/* Main component container - positioned on the left */
 .group-chat-component {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  left: 20px; /* Positioned on the left side */
   z-index: 1000;
   font-family: 'Roboto', sans-serif;
 }
 
-/* Group Chat Panel - now matching DM panel styling */
+/* Group Chat Button - main toggle button */
+.group-chat-button-main {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--group-color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1001;
+}
+
+.group-chat-button-main:hover {
+  background-color: var(--group-color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.group-chat-button-main i {
+  font-size: 1.5rem;
+}
+
+.group-chat-button-main.active {
+  background-color: var(--group-color-primary-dark);
+}
+
+/* Unread Badge */
+.group-chat-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff4757;
+  color: white;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border: 2px solid white;
+}
+
+.group-chat-badge:empty {
+  display: none;
+}
+
+/* Group Chat Panel */
 .group-chat-panel {
   position: fixed;
   bottom: 80px;
-  right: 20px;
+  left: 20px; /* Positioned on the left side */
   width: 320px;
   height: 450px;
   background-color: white;
@@ -112,7 +165,7 @@
   padding: 10px;
 }
 
-/* Group chat item - updated to match DM chat item style */
+/* Group chat item */
 .group-chat-item {
   display: flex;
   padding: 12px;
@@ -219,11 +272,11 @@
   display: none;
 }
 
-/* Group Chat Window - updated to match DM chat window */
+/* Group Chat Window - now positioned to the right of the group chat panel */
 .group-chat-window {
   position: fixed;
   bottom: 20px;
-  right: 330px;
+  left: 360px; /* Position to the right of the group chat panel */
   width: 320px;
   height: 450px;
   background-color: white;
@@ -381,7 +434,7 @@
   transform: scale(1.05);
 }
 
-/* Message styles updated to match DM messages */
+/* Message styles */
 .group-message {
   margin-bottom: 15px;
   max-width: 80%;
@@ -406,12 +459,6 @@
   border-radius: 12px 12px 12px 4px;
 }
 
-.group-message-sender {
-  font-size: 0.75rem;
-  color: #888;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
 
 .group-message-content {
   font-size: 0.9rem;
@@ -445,7 +492,7 @@
   color: #dc3545;
 }
 
-/* Updated modal styling to match DM modals */
+/* Modal styling */
 .group-modal-overlay {
   position: fixed;
   top: 0;
@@ -565,50 +612,6 @@
   border-color: #ccc;
 }
 
-/* Group Chat Button - updated to integrate with DM tabs */
-.group-chat-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 15px;
-  background: transparent;
-  color: #666;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-}
-
-.group-chat-button:hover,
-.group-chat-button.active {
-  color: var(--group-color-primary);
-  border-bottom-color: var(--group-color-primary);
-}
-
-.group-chat-badge {
-  background-color: #ff4757;
-  color: white;
-  border-radius: 50%;
-  min-width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: bold;
-  margin-left: 5px;
-  position: absolute;
-  top: 5px;
-  right: 5px;
-}
-
-.group-chat-badge:empty {
-  display: none;
-}
-
 /* Empty states and loading states */
 .group-empty-state,
 .group-empty-connections {
@@ -656,23 +659,309 @@
   }
 }
 
+/* Group Member Item for Create Group modal */
+.group-name-input {
+  margin-bottom: 15px;
+}
+
+.group-name-input label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.group-name-input input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.group-members-section {
+  margin-top: 20px;
+}
+
+.group-members-section h5 {
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.group-info-text {
+  color: #888;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+
+.group-members-search {
+  margin-bottom: 15px;
+}
+
+.group-members-search input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.group-available-members {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.group-member-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.group-member-item:last-child {
+  border-bottom: none;
+}
+
+.group-member-item:hover {
+  background-color: #f8f9fa;
+}
+
+.group-member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 10px;
+}
+
+.group-member-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.group-member-details {
+  flex: 1;
+}
+
+.group-member-name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.group-member-role {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.group-member-action {
+  margin-left: 10px;
+}
+
+.group-add-member-btn,
+.group-remove-member-btn {
+  background: transparent;
+  border: none;
+  color: var(--group-color-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+}
+
+.group-add-member-btn:hover,
+.group-remove-member-btn:hover {
+  color: var(--group-color-primary-dark);
+}
+
+.group-selected-members {
+  margin-top: 15px;
+}
+
+.group-selected-members h5 {
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.group-selected-members-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.group-selected-member-badge {
+  display: flex;
+  align-items: center;
+  background-color: var(--group-color-primary-light);
+  border-radius: 20px;
+  padding: 5px 10px;
+  padding-right: 5px;
+}
+
+.group-selected-member-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.group-selected-member-name {
+  font-size: 0.85rem;
+  margin-right: 8px;
+}
+
+.group-remove-selected-btn {
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+}
+
+.group-remove-selected-btn:hover {
+  color: #ff4757;
+}
+
+.group-empty-selection {
+  color: #888;
+  font-size: 0.9rem;
+  font-style: italic;
+  padding: 10px 0;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .group-chat-panel {
     bottom: 70px;
-    right: 10px;
+    left: 10px;
     width: calc(100% - 20px);
     max-width: 350px;
   }
   
   .group-chat-window {
     bottom: 70px;
-    right: 10px;
+    left: 10px;
     width: calc(100% - 20px);
     max-width: 350px;
   }
   
-  .group-chat-modal {
-    width: 95%;
+  /* When both DM and group chat panels are open on mobile, stack them */
+  .direct-messaging-panel.show ~ .group-chat-panel.show {
+    bottom: 530px;
   }
+}
+
+/* Make sure group chat windows don't overlap with direct message windows */
+@media (min-width: 1200px) {
+  /* For large screens, we can have them side by side */
+  .group-chat-window {
+    max-width: 320px;
+  }
+}
+
+@media (max-width: 1199px) {
+  /* For smaller screens, manage multiple chat windows */
+  .group-chat-window:nth-child(2) {
+    bottom: 480px; /* Stack vertically */
+  }
+  
+  .group-chat-window:nth-child(3) {
+    bottom: 940px;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* Additional CSS to fix profile picture display in group chat */
+
+/* Improve avatar display in messages */
+.group-message-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #eee;
+  margin-right: 8px;
+  background-color: #f1f1f1;
+}
+
+/* Enhance sender info layout */
+.group-message-sender {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.group-message-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #555;
+}
+
+
+/* Display all content nicely */
+.group-message.incoming .group-message-content {
+  margin-left: 2px;
+  margin-top: 4px;
+}
+
+/* Fix message time positioning */
+.group-message .group-message-time {
+  margin-top: 5px;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* Ensure images scale properly */
+.group-message-content img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+/* Improved error handling for images */
+.group-message-avatar[src=""], 
+.group-message-avatar:not([src]) {
+  background-color: var(--group-color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--group-color-primary);
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+/* Add initials as fallback when images fail to load */
+.group-message-avatar.fallback-initials::after {
+  content: attr(data-initials);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+  background-color: var(--group-color-primary);
 }
