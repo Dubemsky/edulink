@@ -868,7 +868,7 @@ def respond_to_invitation(request):
             return JsonResponse({"success": False, "error": "This is not a room invite notification"}, status=400)
         
         # Verify the invitation belongs to this student
-        if notification_data.get("username") != student_name:
+        if notification_data.get("username") != student_name.upper():
             logger.warning(f"Notification {notification_id} does not belong to {student_name}")
             return JsonResponse({"success": False, "error": "This invitation is not for you"}, status=403)
         
@@ -910,6 +910,8 @@ def respond_to_invitation(request):
                     hub_url=room_id
                 )
                 new_member.save()
+
+                
                 
                 # Update notification status
                 notification_ref.update({
@@ -939,6 +941,7 @@ def respond_to_invitation(request):
             try:
                 logger.info(f"Student {student_name} rejected room invitation to {room_id}")
                 
+
                 # Update notification status
                 notification_ref.update({
                     "status": "rejected",
@@ -949,6 +952,7 @@ def respond_to_invitation(request):
                     "success": True,
                     "message": f"You have declined the invitation to {room_name}"
                 })
+            
                 
             except Exception as e:
                 logger.error(f"Error rejecting invitation: {str(e)}")
