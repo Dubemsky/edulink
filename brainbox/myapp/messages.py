@@ -208,6 +208,53 @@ def get_notifications_by_username(username):
     
     return notifications_list  # Return the list of notifications
 
+
+"""
+
+message
+"Jelena Vasic invited you to join MATHEMATICS"
+(string)
+
+
+room_id
+"f65cbcde35"
+(string)
+
+
+room_name
+"MATHEMATICS"
+(string)
+
+
+sender
+"Jelena Vasic"
+(string)
+
+
+status
+"pending"
+(string)
+
+
+timestamp
+April 21, 2025 at 5:59:45 PM UTC+1
+(timestamp)
+
+
+type
+"room_invite"
+(string)
+
+
+username
+"CHIDUBEM"
+"""
+
+
+
+
+
+
 @csrf_exempt
 def mark_notification_read(request):
     if request.method == 'POST':

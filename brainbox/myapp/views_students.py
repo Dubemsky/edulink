@@ -121,7 +121,6 @@ def students_homepage(request):
         number_of_nofications = len(notifications)
 
 
-
         print(f"\n\n\n You have livestreams {student_name} {notifications}\n\n")
 
         # Retrieve verification status from Firestore

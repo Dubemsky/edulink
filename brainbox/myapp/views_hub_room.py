@@ -819,100 +819,148 @@ def get_user_votes(request):
 
 # Add to views_hub_room.py
 
-
-
-# Add to views_hub_room.py
 @csrf_exempt
 def respond_to_invitation(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            notification_id = data.get("notification_id")
-            response = data.get("response")  # "accept" or "reject"
-            
-            if not notification_id or not response:
-                return JsonResponse({"success": False, "error": "Missing required parameters"}, status=400)
-            
-            # Get the current student from session
-            student_name = request.session.get("students_name")
-            if not student_name:
-                return JsonResponse({"success": False, "error": "Not logged in as a student"}, status=401)
-            
-            # Get the notification details
-            notification_ref = db.collection("notifications").document(notification_id)
-            notification = notification_ref.get()
-            
-            if not notification.exists:
-                return JsonResponse({"success": False, "error": "Notification not found"}, status=404)
+    """
+    Handle student responses to room invitations (accept/reject)
+    """
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+    
+    try:
+        logger.info("Received invitation response")
+        # Parse the request body
+        data = json.loads(request.body)
+        notification_id = data.get("notification_id")
+        response = data.get("response")  # 'accept' or 'reject'
+        
+        # Validate parameters
+        if not notification_id or not response:
+            logger.warning("Missing parameters in invitation response")
+            return JsonResponse({"success": False, "error": "Missing required parameters"}, status=400)
+        
+        if response not in ["accept", "reject"]:
+            logger.warning(f"Invalid response type: {response}")
+            return JsonResponse({"success": False, "error": "Invalid response type"}, status=400)
+        
+        # Get the current student from session
+        student_name = request.session.get("students_name")
+        if not student_name:
+            logger.warning("No student found in session")
+            return JsonResponse({"success": False, "error": "You must be logged in as a student"}, status=401)
+        
+        logger.info(f"Student {student_name} responding to invitation {notification_id} with: {response}")
+        
+        # Get notification details from Firestore
+        from .firebase import db
+        notification_ref = db.collection("notifications").document(notification_id)
+        notification = notification_ref.get()
+        
+        if not notification.exists:
+            logger.warning(f"Notification {notification_id} not found")
+            return JsonResponse({"success": False, "error": "Notification not found"}, status=404)
+        
+        notification_data = notification.to_dict()
+        
+        # Verify this is a room invite notification
+        if notification_data.get("type") != "room_invite":
+            logger.warning(f"Notification {notification_id} is not a room invite")
+            return JsonResponse({"success": False, "error": "This is not a room invite notification"}, status=400)
+        
+        # Verify the invitation belongs to this student
+        if notification_data.get("username") != student_name:
+            logger.warning(f"Notification {notification_id} does not belong to {student_name}")
+            return JsonResponse({"success": False, "error": "This invitation is not for you"}, status=403)
+        
+        # Get room details
+        room_id = notification_data.get("room_id")
+        room_name = notification_data.get("room_name", "Unknown Room")
+        sender = notification_data.get("sender", "Unknown Teacher")
+        
+        if response == "accept":
+            # Handle accepting the invitation
+            try:
+                # Get the hub details
+                hub = Teachers_created_hub.objects.get(room_url=room_id)
                 
-            notification_data = notification.to_dict()
-            
-            # Verify this notification is for the current student
-            if notification_data.get("username") != student_name:
-                return JsonResponse({"success": False, "error": "This notification is not for you"}, status=403)
-                
-            # Get room details
-            room_id = notification_data.get("room_id")
-            room_name = notification_data.get("room_name")
-            
-            if response == "accept":
-                try:
-                    # Get the room details
-                    room = Teachers_created_hub.objects.get(room_url=room_id)
+                # Check if the student is already a member
+                if Students_joined_hub.objects.filter(student=student_name, hub=hub).exists():
+                    logger.info(f"Student {student_name} is already a member of room {room_id}")
                     
-                    # Check if student is already a member
-                    if Students_joined_hub.objects.filter(student=student_name, hub=room).exists():
-                        # Mark notification as read even if already a member
-                        notification_ref.delete()
-                        return JsonResponse({
-                            "success": True, 
-                            "message": "You are already a member of this room",
-                            "room_url": f"/students-dashboard/hub-room/{room_id}/"
-                        })
-                    
-                    # Add student to the room
-                    new_member = Students_joined_hub(
-                        student=student_name,
-                        hub=room,
-                        hub_owner=room.hub_owner,
-                        hub_url=room_id
-                    )
-                    new_member.save()
-                    
-                    # Delete the notification
-                    notification_ref.delete()
-                    
-                    return JsonResponse({
-                        "success": True,
-                        "message": f"You have joined {room_name}",
-                        "room_url": f"/students-dashboard/hub-room/{room_id}/"
+                    # Update notification status
+                    notification_ref.update({
+                        "status": "accepted",
+                        "response_time": datetime.utcnow()
                     })
                     
-                except Teachers_created_hub.DoesNotExist:
-                    return JsonResponse({"success": False, "error": "Room not found"}, status=404)
-                except Exception as e:
-                    print(f"Error accepting invite: {e}")
-                    return JsonResponse({"success": False, "error": str(e)}, status=500)
-                    
-            elif response == "reject":
-                # Delete the notification
-                notification_ref.delete()
+                    # Return success with the room URL
+                    return JsonResponse({
+                        "success": True,
+                        "message": f"You are already a member of {room_name}",
+                        "room_url": f"/students-dashboard/hub-room/{room_id}/"
+                    })
+                
+                logger.info(f"Adding student {student_name} to room {room_id}")
+                
+                # Add the student to the room
+                new_member = Students_joined_hub(
+                    student=student_name,
+                    hub=hub,
+                    hub_owner=hub.hub_owner,
+                    hub_url=room_id
+                )
+                new_member.save()
+                
+                # Update notification status
+                notification_ref.update({
+                    "status": "accepted",
+                    "response_time": datetime.utcnow()
+                })
+                
+                logger.info(f"Student {student_name} has been added to room {room_id}")
+                
+                # Return success with the room URL
+                return JsonResponse({
+                    "success": True,
+                    "message": f"You have joined {room_name}",
+                    "room_url": f"/students-dashboard/hub-room/{room_id}/"
+                })
+                
+            except Teachers_created_hub.DoesNotExist:
+                logger.error(f"Room {room_id} not found")
+                return JsonResponse({"success": False, "error": "Room not found"}, status=404)
+                
+            except Exception as e:
+                logger.error(f"Error accepting invitation: {str(e)}")
+                return JsonResponse({"success": False, "error": f"Error: {str(e)}"}, status=500)
+                
+        elif response == "reject":
+            # Handle rejecting the invitation
+            try:
+                logger.info(f"Student {student_name} rejected room invitation to {room_id}")
+                
+                # Update notification status
+                notification_ref.update({
+                    "status": "rejected",
+                    "response_time": datetime.utcnow()
+                })
                 
                 return JsonResponse({
                     "success": True,
                     "message": f"You have declined the invitation to {room_name}"
                 })
                 
-            else:
-                return JsonResponse({"success": False, "error": "Invalid response"}, status=400)
+            except Exception as e:
+                logger.error(f"Error rejecting invitation: {str(e)}")
+                return JsonResponse({"success": False, "error": f"Error: {str(e)}"}, status=500)
                 
-        except json.JSONDecodeError:
-            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
-        except Exception as e:
-            print(f"Error responding to invite: {e}")
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
-            
-    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON in request body")
+        return JsonResponse({"success": False, "error": "Invalid JSON in request body"}, status=400)
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in respond_to_invitation: {str(e)}")
+        return JsonResponse({"success": False, "error": f"Unexpected error: {str(e)}"}, status=500)
 
 # Updated backend function to support inviting by name
 
