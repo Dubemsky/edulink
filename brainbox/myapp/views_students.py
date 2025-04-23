@@ -388,7 +388,8 @@ def student_profile_page_my_profile(request):
 
 def student_profile_page_securty_settings(request):
     """
-    View function to display and manage security settings
+    View function to display and manage security settings with proper verification status
+    and user profile information
     """
     student_name = get_student_user_id(request)
     
@@ -402,37 +403,135 @@ def student_profile_page_securty_settings(request):
         return redirect('first_page')
     
     user_id = details.get('uid')
-    users_ref = db.collection('users_profile')
-    user_doc = users_ref.document(user_id).get()
+    
+    # Get user profile from Firebase
+    try:
+        users_ref = db.collection('users_profile')
+        user_doc = users_ref.document(user_id).get()
+        
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            profile_picture = user_data.get('profile_picture', 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png')
+            followers = user_data.get('followers', 0)
+            followings = user_data.get('followings', 0)
+            hub_count = Students_joined_hub.objects.filter(student=student_name).count()
+        else:
+            profile_picture = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+            followers = 0
+            followings = 0
+            hub_count = 0
+            
+    except Exception as e:
+        print(f"Error fetching user profile: {e}")
+        profile_picture = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+        followers = 0
+        followings = 0
+        hub_count = 0
+    
+    # Create comprehensive student object for the template
+    student = {
+        'name': student_name,
+        'email': details.get('email', ''),
+        'followers': followers,
+        'followings': followings,
+        'hubs_count': hub_count
+    }
     
     # Get verification status
-    verification_status = check_account_verification_status(user_id)
+    verification_status = {}
+    try:
+        user_id = details.get('uid')
+        users_ref = db.collection('users_profile')
+        user_doc = users_ref.document(user_id).get()
+        
+        # Get verification status
+        verification_status = check_account_verification_status(user_id)
+        
+        # Default privacy settings (can be loaded from database in the future)
+        
+        privacy = {
+            'profile_visibility': 'public',
+            'activity_visibility': 'public',
+            'show_online_status': True
+        }
+        
+        # Default notification settings
+        notifications = {
+            'email_notifications': True,
+            'question_replies': True,
+            'hub_updates': True,
+            'upvotes_mentions': True
+        }
+        
+        context = {
+            'verification_status': verification_status,
+            'privacy': privacy,
+            'notifications': notifications,
+            'active_tab': 'security'
+        }
+    except Exception as e:
+        print(f"Error determining verification status: {e}")
+        # Fallback verification status
+        verification_status = {
+            'is_verified': False,
+            'status': 'unknown'
+        }
     
-    # Default privacy settings (can be loaded from database in the future)
+    # Get or initialize privacy settings
+    try:
+        # In a real implementation, these would be stored in Firestore
+        # For now, we're using defaults
+        privacy_ref = db.collection('user_privacy').document(user_id).get()
+        
+        if privacy_ref.exists:
+            privacy = privacy_ref.to_dict()
+        else:
+            privacy = {
+                'profile_visibility': 'public',
+                'activity_visibility': 'public',
+                'show_online_status': True
+            }
+    except Exception as e:
+        print(f"Error fetching privacy settings: {e}")
+        privacy = {
+            'profile_visibility': 'public',
+            'activity_visibility': 'public',
+            'show_online_status': True
+        }
     
-    privacy = {
-        'profile_visibility': 'public',
-        'activity_visibility': 'public',
-        'show_online_status': True
-    }
-    
-    # Default notification settings
-    notifications = {
-        'email_notifications': True,
-        'question_replies': True,
-        'hub_updates': True,
-        'upvotes_mentions': True
-    }
+    # Get or initialize notification settings
+    try:
+        # In a real implementation, these would be stored in Firestore
+        notification_ref = db.collection('user_notifications').document(user_id).get()
+        
+        if notification_ref.exists:
+            notifications = notification_ref.to_dict()
+        else:
+            notifications = {
+                'email_notifications': True,
+                'question_replies': True,
+                'hub_updates': True,
+                'upvotes_mentions': True
+            }
+    except Exception as e:
+        print(f"Error fetching notification settings: {e}")
+        notifications = {
+            'email_notifications': True,
+            'question_replies': True,
+            'hub_updates': True,
+            'upvotes_mentions': True
+        }
     
     context = {
+        'student': student,
+        'profile_picture': profile_picture,
         'verification_status': verification_status,
         'privacy': privacy,
         'notifications': notifications,
         'active_tab': 'security'
     }
-
-    print(f"This is the content of the ting {student_name} {context}")
     
+    print(context['verification_status'])
     return render(request, "myapp/students/profile/student_profile_securty_settings.html", context)
 
 
@@ -567,7 +666,7 @@ def student_profile_page_activity_contribution(request):
     - Followers/following stats
     """
     from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-    import datetime
+    from datetime import datetime
     
     student_name = get_student_user_id(request)
     
@@ -599,13 +698,17 @@ def student_profile_page_activity_contribution(request):
             user_data = user_doc.to_dict()
             followers = user_data.get('followers', 0)
             followings = user_data.get('followings', 0)
+            profile_picture = user_data.get('profile_picture', 
+                'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png')
         else:
             followers = 0
             followings = 0
+            profile_picture = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
     except Exception as e:
         print(f"Error fetching user profile: {e}")
         followers = 0
         followings = 0
+        profile_picture = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
     
     # Get hub count
     try:
@@ -617,10 +720,29 @@ def student_profile_page_activity_contribution(request):
     # Initialize empty list for activities
     activities = []
     
-    # Dummy counts for now - you'll need to connect these to your actual models
+    # Get messages and replies count from Firebase
     questions_count = 0
     answers_count = 0
     posts_count = 0
+    
+    try:
+        # Count student questions (messages)
+        messages_ref = db.collection('hub_messages').where('sender', '==', student_name)
+        messages = list(messages_ref.stream())
+        questions_count = len(messages)
+        
+        # Count student replies
+        replies_ref = db.collection('hub_message_reply').where('sender', '==', student_name)
+        replies = list(replies_ref.stream())
+        answers_count = len(replies)
+        
+        # Posts count (can be added if there's a separate posts collection)
+        # For now, using hub activity as posts
+        posts_ref = db.collection('user_activities').where('user_id', '==', user_id).where('type', '==', 'post')
+        posts = list(posts_ref.stream())
+        posts_count = len(posts)
+    except Exception as e:
+        print(f"Error counting messages and replies: {e}")
     
     # Build stats dictionary
     stats = {
@@ -630,41 +752,82 @@ def student_profile_page_activity_contribution(request):
         'hubs_count': hub_count
     }
     
-    # Get activities from Firestore if available
-    try:
-        activities_ref = db.collection('user_activities')
-        query = activities_ref.where('user_id', '==', user_id).order_by('created_at', direction='DESCENDING')
-        
-        # Apply filter if not 'all'
-        if activity_filter == 'questions':
-            query = query.where('type', '==', 'question')
-        elif activity_filter == 'answers':
-            query = query.where('type', '==', 'answer')
-        elif activity_filter == 'posts':
-            query = query.where('type', '==', 'post')
-        elif activity_filter == 'hubs':
-            query = query.where('type', '==', 'hub_joined')
-        
-        activity_docs = query.stream()  # Use stream() instead of get() for more efficient iteration
-        
-        # Process activity documents
-        for doc in activity_docs:
-            activity_data = doc.to_dict()
-            # Add document ID to the data
-            activity_data['id'] = doc.id
-            
-            # Format timestamps for display
-            if 'created_at' in activity_data and activity_data['created_at']:
-                if isinstance(activity_data['created_at'], (int, float)):
-                    # Convert timestamp to datetime if stored as timestamp
-                    activity_data['created_at'] = datetime.datetime.fromtimestamp(activity_data['created_at'])
-            
-            activities.append(activity_data)
-    except Exception as e:
-        print(f"Error fetching activities from Firestore: {e}")
+    # Build activities list from multiple sources
     
-    # If no activities found in Firestore, add recent hub joins from Django model
-    if not activities and (activity_filter == 'all' or activity_filter == 'hubs'):
+    # 1. First try to get messages (questions)
+    if activity_filter in ['all', 'questions']:
+        try:
+            for msg in messages:
+                msg_data = msg.to_dict()
+                encrypted_content = msg_data.get('content')
+                
+                # Try to decrypt content if available
+                content = ""
+                try:
+                    if encrypted_content:
+                        from .encryption import encryption_manager
+                        content = encryption_manager.decrypt(encrypted_content)
+                except Exception as e:
+                    print(f"Error decrypting message content: {e}")
+                    content = "Encrypted content"
+                
+                # Format timestamp
+                created_at = msg_data.get('timestamp')
+                if isinstance(created_at, str):
+                    try:
+                        created_at = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        created_at = datetime.now()
+                
+                activities.append({
+                    'id': msg.id,
+                    'type': 'question',
+                    'content': content,
+                    'created_at': created_at,
+                    'question_id': msg.id,
+                    'room_id': msg_data.get('room_id')
+                })
+        except Exception as e:
+            print(f"Error processing messages: {e}")
+    
+    # 2. Add replies (answers)
+    if activity_filter in ['all', 'answers']:
+        try:
+            for reply in replies:
+                reply_data = reply.to_dict()
+                encrypted_content = reply_data.get('reply_content')
+                
+                # Try to decrypt content if available
+                content = ""
+                try:
+                    if encrypted_content:
+                        from .encryption import encryption_manager
+                        content = encryption_manager.decrypt(encrypted_content)
+                except Exception as e:
+                    print(f"Error decrypting reply content: {e}")
+                    content = "Encrypted content"
+                
+                # Format timestamp
+                created_at = reply_data.get('timestamp')
+                if isinstance(created_at, str):
+                    try:
+                        created_at = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        created_at = datetime.now()
+                
+                activities.append({
+                    'id': reply.id,
+                    'type': 'answer',
+                    'content': content,
+                    'created_at': created_at,
+                    'question_id': reply_data.get('question_id'),
+                    'room_id': reply_data.get('room_id')
+                })
+        except Exception as e:
+            print(f"Error processing replies: {e}")
+    
+    # 3. Add hub activities
+    if activity_filter in ['all', 'hubs']:
         try:
             hub_joins = Students_joined_hub.objects.filter(student=student_name).order_by('-id')[:10]
             
@@ -677,14 +840,45 @@ def student_profile_page_activity_contribution(request):
                         'user_id': user_id,
                         'hub_id': join.hub.id if hasattr(join.hub, 'id') else '',
                         'hub_name': join.hub.hub_name if hasattr(join.hub, 'hub_name') else 'Unknown Hub',
-                        'created_at': datetime.datetime.now(),  # Fallback to current time if no timestamp
-                        'content': f"Joined a hub"
+                        'created_at': datetime.now(),  # Fallback to current time if no timestamp
+                        'content': f"Joined hub: {join.hub.hub_name}" if hasattr(join.hub, 'hub_name') else "Joined a hub"
                     })
                 except Exception as inner_e:
                     print(f"Error processing hub join: {inner_e}")
                     continue
         except Exception as e:
             print(f"Error fetching hub joins from database: {e}")
+    
+    # 4. Add user_activities from Firestore (if any)
+    try:
+        activities_ref = db.collection('user_activities')
+        query = activities_ref.where('user_id', '==', user_id).order_by('created_at', direction='DESCENDING')
+        
+        # Apply filter if specific type
+        if activity_filter == 'posts':
+            query = query.where('type', '==', 'post')
+        
+        activity_docs = query.stream()
+        
+        for doc in activity_docs:
+            activity_data = doc.to_dict()
+            activity_data['id'] = doc.id
+            
+            # Format timestamp
+            if 'created_at' in activity_data and activity_data['created_at']:
+                if isinstance(activity_data['created_at'], (int, float)):
+                    activity_data['created_at'] = datetime.fromtimestamp(activity_data['created_at'])
+            
+            # Only add if not filtering or matches filter
+            if activity_filter == 'all' or activity_data.get('type') == activity_filter:
+                # Don't duplicate hub_joined activities if we already added them
+                if activity_data.get('type') != 'hub_joined' or activity_filter != 'hubs':
+                    activities.append(activity_data)
+    except Exception as e:
+        print(f"Error fetching activities from Firestore: {e}")
+    
+    # Sort all activities by date, newest first
+    activities.sort(key=lambda x: x.get('created_at', datetime.now()), reverse=True)
     
     # Paginate the activities
     page = request.GET.get('page', 1)
@@ -705,6 +899,7 @@ def student_profile_page_activity_contribution(request):
             'followings': followings,
             'hubs_count': hub_count,
         },
+        'profile_picture': profile_picture,
         'activities': paginated_activities,
         'stats': stats,
         'filter': activity_filter,

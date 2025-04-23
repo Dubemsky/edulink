@@ -124,8 +124,8 @@
   <!-- File upload form (hidden) -->
   <form id="profilePicForm" method="POST" action="{% url 'teachers_profile_update' %}" enctype="multipart/form-data" style="display: none;">
     {% csrf_token %}
-    <input type="hidden" name="type" value="pic">
-    <input type="file" name="profile_pic" id="profilePicInput" accept="image/*">
+    <input type="hidden" name="type" value="profile_pic">
+    <input type="file" name="profile_picture" id="profilePicInput" accept="image/*">
   </form>
 
   <!-- Vendor JS Files -->
@@ -167,8 +167,29 @@
             };
             reader.readAsDataURL(this.files[0]);
             
-            // Submit form
-            document.getElementById('profilePicForm').submit();
+            // Submit form using AJAX
+            const form = document.getElementById('profilePicForm');
+            const formData = new FormData(form);
+            
+            fetch(form.action, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                showNotification('Profile picture updated successfully', 'success');
+              } else {
+                showNotification(data.error || 'Failed to update profile picture', 'error');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              showNotification('An error occurred. Please try again.', 'error');
+            });
           }
         });
       }

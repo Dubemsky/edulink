@@ -198,6 +198,7 @@ def teacher_profile_page_my_profile(request):
                 'student_count': total_students,
             }
             
+            print(profile_data)
             return render(request, 'myapp/teachers/profile/teachers_profile_my_profile.html', profile_data)
         else:
             # User profile not found, render with default data
@@ -324,18 +325,30 @@ def teachers_profile_update(request):
             
             return redirect('teacher_profile_page_my_profile')
             
-        elif update_type == 'pic':
+        elif update_type == 'pic' or update_type == 'profile_pic':
             # Handle profile picture update
-            profile_pic = request.FILES.get('profile_pic')
-            if profile_pic:
-                # Upload to Firebase Storage using the utility function
-                image_url = store_image_in_firebase(profile_pic, teacher_name, user_id)
-                if image_url:
-                    return JsonResponse({"success": True, "url": image_url})
+            profile_picture = request.FILES.get('profile_picture') or request.FILES.get('profile_pic')
+            if not profile_picture:
+                return JsonResponse({"success": False, "error": "No profile picture uploaded"}, status=400)
+                
+            success = store_image_in_firebase(profile_picture, teacher_name, user_id)
+            
+            # Check if this is an AJAX request
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            
+            if is_ajax:
+                # For AJAX requests, return JSON response
+                if success:
+                    return JsonResponse({"success": True, "message": "Profile picture updated successfully"})
                 else:
                     return JsonResponse({"success": False, "error": "Failed to upload image"}, status=500)
             else:
-                return JsonResponse({"success": False, "error": "No image file provided"}, status=400)
+                # For non-AJAX requests, redirect back to profile page
+                if success:
+                    messages.success(request, "Profile picture updated successfully")
+                else:
+                    messages.error(request, "Failed to upload image")
+                return redirect('teacher_profile_page_my_profile')
         
         else:
             return JsonResponse({"success": False, "error": "Invalid update type"}, status=400)
@@ -373,7 +386,7 @@ def teacher_profile_page_securty_settings(request):
                 'name': teacher_name,
                 'followers': followers,
                 'followings': followings,
-                'profile_picture': user_data.get('profile_picture', 'https://via.placeholder.com/150'),
+                'profile_picture': user_data.get('profile_picture', 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'),
                 'hub_count': hub_count,
                 'active_tab': 'security'
             }
@@ -385,7 +398,7 @@ def teacher_profile_page_securty_settings(request):
                 'name': teacher_name,
                 'followers': 0,
                 'followings': 0,
-                'profile_picture': 'https://via.placeholder.com/150',
+                'profile_picture': 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
                 'hub_count': 0,
                 'active_tab': 'security'
             }
@@ -398,7 +411,7 @@ def teacher_profile_page_securty_settings(request):
             'name': teacher_name,
             'followers': 0,
             'followings': 0,
-            'profile_picture': 'https://via.placeholder.com/150',
+            'profile_picture': 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
             'hub_count': 0,
             'active_tab': 'security',
             'error': 'An error occurred while loading your profile.'

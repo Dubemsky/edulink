@@ -1,8 +1,9 @@
 from django.http import JsonResponse
 from .firebase import *
-from django.shortcuts import render
+from django.shortcuts import render,redirect
 from firebase_admin import credentials, auth
-
+from django.contrib import messages
+import time
 
 def get_user_by_name(name):
     """
@@ -39,7 +40,7 @@ def students_profile_update(request):
     - Bio and basic information
     - Websites
     
-    Returns JsonResponse with success/error information.
+    Returns JsonResponse with success/error information or redirects to profile page
     """
     if request.method == 'POST':
         update_type = request.POST.get('type')
@@ -61,11 +62,24 @@ def students_profile_update(request):
             if not profile_picture:
                 return JsonResponse({"success": False, "error": "No profile picture uploaded"}, status=400)
                 
-            image_url = store_image_in_firebase(profile_picture, student_name, user_id)
-            if image_url:
-                return JsonResponse({"success": True, "image_url": image_url})
+            success = store_image_in_firebase(profile_picture, student_name, user_id)
+            
+            # Check if this is an AJAX request
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            
+            if is_ajax:
+                # For AJAX requests, return JSON response
+                if success:
+                    return JsonResponse({"success": True, "message": "Profile picture updated successfully"})
+                else:
+                    return JsonResponse({"success": False, "error": "Failed to upload image"}, status=500)
             else:
-                return JsonResponse({"success": False, "error": "Failed to upload image"}, status=500)
+                # For non-AJAX requests, redirect back to profile page
+                if success:
+                    messages.success(request, "Profile picture updated successfully")
+                else:
+                    messages.error(request, "Failed to upload image")
+                return redirect('student_profile_page_my_profile')
         
         # Handle bio update
         elif update_type == 'bio':
@@ -93,7 +107,14 @@ def students_profile_update(request):
                 if not success:
                     return JsonResponse({"success": False, "error": "Failed to update websites"}, status=500)
             
-            return JsonResponse({"success": True})
+            # Check if this is an AJAX request
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            
+            if is_ajax:
+                return JsonResponse({"success": True})
+            else:
+                messages.success(request, "Profile updated successfully")
+                return redirect('student_profile_page_my_profile')
         
         # Handle website updates
         elif update_type == 'website':
@@ -102,10 +123,21 @@ def students_profile_update(request):
                 return JsonResponse({"success": False, "error": "No website provided"}, status=400)
                 
             success = add_user_website(user_id, website)
-            if success:
-                return JsonResponse({"success": True})
+            
+            # Check if this is an AJAX request
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            
+            if is_ajax:
+                if success:
+                    return JsonResponse({"success": True})
+                else:
+                    return JsonResponse({"success": False, "error": "Failed to add website"}, status=500)
             else:
-                return JsonResponse({"success": False, "error": "Failed to add website"}, status=500)
+                if success:
+                    messages.success(request, "Website added successfully")
+                else:
+                    messages.error(request, "Failed to add website")
+                return redirect('student_profile_page_my_profile')
         
         return JsonResponse({"success": False, "error": "Invalid update type"}, status=400)
 
@@ -207,60 +239,119 @@ def update_user_websites(user_id, websites):
 
 
 def teachers_profile_update(request):
-    """
-    Handler for teacher profile updates - similar to student updates
-    """
-    if request.method == 'POST':
-        update_type = request.POST.get('type')
-        teacher_name = get_teacher_user_id(request)
-
-        if not teacher_name:
-            return JsonResponse({"success": False, "error": "User not logged in"}, status=401)
-
-        details = get_user_by_name(teacher_name)
-        if not details:
-            return JsonResponse({"success": False, "error": "User not found"}, status=404)
-            
-        user_id = details.get('uid')
-        print(f"Teacher profile update for {teacher_name} (ID: {user_id}), type: {update_type}")
+    """Handle teacher profile updates, including basic info, bio, websites, and qualifications"""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+    
+    # Get the current teacher's user ID
+    teacher_name = get_teacher_user_id(request)
+    if not teacher_name:
+        return JsonResponse({"success": False, "error": "Not authenticated"}, status=401)
+    
+    # Get user details from Firebase
+    details = get_user_by_name(teacher_name)
+    user_id = details.get('uid')
+    if not user_id:
+        return JsonResponse({"success": False, "error": "User not found"}, status=404)
+    
+    try:
+        # Determine the type of update
+        update_type = request.POST.get('type', 'profile')
         
-        # Handle profile picture update
-        if update_type == 'profile_pic':
-            profile_picture = request.FILES.get('profile_picture')
+        if update_type == 'profile':
+            # Handle basic profile information update
+            update_data = {
+                'name': request.POST.get('name', ''),
+                'subject': request.POST.get('subject', ''),
+                'years_experience': request.POST.get('years_experience', ''),
+                'school': request.POST.get('school', ''),
+                'bio': request.POST.get('bio', ''),
+                'last_updated': int(time.time())
+            }
+            
+            # Handle qualifications
+            qualifications = []
+            degrees = request.POST.getlist('qualification_degree[]', [])
+            institutions = request.POST.getlist('qualification_institution[]', [])
+            years = request.POST.getlist('qualification_year[]', [])
+            
+            # Only add qualifications that have at least a degree specified
+            for i in range(len(degrees)):
+                if degrees[i].strip():
+                    qualification = {
+                        'degree': degrees[i],
+                        'institution': institutions[i] if i < len(institutions) else '',
+                        'year': years[i] if i < len(years) else ''
+                    }
+                    qualifications.append(qualification)
+            
+            update_data['qualifications'] = qualifications
+            
+            # Handle websites
+            websites = []
+            website_names = request.POST.getlist('website_name[]', [])
+            website_urls = request.POST.getlist('website_url[]', [])
+            
+            # Only add websites that have a URL specified
+            for i in range(len(website_urls)):
+                if website_urls[i].strip():
+                    website = {
+                        'name': website_names[i] if i < len(website_names) and website_names[i].strip() else website_urls[i],
+                        'url': website_urls[i]
+                    }
+                    websites.append(website)
+            
+            update_data['websites'] = websites
+            
+            # Update the document in Firebase
+            users_ref = db.collection('users_profile')
+            users_ref.document(user_id).update(update_data)
+            
+            # Track activity
+            try:
+                track_user_activity(
+                    user_id=user_id,
+                    activity_type='content_creation',
+                    content="Updated profile information",
+                    content_title="Profile Update",
+                    content_type="profile"
+                )
+            except Exception as activity_error:
+                print(f"Error tracking profile update activity: {activity_error}")
+            
+            return redirect('teacher_profile_page_my_profile')
+            
+        elif update_type == 'pic' or update_type == 'profile_pic':
+            # Handle profile picture update
+            profile_picture = request.FILES.get('profile_picture') or request.FILES.get('profile_pic')
             if not profile_picture:
                 return JsonResponse({"success": False, "error": "No profile picture uploaded"}, status=400)
                 
-            image_url = store_image_in_firebase(profile_picture, teacher_name, user_id)
-            if image_url:
-                return JsonResponse({"success": True, "image_url": image_url})
-            else:
-                return JsonResponse({"success": False, "error": "Failed to upload image"}, status=500)
-        
-        # Handle bio update
-        elif update_type == 'bio':
-            bio = request.POST.get('bio', '')
+            success = store_image_in_firebase(profile_picture, teacher_name, user_id)
             
-            success = update_user_bio(user_id, bio)
-            if success:
-                return JsonResponse({"success": True})
+            # Check if this is an AJAX request
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            
+            if is_ajax:
+                # For AJAX requests, return JSON response
+                if success:
+                    return JsonResponse({"success": True, "message": "Profile picture updated successfully"})
+                else:
+                    return JsonResponse({"success": False, "error": "Failed to upload image"}, status=500)
             else:
-                return JsonResponse({"success": False, "error": "Failed to update bio"}, status=500)
+                # For non-AJAX requests, redirect back to profile page
+                if success:
+                    messages.success(request, "Profile picture updated successfully")
+                else:
+                    messages.error(request, "Failed to upload image")
+                return redirect('teacher_profile_page_my_profile')
         
-        # Handle website updates
-        elif update_type == 'website':
-            website = request.POST.get('website')
-            if not website:
-                return JsonResponse({"success": False, "error": "No website provided"}, status=400)
-                
-            success = add_user_website(user_id, website)
-            if success:
-                return JsonResponse({"success": True})
-            else:
-                return JsonResponse({"success": False, "error": "Failed to add website"}, status=500)
-        
-        return JsonResponse({"success": False, "error": "Invalid update type"}, status=400)
-
-    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+        else:
+            return JsonResponse({"success": False, "error": "Invalid update type"}, status=400)
+    
+    except Exception as e:
+        print(f"Error updating teacher profile: {e}")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 def store_image_in_firebase(image_file, username, user_id):
