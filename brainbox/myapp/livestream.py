@@ -694,7 +694,7 @@ def livestream_message(request):
         if stream_data.get('status') != 'live':
             return JsonResponse({'success': False, 'error': 'Stream is not active'})
         
-        # Create a message record in Firebase
+        # Create a message record in Firebase - this uses SERVER_TIMESTAMP (not JSON serializable)
         message_ref = db.collection('livestream_messages').document()
         message_data = {
             'type': message_type,
@@ -706,17 +706,29 @@ def livestream_message(request):
         }
         message_ref.set(message_data)
         
-        # Add the message ID to the data
-        message_data['message_id'] = message_ref.id
+        # Create a response-safe copy without Sentinel value for JSON response
+        # Use a current timestamp string instead of the Firestore SERVER_TIMESTAMP
+        current_time = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+        response_data = {
+            'type': message_type,
+            'sender_id': sender_id,
+            'room_id': room_id,
+            'stream_id': stream_id,
+            'content': content,
+            'created_at': current_time,
+            'message_id': message_ref.id
+        }
         
         return JsonResponse({
             'success': True,
-            'message': message_data
+            'message': response_data  # Return the JSON-serializable version
         })
         
     except Exception as e:
         print(f"Error handling livestream message: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
+
+
 
 @csrf_exempt
 def get_livestream_messages(request):

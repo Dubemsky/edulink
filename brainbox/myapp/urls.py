@@ -29,6 +29,9 @@ urlpatterns = [
     path('students-dashboard/hub-room/<str:id>/', current_student_hub_room, name='current_student_hub_room'),
     path('students-dashboard/student-profile/my_profile',student_profile_page_my_profile,name='student_profile_page_my_profile'),
     path('students-dashboard/hub-room/<str:id>/<str:message_id>/', hub_room_message_student_replies, name='hub_room_message_replies'),
+
+
+    
     path('students-dashboard/student-profile/my_profile/students_profile_update', students_profile_update, name='students_profile_update'),
     path('students-dashboard/student-profile/security-settings',student_profile_page_securty_settings,name='student_profile_page_securty_settings'),
     path('students-dashboard/student-profile/activity-contribution',student_profile_page_activity_contribution,name='student_profile_page_activity_contribution'),
