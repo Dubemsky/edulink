@@ -265,7 +265,7 @@ def join_livestream(request):
         token = generate_rtc_token(
             channel_name=channel_name,
             uid=viewer_uid,
-            role=agora_token_builder.RtcTokenBuilder.RoleSubscriber
+            role=2
         )
         
         if not token:

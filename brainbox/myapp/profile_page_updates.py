@@ -5,6 +5,8 @@ from firebase_admin import credentials, auth
 from django.contrib import messages
 import time
 
+
+
 def get_user_by_name(name):
     """
     Fetches a user's details from Firebase Authentication by their display name.
@@ -309,6 +311,7 @@ def teachers_profile_update(request):
             
             # Track activity
             try:
+                from .user_activity import track_user_activity
                 track_user_activity(
                     user_id=user_id,
                     activity_type='content_creation',
