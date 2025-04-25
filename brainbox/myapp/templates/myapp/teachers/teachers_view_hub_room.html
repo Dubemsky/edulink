@@ -505,16 +505,20 @@
   </div>
 
   <div class="tab-content" id="streams">
-    <h4>Streams</h4>
-    <ul class="streams-list">
-      {% if streams %}
-        {% for stream in streams %}
-          <li>{{ stream }}</li>
-        {% endfor %}
-      {% else %}
-        <li class="no-streams">No streams available.</li>
-      {% endif %}
-    </ul>
+    <h4>Livestreams</h4>
+    <div id="recordings-list-container">
+      <div class="loading-spinner" id="recordings-loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+      <ul class="recordings-list" id="recordings-list">
+        <!-- Recordings will be populated by JavaScript -->
+      </ul>
+      <div class="no-recordings-message" id="no-recordings" style="display: none;">
+        <p>No stream recordings available.</p>
+      </div>
+    </div>
   </div>
 </aside>
 
@@ -1237,8 +1241,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script src="{% static 'js/livestream.js' %}"></script>
   <script src="{% static 'js/livestream_socket.js' %}"></script>
-
-
+  <script src="{% static 'js/livestream_recordings.js' %}"></script>
 
  <script>
   // Updated invite-students.js with confirmation dialog

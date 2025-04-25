@@ -3,6 +3,7 @@ Livestreaming functionality for EduLink using Agora and Firebase.
 """
 import json
 import time
+from datetime import datetime,timedelta
 import random
 import string
 import requests
@@ -17,6 +18,41 @@ from .firebase import db, auth, firestore  # Import Firebase components
 AGORA_APP_ID = "87aeb278aa8848bab0b629a91e053db2"
 AGORA_APP_CERTIFICATE = "56facf85182849ada0e83568ec6465b3"
 AGORA_REST_API_URL = "https://api.agora.io/v1"
+
+
+
+
+
+@csrf_exempt
+def get_stream_recordings(request):
+    """
+    Get all recordings for a specific room.
+    """
+    room_id = request.GET.get('room_id')
+    
+    if not room_id:
+        return JsonResponse({'success': False, 'error': 'Room ID is required'})
+    
+    try:
+        # Query Firebase for recordings in this room
+        recordings_query = db.collection('stream_recordings').where('room_id', '==', room_id).order_by('created_at', direction=firestore.Query.DESCENDING).stream()
+        
+        recordings = []
+        for recording_doc in recordings_query:
+            recording_data = recording_doc.to_dict()
+            # Add the document ID
+            recording_data['id'] = recording_doc.id
+            recordings.append(recording_data)
+        
+        return JsonResponse({
+            'success': True,
+            'recordings': recordings
+        })
+        
+    except Exception as e:
+        print(f"Error getting stream recordings: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+    
 
 
 
@@ -50,11 +86,18 @@ def generate_stream_id():
     random_chars = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
     return f"stream_{timestamp}_{random_chars}"
 
+
+
+
+
+
+
 @csrf_exempt
 def start_livestream(request):
     """
     Start a new livestream. This endpoint handles the teacher's request to go live.
     Updated to handle cases where the hub_rooms document doesn't exist yet.
+    Includes cloud recording functionality to save streams for later viewing.
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
@@ -65,6 +108,7 @@ def start_livestream(request):
         room_id = data.get('room_id')
         title = data.get('title', 'Untitled Livestream')
         notify_students = data.get('notify_students', True)
+        enable_recording = data.get('enable_recording', True)  # Default to recording enabled
         
         if not teacher_id or not room_id:
             return JsonResponse({'success': False, 'error': 'Missing required fields'})
@@ -84,8 +128,7 @@ def start_livestream(request):
         if not token:
             return JsonResponse({'success': False, 'error': 'Failed to generate streaming token'})
         
-        # Store stream data in Firebase
-        stream_ref = db.collection('livestreams').document(stream_id)
+        # Prepare stream data for Firebase
         stream_data = {
             'stream_id': stream_id,
             'channel_name': channel_name,
@@ -96,7 +139,30 @@ def start_livestream(request):
             'started_at': firestore.SERVER_TIMESTAMP,
             'viewer_count': 0,
             'token': token,  # Store token for validation purposes
+            'is_recording': enable_recording,  # Flag to indicate if recording is enabled
         }
+        
+        # If recording is enabled, initialize recording data
+        if enable_recording:
+            try:
+                # Generate a unique recording UID
+                recording_uid = int(time.time()) % 100000 + random.randint(1, 1000)
+                
+                # Store recording info in stream data
+                stream_data.update({
+                    'recording_uid': recording_uid,
+                    'recording_status': 'initializing'
+                })
+                
+                # We'll initialize the recording in the background after creating the stream
+                # This prevents delays in stream startup
+            except Exception as e:
+                print(f"Error initializing recording data: {e}")
+                # Continue without recording if there's an error
+                stream_data['is_recording'] = False
+        
+        # Store stream data in Firebase
+        stream_ref = db.collection('livestreams').document(stream_id)
         stream_ref.set(stream_data)
         
         # Check if hub_rooms document exists, create if it doesn't
@@ -118,6 +184,68 @@ def start_livestream(request):
                 'created_at': firestore.SERVER_TIMESTAMP
             })
         
+        # Start cloud recording if enabled (in a background thread to avoid delays)
+        if enable_recording:
+            import threading
+            
+            def start_recording_task():
+                try:
+                    # Use Agora Cloud Recording API to start recording
+                    # This is a placeholder for the actual API call
+                    from .livestream_cloud_recording import acquire_recording_resource, start_cloud_recording
+                    
+                    # Acquire resource
+                    acquire_res = acquire_recording_resource(channel_name)
+
+                    print(f"\n\n{acquire_res}\n\n")
+                    if not acquire_res.get('success'):
+                        print(f"Failed to acquire recording resource: {acquire_res.get('error')}")
+                        stream_ref.update({
+                            'is_recording': False,
+                            'recording_status': 'failed',
+                            'recording_error': acquire_res.get('error')
+                        })
+                        return
+                    
+                    resource_id = acquire_res.get('resourceId')
+                    
+                    # Start recording
+                    recording_res = start_cloud_recording(
+                        channel_name=channel_name,
+                        token=token,
+                        recording_uid=recording_uid,
+                        resource_id=resource_id
+                    )
+                    
+                    if recording_res.get('success'):
+                        # Update stream with recording info
+                        stream_ref.update({
+                            'recording_id': recording_res.get('recording_id'),
+                            'resource_id': resource_id,
+                            'recording_status': 'active'
+                        })
+                        print(f"Cloud recording started for stream {stream_id}")
+                    else:
+                        # Update stream with recording error
+                        stream_ref.update({
+                            'is_recording': False,
+                            'recording_status': 'failed',
+                            'recording_error': recording_res.get('error')
+                        })
+                        print(f"Failed to start cloud recording: {recording_res.get('error')}")
+                except Exception as e:
+                    print(f"Error in recording task: {e}")
+                    stream_ref.update({
+                        'is_recording': False,
+                        'recording_status': 'failed',
+                        'recording_error': str(e)
+                    })
+            
+            # Start recording in background thread
+            recording_thread = threading.Thread(target=start_recording_task)
+            recording_thread.start()
+        
+        # Send notifications to students
         if notify_students:
             from .models import Students_joined_hub, Teachers_created_hub
             try:
@@ -155,18 +283,13 @@ def start_livestream(request):
             'stream_id': stream_id,
             'channel_name': channel_name,
             'token': token,
-            'app_id': AGORA_APP_ID
+            'app_id': AGORA_APP_ID,
+            'is_recording': enable_recording
         })
         
     except Exception as e:
         print(f"Error starting livestream: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
-    
-
-
-
-
-
 
 
 
@@ -174,6 +297,7 @@ def start_livestream(request):
 def end_livestream(request):
     """
     End an active livestream. Updated to handle cases where the hub_rooms document doesn't exist.
+    Saves recording information for playback in hub resources.
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Only POST method is allowed'})
@@ -198,6 +322,133 @@ def end_livestream(request):
         if stream_data.get('teacher_id') != teacher_id:
             return JsonResponse({'success': False, 'error': 'Unauthorized to end this stream'})
         
+        # Stop cloud recording if it's active
+        if stream_data.get('is_recording') and stream_data.get('recording_status') == 'active':
+            try:
+                from .livestream_cloud_recording import stop_cloud_recording
+                
+                recording_id = stream_data.get('recording_id')
+                resource_id = stream_data.get('resource_id')
+                recording_uid = stream_data.get('recording_uid')
+                channel_name = stream_data.get('channel_name')
+                
+                if recording_id and resource_id and recording_uid:
+                    # Stop the recording
+                    recording_res = stop_cloud_recording(
+                        channel_name=channel_name,
+                        resource_id=resource_id,
+                        recording_id=recording_id,
+                        recording_uid=recording_uid
+                    )
+                    
+                    if recording_res.get('success'):
+                        print(f"Cloud recording stopped for stream {stream_id}")
+                        
+                        # Calculate stream duration
+                        start_time = stream_data.get('started_at')
+                        if start_time:
+                            try:
+                                # Convert Firestore timestamps to Python datetime
+                                if hasattr(start_time, 'datetime'):
+                                    start_datetime = start_time.datetime
+                                elif hasattr(start_time, 'seconds'):
+                                    start_datetime = datetime.fromtimestamp(start_time.seconds)
+                                else:
+                                    start_datetime = datetime.now() - timedelta(hours=1)  # Fallback
+                                    
+                                current_time = datetime.now()
+                                duration_seconds = int((current_time - start_datetime).total_seconds())
+                            except Exception as e:
+                                print(f"Error calculating duration: {e}")
+                                duration_seconds = 3600  # Default to 1 hour if calculation fails
+                        else:
+                            duration_seconds = 3600  # Default to 1 hour
+                        
+                        # Process recording files for better playback
+                        recording_files = recording_res.get('recording_files', [])
+                        processed_files = []
+                        
+                        # If there are recording files, add metadata and process URLs
+                        for file_info in recording_files:
+                            # Add additional metadata
+                            file_info['duration'] = duration_seconds
+                            file_info['filesize_mb'] = file_info.get('fileSize', 0) / (1024 * 1024) if 'fileSize' in file_info else 0
+                            
+                            # Generate a thumbnail URL if this is a video file
+                            if file_info.get('fileName', '').endswith('.m3u8'):
+                                # Placeholder for thumbnail generation
+                                file_info['thumbnail_url'] = file_info.get('url', '').replace('.m3u8', '_thumbnail.jpg')
+                            
+                            processed_files.append(file_info)
+                        
+                        # Create recording entry in Firebase with more metadata
+                        recording_ref = db.collection('stream_recordings').document()
+                        recording_data = {
+                            'recording_id': recording_id,
+                            'stream_id': stream_id,
+                            'room_id': stream_data.get('room_id'),
+                            'teacher_id': teacher_id,
+                            'teacher_name': stream_data.get('teacher_name', teacher_id),
+                            'title': stream_data.get('title'),
+                            'description': stream_data.get('description', f"Recording of {stream_data.get('title')}"),
+                            'started_at': stream_data.get('started_at'),
+                            'ended_at': firestore.SERVER_TIMESTAMP,
+                            'duration': duration_seconds,
+                            'viewer_count': stream_data.get('viewer_count', 0),
+                            'created_at': firestore.SERVER_TIMESTAMP,
+                            'status': 'completed',
+                            'recording_files': processed_files,
+                            'thumbnail_url': processed_files[0].get('thumbnail_url') if processed_files else None,
+                            'playback_url': processed_files[0].get('url') if processed_files else None,
+                            'file_format': 'HLS',  # HLS format for adaptive streaming
+                            'is_deleted': False,
+                            'views': 0
+                        }
+                        recording_ref.set(recording_data)
+                        
+                        # Update the stream with recording status
+                        stream_ref.update({
+                            'recording_status': 'completed',
+                            'recording_saved': True,
+                            'recording_ref': recording_ref.id,
+                            'recording_url': processed_files[0].get('url') if processed_files else None
+                        })
+                        
+                        # Also update the hub room with latest recording info
+                        room_id = stream_data.get('room_id')
+                        if room_id:
+                            room_ref = db.collection('hub_rooms').document(room_id)
+                            room_doc = room_ref.get()
+                            
+                            if room_doc.exists:
+                                # Add to recordings array and update latest recording
+                                room_ref.update({
+                                    'recordings': firestore.ArrayUnion([recording_ref.id]),
+                                    'latest_recording': {
+                                        'id': recording_ref.id,
+                                        'title': stream_data.get('title'),
+                                        'created_at': firestore.SERVER_TIMESTAMP
+                                    }
+                                })
+                    else:
+                        print(f"Failed to stop cloud recording: {recording_res.get('error')}")
+                        stream_ref.update({
+                            'recording_status': 'failed',
+                            'recording_error': recording_res.get('error')
+                        })
+                else:
+                    print("Missing recording information, cannot stop recording")
+                    stream_ref.update({
+                        'recording_status': 'incomplete',
+                        'recording_error': 'Missing recording information'
+                    })
+            except Exception as e:
+                print(f"Error stopping cloud recording: {e}")
+                stream_ref.update({
+                    'recording_status': 'error',
+                    'recording_error': str(e)
+                })
+        
         # Update stream status
         stream_ref.update({
             'status': 'ended',
@@ -215,15 +466,32 @@ def end_livestream(request):
                 # Only update if document exists
                 room_ref.update({
                     'has_active_livestream': False,
-                    'active_stream_id': None
+                    'active_stream_id': None,
+                    'last_livestream_at': firestore.SERVER_TIMESTAMP
                 })
             # If document doesn't exist, no need to update it
         
-        return JsonResponse({'success': True})
+        # Return success response with recording info if applicable
+        response_data = {
+            'success': True,
+            'recording_saved': False,
+            'recording_playback_url': None
+        }
+        
+        # Add recording info if available
+        if stream_data.get('is_recording', False) and stream_data.get('recording_status') == 'active':
+            response_data['recording_saved'] = True
+            if 'recording_ref' in stream_data:
+                response_data['recording_id'] = stream_data.get('recording_ref')
+            if 'recording_url' in stream_data:
+                response_data['recording_playback_url'] = stream_data.get('recording_url')
+        
+        return JsonResponse(response_data)
         
     except Exception as e:
         print(f"Error ending livestream: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
+
 
 
 

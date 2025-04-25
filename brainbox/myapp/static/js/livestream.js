@@ -1023,8 +1023,11 @@ const LivestreamModule = {
         sender: this.getCurrentUserName(),
         sender_name: this.getCurrentUserName(),
         room_id: this.state.currentRoomId,
+        room_url: this.state.currentRoomId,
+        role:"teacher",
         stream_id: this.state.currentStreamId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+
       };
       
       window.socket.send(JSON.stringify(messageData));

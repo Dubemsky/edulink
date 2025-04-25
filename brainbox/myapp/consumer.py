@@ -37,7 +37,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             required_fields = {"message", "role", "room_url", "sender"}
             missing_fields = required_fields - data_json.keys()
-            print(f"\n\n\nMissing fields: {missing_fields}")
+            print(f"\n\n{data_json}\nMissing fields: {missing_fields}")
 
             if missing_fields:
                 await self.send(json.dumps({

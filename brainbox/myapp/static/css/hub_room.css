@@ -1645,3 +1645,71 @@ body.index-page {
     width: 100%;
   }
 }
+
+
+
+
+
+
+/* Recording List Styles */
+.recordings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recording-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s;
+}
+
+.recording-item:hover {
+  background-color: #f8f9fa;
+}
+
+.recording-details {
+  flex: 1;
+}
+
+.recording-title {
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.recording-meta {
+  font-size: 0.85rem;
+  color: #6c757d;
+  display: flex;
+  gap: 12px;
+}
+
+.recording-meta span {
+  display: flex;
+  align-items: center;
+}
+
+.recording-meta i {
+  margin-right: 5px;
+}
+
+.recording-actions {
+  margin-left: 10px;
+}
+
+/* Player Styles */
+#recording-player-container {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background-color: #000;
+  position: relative;
+}
+
+#recording-player video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
