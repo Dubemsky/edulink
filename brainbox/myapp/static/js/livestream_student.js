@@ -22,6 +22,7 @@ const StudentLivestream = {
   remoteUsers: {},
   
   // Initialization
+  // Initialization
   init: function() {
     // Get room ID and username from the page
     const roomData = document.getElementById('room-id-data');
@@ -39,6 +40,9 @@ const StudentLivestream = {
     
     // Initialize UI components
     this.initUI();
+    
+    // Initialize WebSocket integration for real-time messages
+    this.initWebSocketIntegration();
     
     // Start checking for active streams
     this.checkForActiveStreams();
@@ -471,9 +475,9 @@ const StudentLivestream = {
     this.streamTimer = setInterval(updateTimer, 1000);
   },
   
-  // Load stream chat messages
+  
   loadStreamChat: function(streamId) {
-    fetch(`/get-livestream_messages/?stream_id=${streamId}`)
+    fetch(`/get-livestream-messages/?stream_id=${streamId}`)
       .then(response => response.json())
       .then(data => {
         if (data.success) {
@@ -486,7 +490,15 @@ const StudentLivestream = {
             } else {
               // Add messages to chat
               data.messages.forEach(message => {
-                this.addChatMessage(message);
+                // Ensure the message is in the expected format
+                const formattedMessage = {
+                  sender_id: message.sender_id || message.sender || 'Unknown',
+                  sender_name: message.sender_name || message.sender || message.sender_id || 'Unknown',
+                  content: message.content || message.message || '',
+                  role: message.role || (message.sender_id && message.sender_id.startsWith('t') ? 'teacher' : 'student')
+                };
+                
+                this.addChatMessage(formattedMessage);
               });
               
               // Scroll to bottom
@@ -505,46 +517,71 @@ const StudentLivestream = {
   },
   
   // Send a chat message
+  // Send a chat message
   sendChatMessage: function(message) {
     if (!this.activeStreamId) {
       console.error('No active stream ID for chat message');
       return;
     }
     
-    fetch('/livestream-message/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': this.getCsrfToken()
-      },
-      body: JSON.stringify({
-        type: 'chat',
+    // Use websocket if available instead of fetch API for real-time
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      const messageData = {
+        type: 'livestream_chat',
+        message: message,
+        sender: this.username,
         sender_id: this.username,
+        sender_name: this.username,
         room_id: this.roomId,
+        room_url: this.roomId,
+        role: "student",
         stream_id: this.activeStreamId,
-        content: message
+        timestamp: new Date().toISOString(),
+        message_type: "livestream_chat" // Add this flag for the backend to identify
+      };
+      
+      window.socket.send(JSON.stringify(messageData));
+      
+      // No need to add the message to chat - it will come back through websocket
+      return true;
+    } else {
+      // Fallback to fetch API if websocket is not available
+      fetch('/livestream-message/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': this.getCsrfToken()
+        },
+        body: JSON.stringify({
+          type: 'livestream_chat',
+          sender_id: this.username,
+          room_id: this.roomId,
+          stream_id: this.activeStreamId,
+          content: message,
+          message_type: "livestream_chat"
+        })
       })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Message sent successfully, add to chat
-        this.addChatMessage(data.message);
-        
-        // Scroll chat to bottom
-        const chatContainer = document.getElementById('livestream-chat-messages');
-        if (chatContainer) {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Message sent successfully, add to chat
+          this.addChatMessage(data.message);
+          
+          // Scroll chat to bottom
+          const chatContainer = document.getElementById('livestream-chat-messages');
+          if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+          }
+        } else {
+          console.error('Failed to send chat message:', data.error);
         }
-      } else {
-        console.error('Failed to send chat message:', data.error);
-      }
-    })
-    .catch(error => {
-      console.error('Error sending chat message:', error);
-    });
+      })
+      .catch(error => {
+        console.error('Error sending chat message:', error);
+      });
+    }
   },
-  
+
   // Add a chat message to the container
   addChatMessage: function(message) {
     const chatContainer = document.getElementById('livestream-chat-messages');
@@ -554,19 +591,28 @@ const StudentLivestream = {
     messageElement.className = 'chat-message';
     
     // Check if this is the current user's message
-    if (message.sender_id === this.username) {
+    if (message.sender_id === this.username || message.sender === this.username) {
       messageElement.classList.add('own-message');
     }
     
     // Check if this is from the teacher
-    if (message.sender_id.startsWith('teacher_')) {
+    if ((message.sender_id && message.sender_id.startsWith('t')) || 
+        (message.sender && message.sender.startsWith('t')) || 
+        (message.role === 'teacher')) {
       messageElement.classList.add('teacher-message');
     }
     
+    // Get the actual message content (handle different message formats)
+    const content = message.content || message.message || '';
+    
+    // Get the sender name
+    const senderName = message.sender_name || message.sender || message.sender_id || 'Unknown';
+    const displayName = (senderName === this.username) ? 'You' : senderName;
+    
     // Format the message
     messageElement.innerHTML = `
-      <div class="message-sender">${message.sender_id === this.username ? 'You' : message.sender_id}</div>
-      <div class="message-content">${message.content}</div>
+      <div class="message-sender">${displayName}</div>
+      <div class="message-content">${content}</div>
     `;
     
     chatContainer.appendChild(messageElement);

@@ -1027,6 +1027,7 @@ const LivestreamModule = {
         role:"teacher",
         stream_id: this.state.currentStreamId,
         timestamp: new Date().toISOString(),
+        message_type: "livestream_chat",
 
       };
       

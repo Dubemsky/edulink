@@ -942,13 +942,13 @@ def livestream_message(request):
     
     try:
         data = json.loads(request.body)
-        message_type = data.get('type')  # 'chat' or 'question'
+        message_type = data.get('type', 'chat')  # Default to 'chat' if type not specified
         sender_id = data.get('sender_id')
         room_id = data.get('room_id')
         stream_id = data.get('stream_id')
         content = data.get('content')
         
-        if not all([message_type, sender_id, room_id, stream_id, content]):
+        if not all([sender_id, room_id, stream_id, content]):
             return JsonResponse({'success': False, 'error': 'Missing required fields'})
         
         # Verify the stream exists and is active
@@ -969,8 +969,10 @@ def livestream_message(request):
             'sender_id': sender_id,
             'room_id': room_id,
             'stream_id': stream_id,
-            'content': content,
-            'created_at': firestore.SERVER_TIMESTAMP
+            'content': content,  # No encryption
+            'created_at': firestore.SERVER_TIMESTAMP,
+            'sender_name': data.get('sender_name', sender_id),
+            'role': data.get('role', 'user')
         }
         message_ref.set(message_data)
         
@@ -984,7 +986,9 @@ def livestream_message(request):
             'stream_id': stream_id,
             'content': content,
             'created_at': current_time,
-            'message_id': message_ref.id
+            'message_id': message_ref.id,
+            'sender_name': data.get('sender_name', sender_id),
+            'role': data.get('role', 'user')
         }
         
         return JsonResponse({
@@ -1029,9 +1033,16 @@ def get_livestream_messages(request):
             message_data = doc.to_dict()
             message_data['message_id'] = doc.id
             
-            # Convert Firestore timestamp to string
+            # Convert Firestore timestamp to string if it exists
             if 'created_at' in message_data and message_data['created_at']:
-                message_data['created_at'] = message_data['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                # Check if it's a Firestore timestamp object
+                if hasattr(message_data['created_at'], 'strftime'):
+                    message_data['created_at'] = message_data['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                # If it's already a string, leave it as is
+                
+            # Make sure we also include the content as 'message' for compatibility with frontend
+            if 'content' in message_data and 'message' not in message_data:
+                message_data['message'] = message_data['content']
                 
             messages.append(message_data)
         
