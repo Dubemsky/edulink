@@ -128,6 +128,9 @@ def start_livestream(request):
         if not token:
             return JsonResponse({'success': False, 'error': 'Failed to generate streaming token'})
         
+        # Generate a unique recording UID that will be consistent across acquire and start operations
+        recording_uid = int(time.time()) % 100000 + random.randint(1, 1000)
+        
         # Prepare stream data for Firebase
         stream_data = {
             'stream_id': stream_id,
@@ -145,9 +148,6 @@ def start_livestream(request):
         # If recording is enabled, initialize recording data
         if enable_recording:
             try:
-                # Generate a unique recording UID
-                recording_uid = int(time.time()) % 100000 + random.randint(1, 1000)
-                
                 # Store recording info in stream data
                 stream_data.update({
                     'recording_uid': recording_uid,
@@ -188,14 +188,16 @@ def start_livestream(request):
         if enable_recording:
             import threading
             
-            def start_recording_task():
+            def start_recording_task(task_recording_uid):
                 try:
                     # Use Agora Cloud Recording API to start recording
-                    # This is a placeholder for the actual API call
                     from .livestream_cloud_recording import acquire_recording_resource, start_cloud_recording
                     
-                    # Acquire resource
-                    acquire_res = acquire_recording_resource(channel_name)
+                    # Use the passed recording_uid
+                    current_recording_uid = task_recording_uid
+                    
+                    # Acquire resource - pass the recording_uid we stored in stream_data
+                    acquire_res = acquire_recording_resource(channel_name, current_recording_uid)
 
                     print(f"\n\n{acquire_res}\n\n")
                     if not acquire_res.get('success'):
@@ -207,16 +209,24 @@ def start_livestream(request):
                         })
                         return
                     
-                    resource_id = acquire_res.get('resourceId')
+                    resource_id = acquire_res.get('resource_id')
+                    # Make sure we use the UID returned by acquire_recording_resource
+                    actual_recording_uid = int(acquire_res.get('uid'))
                     
-                    # Start recording
+                    # Update the recording UID in the stream_data if it's different
+                    if current_recording_uid != actual_recording_uid:
+                        stream_ref.update({
+                            'recording_uid': actual_recording_uid
+                        })
+                        current_recording_uid = actual_recording_uid
+                    
+                    # Start recording with the correct UID
                     recording_res = start_cloud_recording(
                         channel_name=channel_name,
                         token=token,
-                        recording_uid=recording_uid,
+                        recording_uid=current_recording_uid,
                         resource_id=resource_id
                     )
-                    
                     if recording_res.get('success'):
                         # Update stream with recording info
                         stream_ref.update({
@@ -241,8 +251,8 @@ def start_livestream(request):
                         'recording_error': str(e)
                     })
             
-            # Start recording in background thread
-            recording_thread = threading.Thread(target=start_recording_task)
+            # Start recording in background thread, passing the recording_uid as an argument
+            recording_thread = threading.Thread(target=start_recording_task, args=(recording_uid,))
             recording_thread.start()
         
         # Send notifications to students
@@ -322,6 +332,19 @@ def end_livestream(request):
         if stream_data.get('teacher_id') != teacher_id:
             return JsonResponse({'success': False, 'error': 'Unauthorized to end this stream'})
         
+        # Check if recording was just started (less than 10 seconds ago)
+        if stream_data.get('is_recording') and stream_data.get('recording_status') == 'active':
+            start_time = stream_data.get('started_at')
+            current_time = datetime.now()
+            
+            if start_time and hasattr(start_time, 'seconds'):
+                start_datetime = datetime.fromtimestamp(start_time.seconds)
+                time_diff = (current_time - start_datetime).total_seconds()
+                
+                if time_diff < 10:  # Less than 10 seconds since recording started
+                    print(f"Recording just started {time_diff} seconds ago, adding delay before stopping")
+                    time.sleep(5)  # Add a short delay to let recording initialize
+        
         # Stop cloud recording if it's active
         if stream_data.get('is_recording') and stream_data.get('recording_status') == 'active':
             try:
@@ -368,18 +391,32 @@ def end_livestream(request):
                         recording_files = recording_res.get('recording_files', [])
                         processed_files = []
                         
-                        # If there are recording files, add metadata and process URLs
-                        for file_info in recording_files:
-                            # Add additional metadata
-                            file_info['duration'] = duration_seconds
-                            file_info['filesize_mb'] = file_info.get('fileSize', 0) / (1024 * 1024) if 'fileSize' in file_info else 0
-                            
-                            # Generate a thumbnail URL if this is a video file
-                            if file_info.get('fileName', '').endswith('.m3u8'):
-                                # Placeholder for thumbnail generation
-                                file_info['thumbnail_url'] = file_info.get('url', '').replace('.m3u8', '_thumbnail.jpg')
-                            
-                            processed_files.append(file_info)
+                        # Handle empty file list (might still be processing)
+                        if not recording_files or (isinstance(recording_files, str) and recording_files == ''):
+                            print("Warning: No recording files available yet. Files may still be processing.")
+                            # Create a placeholder file entry with status
+                            processed_files = [{
+                                'status': 'processing',
+                                'duration': duration_seconds,
+                                'filesize_mb': 0,
+                                'url': None,
+                                'thumbnail_url': None,
+                                'fileName': 'recording_processing.mp4',
+                                'message': 'Recording is still being processed. Check back later.'
+                            }]
+                        else:
+                            # Process files as before
+                            for file_info in recording_files:
+                                # Add additional metadata
+                                file_info['duration'] = duration_seconds
+                                file_info['filesize_mb'] = file_info.get('fileSize', 0) / (1024 * 1024) if 'fileSize' in file_info else 0
+                                
+                                # Generate a thumbnail URL if this is a video file
+                                if file_info.get('fileName', '').endswith('.m3u8'):
+                                    # Placeholder for thumbnail generation
+                                    file_info['thumbnail_url'] = file_info.get('url', '').replace('.m3u8', '_thumbnail.jpg')
+                                
+                                processed_files.append(file_info)
                         
                         # Create recording entry in Firebase with more metadata
                         recording_ref = db.collection('stream_recordings').document()
