@@ -184,6 +184,312 @@
         margin-bottom: 8px;
     }
 }
+
+
+/* Connections Filter Dropdown Styles */
+.connections-dropdown {
+  position: absolute;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  padding: 8px 0;
+  margin-top: 10px;
+  z-index: 100;
+  width: 180px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+.connections-dropdown.show {
+  max-height: 200px;
+  opacity: 1;
+  padding: 8px 0;
+}
+
+/* Position the dropdown correctly */
+.filter-button[data-filter="connections"] {
+  position: relative;
+}
+
+/* Sub Filter Button Style */
+.sub-filter-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 10px 15px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.sub-filter-button:hover {
+  background-color: #f8f9fa;
+  color: #3498db;
+}
+
+.sub-filter-button.active {
+  background-color: #e3f2fd;
+  color: #2980b9;
+  font-weight: 500;
+}
+
+.sub-filter-button i {
+  margin-right: 10px;
+  font-size: 1rem;
+}
+
+/* Empty State Messages */
+.no-connections-message {
+  text-align: center;
+  padding: 30px 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  margin: 20px auto;
+  max-width: 500px;
+}
+
+.no-connections-message i {
+  font-size: 3rem;
+  color: #bdc3c7;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.no-connections-message h4 {
+  font-size: 1.3rem;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.no-connections-message p {
+  color: #777;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+}
+
+.no-connections-message .suggestion-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.no-connections-message .suggestion-btn:hover {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+}
+
+/* Active Connection Filter Indicator */
+.filter-button[data-filter="connections"].active:after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid white;
+  display: block;
+}
+
+/* Adjust filter container for better positioning */
+.filter-container {
+  position: relative;
+}
+
+/* Additional responsive adjustments */
+@media (max-width: 576px) {
+  .connections-dropdown {
+    width: 80%;
+    left: 10%;
+    margin-top: 5px;
+  }
+  
+  .filter-button[data-filter="connections"].active:after {
+    display: none;
+  }
+}
+
+/* Connections Filter Dropdown Styles */
+.connections-dropdown {
+  position: absolute;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  margin-top: 10px;
+  z-index: 100;
+  width: 180px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+.connections-dropdown.show {
+  max-height: 200px;
+  opacity: 1;
+  padding: 8px 0;
+}
+
+/* Position the dropdown correctly */
+.filter-button[data-filter="connections"] {
+  position: relative;
+}
+
+/* Sub Filter Button Style */
+.sub-filter-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 10px 15px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.sub-filter-button:hover {
+  background-color: #f8f9fa;
+  color: #3498db;
+}
+
+.sub-filter-button.active {
+  background-color: #e3f2fd;
+  color: #2980b9;
+  font-weight: 500;
+}
+
+.sub-filter-button i {
+  margin-right: 10px;
+  font-size: 1rem;
+}
+
+/* Connections Filter Indicator */
+.connections-filter-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  padding: 8px 15px;
+  margin: 0 auto 20px;
+  border-radius: 30px;
+  max-width: fit-content;
+  font-weight: 500;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.3s ease;
+}
+
+.connections-filter-indicator i {
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+/* Empty State Messages */
+.no-connections-message {
+  text-align: center;
+  padding: 30px 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  margin: 20px auto;
+  max-width: 500px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.no-connections-message i {
+  font-size: 3rem;
+  color: #bdc3c7;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.no-connections-message h4 {
+  font-size: 1.3rem;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.no-connections-message p {
+  color: #777;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+}
+
+.no-connections-message .suggestion-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.no-connections-message .suggestion-btn:hover {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+}
+
+/* Active Connection Filter Indicator */
+.filter-button[data-filter="connections"].active:after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid white;
+  display: block;
+}
+
+/* Adjust filter container for better positioning */
+.filter-container {
+  position: relative;
+}
+
+/* Additional responsive adjustments */
+@media (max-width: 576px) {
+  .connections-dropdown {
+    width: 80%;
+    left: 10%;
+    margin-top: 5px;
+  }
+  
+  .filter-button[data-filter="connections"].active:after {
+    display: none;
+  }
+  
+  .connections-filter-indicator {
+    width: 90%;
+    font-size: 0.9rem;
+  }
+}
+
+/* Animation for the indicator */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
   </style>
 </head>
 
@@ -455,6 +761,20 @@
         <button class="filter-button" data-filter="students">
           <i class="bi bi-mortarboard-fill me-2"></i>Students
         </button>
+        <button class="filter-button" data-filter="connections">
+          <i class="bi bi-people-fill me-2"></i>Connections
+        </button>
+        <div class="connections-dropdown" id="connectionsDropdown">
+          <button class="sub-filter-button" data-subfilter="followers">
+            <i class="bi bi-person-heart me-1"></i>Followers
+          </button>
+          <button class="sub-filter-button" data-subfilter="following">
+            <i class="bi bi-person-plus me-1"></i>Following
+          </button>
+          <button class="sub-filter-button" data-subfilter="mutual">
+            <i class="bi bi-people-fill me-1"></i>Mutual
+          </button>
+        </div>
       </div>
 
       <div id="loading-spinner" class="loading-spinner" data-aos="fade-up" data-aos-delay="150">
@@ -540,6 +860,296 @@
     window.currentUserId = "{{ user_id }}";
   </script>
 
+  
+
+
+<script>
+  // Setup connections filter functionality
+  function setupConnectionsFilter() {
+    // Get elements
+    const connectionsFilterBtn = document.querySelector('.filter-button[data-filter="connections"]');
+    const connectionsDropdown = document.getElementById('connectionsDropdown');
+    const subFilterButtons = document.querySelectorAll('.sub-filter-button');
+    const filterButtons = document.querySelectorAll('.filter-button');
+    
+    if (!connectionsFilterBtn || !connectionsDropdown) {
+      console.error('Connections filter elements not found');
+      return;
+    }
+    
+    // Toggle dropdown and LOAD FOLLOWERS BY DEFAULT when connections filter is clicked
+    connectionsFilterBtn.addEventListener('click', function(e) {
+      e.stopPropagation(); // Prevent event bubbling
+      
+      // Update active state for main filter buttons
+      filterButtons.forEach(btn => btn.classList.remove('active'));
+      connectionsFilterBtn.classList.add('active');
+      
+      // Toggle dropdown
+      const isDropdownShowing = connectionsDropdown.classList.toggle('show');
+      
+      // Position the dropdown correctly
+      positionDropdown();
+      
+      // If the dropdown is now showing, load followers by default
+      if (isDropdownShowing) {
+        // Set the followers sub-filter as active
+        subFilterButtons.forEach(btn => {
+          if (btn.getAttribute('data-subfilter') === 'followers') {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+        
+        // Load followers data by default
+        loadConnectionsData('followers');
+      }
+    });
+    
+    // Handle sub-filter clicks
+    subFilterButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        // Update active states
+        subFilterButtons.forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Get the selected sub-filter type
+        const subFilterType = this.getAttribute('data-subfilter');
+        
+        // Load the appropriate data
+        loadConnectionsData(subFilterType);
+        
+        // Keep dropdown visible after selection (don't hide it)
+        // connectionsDropdown.classList.remove('show');
+      });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      // Only close if click was outside the dropdown and the button
+      if (!connectionsDropdown.contains(event.target) && !connectionsFilterBtn.contains(event.target)) {
+        connectionsDropdown.classList.remove('show');
+      }
+    });
+    
+    // Position dropdown function
+    function positionDropdown() {
+      if (window.innerWidth <= 576) {
+        // Mobile positioning
+        const containerRect = document.querySelector('.filter-container').getBoundingClientRect();
+        connectionsDropdown.style.position = 'absolute';
+        connectionsDropdown.style.top = `${connectionsFilterBtn.offsetHeight + 5}px`;
+        connectionsDropdown.style.left = `${containerRect.width / 2 - 90}px`; // Center it
+      } else {
+        // Desktop positioning
+        const btnRect = connectionsFilterBtn.getBoundingClientRect();
+        connectionsDropdown.style.position = 'absolute';
+        connectionsDropdown.style.top = `${connectionsFilterBtn.offsetHeight + 5}px`;
+        connectionsDropdown.style.left = `${connectionsFilterBtn.offsetLeft + (btnRect.width / 2) - 90}px`; // Center under the button
+      }
+    }
+    
+    // Handle window resize for dropdown positioning
+    window.addEventListener('resize', function() {
+      if (connectionsDropdown.classList.contains('show')) {
+        positionDropdown();
+      }
+    });
+  }
+  
+  // Function to load connections data based on sub-filter type
+  function loadConnectionsData(connectionType) {
+    // Show loading spinner
+    const userGrid = document.getElementById('user-grid');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    
+    if (!userGrid || !loadingSpinner) {
+      console.error('Required DOM elements not found');
+      return;
+    }
+    
+    userGrid.innerHTML = '';
+    loadingSpinner.style.display = 'flex';
+    
+    // Define endpoint based on the connection type
+    let endpoint;
+    switch (connectionType) {
+      case 'followers':
+        endpoint = '/get_followers/';
+        break;
+      case 'following':
+        endpoint = '/get_following/';
+        break;
+      case 'mutual':
+        endpoint = '/get_mutual_connections/';
+        break;
+      default:
+        console.error('Invalid connection type');
+        loadingSpinner.style.display = 'none';
+        return;
+    }
+    
+    // Fetch data from the server
+    fetch(endpoint)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Hide loading spinner
+        loadingSpinner.style.display = 'none';
+        
+        if (data.success) {
+          // Get the appropriate data array based on the connection type
+          let users;
+          if (connectionType === 'followers') {
+            users = data.followers;
+          } else if (connectionType === 'following') {
+            users = data.following;
+          } else if (connectionType === 'mutual') {
+            users = data.connections;
+          }
+          
+          // If there are users to display
+          if (users && users.length > 0) {
+            // Render users if the function exists
+            if (window.renderUsers) {
+              window.renderUsers(users);
+              
+              // Add a connections indicator to show which filter is active
+              addConnectionsIndicator(connectionType);
+            } else if (typeof renderUsers === 'function') {
+              renderUsers(users);
+              
+              // Add a connections indicator
+              addConnectionsIndicator(connectionType);
+            } else {
+              console.error('renderUsers function not found');
+              showEmptyConnectionsMessage(connectionType);
+            }
+          } else {
+            // Show empty state message
+            showEmptyConnectionsMessage(connectionType);
+          }
+        } else {
+          console.error(data.error || 'Failed to load connections data');
+          showEmptyConnectionsMessage(connectionType, true);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        loadingSpinner.style.display = 'none';
+        showEmptyConnectionsMessage(connectionType, true);
+      });
+  }
+  
+  // Add a visual indicator for which connections filter is active
+  function addConnectionsIndicator(connectionType) {
+    // Remove any existing indicator
+    const existingIndicator = document.getElementById('connections-filter-indicator');
+    if (existingIndicator) {
+      existingIndicator.remove();
+    }
+    
+    let filterName, iconClass;
+    switch (connectionType) {
+      case 'followers':
+        filterName = 'Followers';
+        iconClass = 'bi-person-heart';
+        break;
+      case 'following':
+        filterName = 'Following';
+        iconClass = 'bi-person-plus';
+        break;
+      case 'mutual':
+        filterName = 'Mutual Connections';
+        iconClass = 'bi-people';
+        break;
+      default:
+        return;
+    }
+    
+    // Create the indicator element
+    const indicator = document.createElement('div');
+    indicator.id = 'connections-filter-indicator';
+    indicator.className = 'connections-filter-indicator';
+    indicator.innerHTML = `
+      <i class="bi ${iconClass}"></i>
+      <span>Viewing ${filterName}</span>
+    `;
+    
+    // Insert before the user grid
+    const userGrid = document.getElementById('user-grid');
+    if (userGrid && userGrid.parentNode) {
+      userGrid.parentNode.insertBefore(indicator, userGrid);
+    }
+  }
+  
+  // Function to show empty connections message
+  function showEmptyConnectionsMessage(connectionType, isError = false) {
+    const userGrid = document.getElementById('user-grid');
+    if (!userGrid) return;
+    
+    let title, message, icon, btnText;
+    
+    if (isError) {
+      title = 'Error Loading Data';
+      message = 'There was a problem connecting to the server. Please try again later.';
+      icon = 'bi-exclamation-circle';
+      btnText = 'Reload';
+    } else {
+      switch (connectionType) {
+        case 'followers':
+          title = 'No Followers Yet';
+          message = 'When other users follow you, they will appear here.';
+          icon = 'bi-person-heart';
+          btnText = 'Explore Community';
+          break;
+        case 'following':
+          title = 'Not Following Anyone';
+          message = 'Connect with other users to see them here.';
+          icon = 'bi-person-plus';
+          btnText = 'Find Users';
+          break;
+        case 'mutual':
+          title = 'No Mutual Connections';
+          message = 'Mutual connections are users who follow you and you follow them back.';
+          icon = 'bi-people';
+          btnText = 'Build Your Network';
+          break;
+        default:
+          title = 'No Connections Found';
+          message = 'Start connecting with other users in the community.';
+          icon = 'bi-people';
+          btnText = 'Explore Community';
+      }
+    }
+    
+    // Add a connections indicator even for empty state
+    addConnectionsIndicator(connectionType);
+    
+    userGrid.innerHTML = `
+      <div class="no-connections-message">
+        <i class="bi ${icon}"></i>
+        <h4>${title}</h4>
+        <p>${message}</p>
+        <button class="suggestion-btn" onclick="loadUsers('all')">
+          ${btnText}
+        </button>
+      </div>
+    `;
+  }
+  
+  // Initialize the connections filter when the document is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    setupConnectionsFilter();
+  });
+    </script>
   
 <script>
 

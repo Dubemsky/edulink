@@ -805,6 +805,8 @@ def get_followers(request):
                     "websites": user_data.get('websites'),
                 })
         
+        print(f"This is your following list {followers_list}")
+
         return JsonResponse({
             'success': True,
             'followers': followers_list
@@ -867,6 +869,7 @@ def get_following_connections(request):
                     "profile_picture": user_data.get('profile_picture'),
                     "websites": user_data.get('websites'),
                 })
+        print(f"This is your following list {following_list}")
         
         return JsonResponse({
             'success': True,
@@ -943,7 +946,8 @@ def get_mutual_connections(request):
                     "profile_picture": user_data.get('profile_picture'),
                     "websites": user_data.get('websites'),
                 })
-        
+        print(f"This is your following list {mutual_connections}")
+
         return JsonResponse({
             'success': True,
             'connections': mutual_connections
