@@ -3,7 +3,7 @@
  * Handles the student-side livestream functionality including:
  * - Detection of active streams
  * - Joining active streams
- * - Livestream chat integration
+ * - Livestream chat integration (with real-time WebSocket)
  * - Screen sharing view
  */
 
@@ -21,7 +21,6 @@ const StudentLivestream = {
   },
   remoteUsers: {},
   
-  // Initialization
   // Initialization
   init: function() {
     // Get room ID and username from the page
@@ -50,6 +49,96 @@ const StudentLivestream = {
     
     // Initialize event listeners
     this.initEventListeners();
+  },
+  
+  // Initialize WebSocket integration for real-time communication
+  initWebSocketIntegration: function() {
+    // Check if a WebSocket connection already exists
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      console.log('Using existing WebSocket connection for livestream chat');
+      this.setupWebSocketListeners(window.socket);
+      return;
+    }
+    
+    // Create a new WebSocket connection if none exists or if it's closed
+    if (!window.socket || window.socket.readyState !== WebSocket.CONNECTING) {
+      // Get current protocol (ws:// or wss://) and host
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      
+      // Create WebSocket connection for the room
+      const wsUrl = `${protocol}//${host}/ws/hub/${this.roomId}/`;
+      
+      try {
+        console.log('Creating new WebSocket connection for livestream chat:', wsUrl);
+        window.socket = new WebSocket(wsUrl);
+        
+        // Setup connection event handlers
+        window.socket.onopen = (event) => {
+          console.log('WebSocket connection established for livestream chat');
+        };
+        
+        window.socket.onerror = (error) => {
+          console.error('WebSocket connection error:', error);
+        };
+        
+        // Set up message listeners
+        this.setupWebSocketListeners(window.socket);
+      } catch (error) {
+        console.error('Error creating WebSocket connection:', error);
+      }
+    }
+  },
+  
+  // Set up WebSocket message listeners for livestream messages
+  setupWebSocketListeners: function(socket) {
+    // Save original onmessage handler if it exists
+    const originalOnMessage = socket.onmessage;
+    
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Check if this is a livestream chat message
+        if (data.message_type === 'livestream_chat') {
+          console.log('Received livestream chat message:', data);
+          
+          // Process the message for livestream chat
+          if (this.activeStreamId && data.message && 
+              (data.message.stream_id === this.activeStreamId || 
+               data.message.livestream_id === this.activeStreamId)) {
+            
+            // Format message for display
+            const messageData = {
+              sender_id: data.message.sender_id || data.message.sender || 'Unknown',
+              sender_name: data.message.sender_name || data.message.sender || 'Unknown',
+              content: data.message.content || data.message.message,
+              role: data.message.role || (data.message.sender_id && 
+                     data.message.sender_id.startsWith('t') ? 'teacher' : 'student')
+            };
+            
+            // Add the message to the chat UI
+            this.addChatMessage(messageData);
+            
+            // Scroll chat to bottom
+            const chatContainer = document.getElementById('livestream-chat-messages');
+            if (chatContainer) {
+              chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+          }
+        } else if (originalOnMessage) {
+          // For non-livestream messages, call the original handler
+          originalOnMessage(event);
+        }
+      } catch (e) {
+        console.error('Error processing WebSocket message:', e);
+        
+        // Call original handler if parsing fails
+        if (originalOnMessage) {
+          originalOnMessage(event);
+        }
+      }
+    };
   },
   
   // Initialize UI components
@@ -150,7 +239,10 @@ const StudentLivestream = {
         
         // Update counts in the livestream modal tabs
         if (data.streams) {
-          document.getElementById('active-streams-count').textContent = data.streams.length;
+          const countElement = document.getElementById('active-streams-count');
+          if (countElement) {
+            countElement.textContent = data.streams.length;
+          }
         }
       })
       .catch(error => {
@@ -169,7 +261,10 @@ const StudentLivestream = {
         if (data.success) {
           // Update counts in the livestream modal tabs
           if (data.upcoming_streams) {
-            document.getElementById('upcoming-streams-count').textContent = data.upcoming_streams.length;
+            const countElement = document.getElementById('upcoming-streams-count');
+            if (countElement) {
+              countElement.textContent = data.upcoming_streams.length;
+            }
             
             // Update the upcoming livestreams list
             this.updateUpcomingStreamsList(data.upcoming_streams);
@@ -284,11 +379,14 @@ const StudentLivestream = {
   // Connect to the stream using Agora SDK
   connectToStream: function(streamId) {
     // Clear chat messages first
-    document.getElementById('livestream-chat-messages').innerHTML = `
-      <div class="system-message">
-        Connecting to livestream chat...
-      </div>
-    `;
+    const chatContainer = document.getElementById('livestream-chat-messages');
+    if (chatContainer) {
+      chatContainer.innerHTML = `
+        <div class="system-message">
+          Connecting to livestream chat...
+        </div>
+      `;
+    }
     
     // Request stream token and details from server
     fetch('/join-livestream/', {
@@ -306,7 +404,10 @@ const StudentLivestream = {
     .then(async data => {
       if (data.success) {
         // Update UI with stream details
-        document.getElementById('livestream-title').textContent = data.stream_details.title || "Teacher's Livestream";
+        const titleElement = document.getElementById('livestream-title');
+        if (titleElement) {
+          titleElement.textContent = data.stream_details.title || "Teacher's Livestream";
+        }
         
         // Initialize Agora client
         await this.initializeAgoraClient(data.app_id, data.channel_name, data.token, data.uid);
@@ -319,6 +420,12 @@ const StudentLivestream = {
         
         // Add system message
         this.addSystemChatMessage('You have joined the livestream');
+        
+        // Make sure WebSocket connection is active for real-time chat
+        this.initWebSocketIntegration();
+        
+        // Send join notification via WebSocket
+        this.sendJoinNotification(streamId);
       } else {
         console.error('Failed to join livestream:', data.error);
         this.addSystemChatMessage('Failed to connect to the livestream: ' + data.error);
@@ -348,6 +455,27 @@ const StudentLivestream = {
         `;
       }
     });
+  },
+  
+  // Send join notification (optional)
+  sendJoinNotification: function(streamId) {
+    if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+      const joinData = {
+        type: 'livestream_join',
+        sender: this.username,
+        sender_id: this.username,
+        sender_name: this.username,
+        room_id: this.roomId,
+        stream_id: streamId,
+        message_type: "livestream_chat"
+      };
+      
+      try {
+        window.socket.send(JSON.stringify(joinData));
+      } catch (error) {
+        console.error('Error sending join notification:', error);
+      }
+    }
   },
   
   // Initialize the Agora client
@@ -393,9 +521,6 @@ const StudentLivestream = {
   handleUserPublished: async function(user, mediaType) {
     // Store the remote user
     this.remoteUsers[user.uid] = user;
-    
-    // Subscribe to the remote user
-    await this.agoraClient.subscribe(user, mediaType);
     
     if (mediaType === 'video') {
       // Play the remote video
@@ -475,7 +600,7 @@ const StudentLivestream = {
     this.streamTimer = setInterval(updateTimer, 1000);
   },
   
-  
+  // Load initial chat messages for a stream
   loadStreamChat: function(streamId) {
     fetch(`/get-livestream-messages/?stream_id=${streamId}`)
       .then(response => response.json())
@@ -517,14 +642,13 @@ const StudentLivestream = {
   },
   
   // Send a chat message
-  // Send a chat message
   sendChatMessage: function(message) {
     if (!this.activeStreamId) {
       console.error('No active stream ID for chat message');
       return;
     }
     
-    // Use websocket if available instead of fetch API for real-time
+    // Use WebSocket if available for real-time messaging
     if (window.socket && window.socket.readyState === WebSocket.OPEN) {
       const messageData = {
         type: 'livestream_chat',
@@ -537,49 +661,74 @@ const StudentLivestream = {
         role: "student",
         stream_id: this.activeStreamId,
         timestamp: new Date().toISOString(),
-        message_type: "livestream_chat" // Add this flag for the backend to identify
+        message_type: "livestream_chat" // Flag for backend to identify
       };
       
-      window.socket.send(JSON.stringify(messageData));
-      
-      // No need to add the message to chat - it will come back through websocket
-      return true;
-    } else {
-      // Fallback to fetch API if websocket is not available
-      fetch('/livestream-message/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': this.getCsrfToken()
-        },
-        body: JSON.stringify({
-          type: 'livestream_chat',
+      try {
+        window.socket.send(JSON.stringify(messageData));
+        
+        // Show the message in the UI immediately (it will come back through WebSocket too)
+        this.addChatMessage({
           sender_id: this.username,
-          room_id: this.roomId,
-          stream_id: this.activeStreamId,
+          sender_name: 'You',
           content: message,
-          message_type: "livestream_chat"
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Message sent successfully, add to chat
-          this.addChatMessage(data.message);
-          
-          // Scroll chat to bottom
-          const chatContainer = document.getElementById('livestream-chat-messages');
-          if (chatContainer) {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-          }
-        } else {
-          console.error('Failed to send chat message:', data.error);
+          role: 'student'
+        });
+        
+        // Scroll to bottom
+        const chatContainer = document.getElementById('livestream-chat-messages');
+        if (chatContainer) {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
         }
-      })
-      .catch(error => {
-        console.error('Error sending chat message:', error);
-      });
+        
+        return true;
+      } catch (error) {
+        console.error('Error sending WebSocket message:', error);
+        // Fall back to fetch API if WebSocket fails
+      }
     }
+    
+    // Fallback: use fetch API if WebSocket is not available
+    fetch('/livestream-message/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': this.getCsrfToken()
+      },
+      body: JSON.stringify({
+        type: 'livestream_chat',
+        sender_id: this.username,
+        room_id: this.roomId,
+        stream_id: this.activeStreamId,
+        content: message,
+        message_type: "livestream_chat"
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Message sent successfully, add to chat
+        this.addChatMessage({
+          sender_id: this.username,
+          sender_name: 'You',
+          content: message,
+          role: 'student'
+        });
+        
+        // Scroll chat to bottom
+        const chatContainer = document.getElementById('livestream-chat-messages');
+        if (chatContainer) {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      } else {
+        console.error('Failed to send chat message:', data.error);
+        this.addSystemChatMessage('Failed to send message: ' + (data.error || 'Unknown error'));
+      }
+    })
+    .catch(error => {
+      console.error('Error sending chat message:', error);
+      this.addSystemChatMessage('Error sending message. Please try again.');
+    });
   },
 
   // Add a chat message to the container
@@ -587,6 +736,28 @@ const StudentLivestream = {
     const chatContainer = document.getElementById('livestream-chat-messages');
     if (!chatContainer) return;
     
+    // Check if this is a duplicate message (sometimes WebSockets can send duplicates)
+    const messageContent = message.content || message.message || '';
+    const senderName = message.sender_name || message.sender || message.sender_id || 'Unknown';
+    
+    // Generate a simple "signature" for this message to check for duplicates
+    const msgSignature = `${senderName}:${messageContent}:${Date.now()}`;
+    
+    // Check recent messages (last 5 seconds) for duplicates
+    if (this.recentMessages && this.recentMessages.includes(msgSignature)) {
+      return; // Skip duplicate message
+    }
+    
+    // Store this message signature to avoid duplicates
+    this.recentMessages = this.recentMessages || [];
+    this.recentMessages.push(msgSignature);
+    
+    // Limit the size of recent messages array (keep last 10)
+    if (this.recentMessages.length > 10) {
+      this.recentMessages.shift();
+    }
+    
+    // Create and add the message element
     const messageElement = document.createElement('div');
     messageElement.className = 'chat-message';
     
@@ -602,17 +773,10 @@ const StudentLivestream = {
       messageElement.classList.add('teacher-message');
     }
     
-    // Get the actual message content (handle different message formats)
-    const content = message.content || message.message || '';
-    
-    // Get the sender name
-    const senderName = message.sender_name || message.sender || message.sender_id || 'Unknown';
-    const displayName = (senderName === this.username) ? 'You' : senderName;
-    
     // Format the message
     messageElement.innerHTML = `
-      <div class="message-sender">${displayName}</div>
-      <div class="message-content">${content}</div>
+      <div class="message-sender">${senderName === this.username ? 'You' : senderName}</div>
+      <div class="message-content">${messageContent}</div>
     `;
     
     chatContainer.appendChild(messageElement);
@@ -652,6 +816,24 @@ const StudentLivestream = {
     if (this.streamTimer) {
       clearInterval(this.streamTimer);
       this.streamTimer = null;
+    }
+    
+    // Send leave notification via WebSocket
+    if (window.socket && window.socket.readyState === WebSocket.OPEN && this.activeStreamId) {
+      const leaveData = {
+        type: 'livestream_leave',
+        sender: this.username,
+        sender_id: this.username,
+        room_id: this.roomId,
+        stream_id: this.activeStreamId,
+        message_type: "livestream_chat"
+      };
+      
+      try {
+        window.socket.send(JSON.stringify(leaveData));
+      } catch (error) {
+        console.error('Error sending leave notification:', error);
+      }
     }
     
     // Reset video container
@@ -900,7 +1082,7 @@ const StudentLivestream = {
             const streamId = card.getAttribute('data-stream-id');
             this.joinActiveStream(streamId);
             
-            // Close the modal
+            // Close the modal if opened from there
             const modal = document.getElementById('upcomingLivestreamsModal');
             if (modal) {
               const modalInstance = bootstrap.Modal.getInstance(modal);

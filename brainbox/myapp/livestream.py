@@ -222,6 +222,7 @@ def start_livestream(request):
                     
                     # Start recording with the correct UID
                     recording_res = start_cloud_recording(
+                        room_id = room_id,
                         channel_name=channel_name,
                         token=token,
                         recording_uid=current_recording_uid,

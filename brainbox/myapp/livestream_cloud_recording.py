@@ -60,7 +60,8 @@ def acquire_recording_resource(channel_name, recording_uid=None):
             'error': str(e)
         }
 
-def start_cloud_recording(channel_name, token, recording_uid, resource_id=None):
+def start_cloud_recording(room_id, channel_name, token, recording_uid, resource_id=None):
+    print(room_id, channel_name, token, recording_uid, resource_id)
     """
     Start Agora Cloud Recording
     """
@@ -89,6 +90,8 @@ def start_cloud_recording(channel_name, token, recording_uid, resource_id=None):
         "Content-Type": "application/json"
     }
     
+    # FIXED: Changed fileNamePrefix from a string to an array of strings
+    # This is the key change to fix the "fileNamePrefix type mismatch!" error
     payload = {
         "cname": channel_name,
         "uid": str(recording_uid),
@@ -113,8 +116,9 @@ def start_cloud_recording(channel_name, token, recording_uid, resource_id=None):
                 "vendor": 2,  # Amazon S3
                 "region": 0,  # US East (N. Virginia)
                 "bucket": "edulinkbucket1",
-                "accessKey": "", # Find it in downloads/projects/api_tutorials> 
-                "secretKey": "", 
+                "accessKey": "", # Downloads\projects\api_tutorials>
+                "secretKey": "",
+                "fileNamePrefix": ["livestream_recordings", str(room_id)]
             }
         }
     }
@@ -131,12 +135,14 @@ def start_cloud_recording(channel_name, token, recording_uid, resource_id=None):
             return {
                 'success': True,
                 'recording_id': response_data.get('sid'),
-                'resource_id': resource_id
+                'resource_id': resource_id,
+                'uid': recording_uid  # Return the recording UID to make it available for stopping
             }
         else:
             return {
                 'success': False,
-                'error': response_data.get('message', 'Unknown error')
+                'error': response_data.get('reason', response_data.get('message', 'Unknown error')),
+                'code': response_data.get('code', 'Unknown code')
             }
     except Exception as e:
         return {
@@ -146,7 +152,7 @@ def start_cloud_recording(channel_name, token, recording_uid, resource_id=None):
     
 def stop_cloud_recording(channel_name, resource_id, recording_id, recording_uid):
     """
-    Stop Agora Cloud Recording
+    Stop Agora Cloud Recording and return recording status information
     """
     url = f"{AGORA_REST_API_URL}/apps/{AGORA_APP_ID}/cloud_recording/resourceid/{resource_id}/sid/{recording_id}/mode/mix/stop"
     
@@ -172,53 +178,74 @@ def stop_cloud_recording(channel_name, resource_id, recording_id, recording_uid)
         response = requests.post(url, headers=headers, json=payload)
         response_data = response.json()
         
-        # Add debugging
+        # Log the response for debugging
         print(f"\n\nStop recording response status: {response.status_code}")
         print(f"Stop recording response data: {response_data}\n\n")
         
         if response.status_code == 200:
-            # Even with 200 status, check if there was a specific error code
+            # Check if there was an API error code
             if 'code' in response_data and response_data['code'] != 0:
                 error_reason = response_data.get('reason', 'Unknown error')
                 print(f"API returned error code {response_data['code']}: {error_reason}")
                 
-                # For some specific error codes, we can still consider it a "success"
                 # Code 49 often means the recording was already stopped
                 if response_data['code'] == 49:
                     return {
                         'success': True,
                         'recording_files': [],
-                        'warning': f"Recording may have already been stopped: {error_reason}"
+                        'warning': f"Recording may have already been stopped: {error_reason}",
+                        'status': 'already_stopped'
                     }
                 
                 return {
                     'success': False,
-                    'error': f"Error code {response_data['code']}: {error_reason}"
+                    'error': f"Error code {response_data['code']}: {error_reason}",
+                    'status': 'failed'
                 }
+            
+            # Get upload status
+            upload_status = response_data.get('serverResponse', {}).get('uploadingStatus', '')
             
             # Check if we received a proper file list
             file_list = response_data.get('serverResponse', {}).get('fileList', [])
-            if file_list == '':  # Empty string means no files yet
-                print("Warning: Recording stopped but no files were generated yet")
+            
+            if file_list == '':  # Empty string means files are still processing
+                print("Recording stopped successfully. Files are still processing.")
+                
+                # Include S3 bucket info for easier file retrieval
                 return {
                     'success': True,
                     'recording_files': [],
-                    'warning': "Recording stopped but no files were generated yet. Files may still be uploading."
+                    'status': 'processing',
+                    'upload_status': upload_status,
+                    's3_bucket': 'edulinkbucket1',
+                    's3_region': 'US East (N. Virginia)',
+                    'channel_name': channel_name,
+                    'recording_id': recording_id,
+                    'note': "The recording will be available in your S3 bucket once processing completes."
                 }
             
+            # If we have files, return them
             return {
                 'success': True,
-                'recording_files': file_list
+                'recording_files': file_list,
+                'status': 'completed',
+                'upload_status': upload_status,
+                's3_bucket': 'edulinkbucket1',
+                's3_region': 'US East (N. Virginia)'
             }
         else:
+            # Handle non-200 responses
             error_msg = response_data.get('reason', response_data.get('message', 'Unknown error'))
             error_code = response_data.get('code', 'Unknown code')
             return {
                 'success': False,
-                'error': f"Error code {error_code}: {error_msg}"
+                'error': f"Error code {error_code}: {error_msg}",
+                'status': 'failed'
             }
     except Exception as e:
         return {
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'status': 'exception'
         }
