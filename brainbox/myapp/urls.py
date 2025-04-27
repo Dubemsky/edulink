@@ -102,6 +102,9 @@ urlpatterns = [
     path('remove-bookmark-queston/',remove_bookmark_questions,name="remove_bookmark_questions"),
     path('accept_connection_request/', accept_connection_request, name='accept_connection_request'),
     path('decline_connection_request/', decline_connection_request, name='decline_connection_request'),
+    path('get_followers/', get_followers, name='get_followers'),
+    path('get_following/', get_following_connections, name='get_following_connections'),
+    path('get_mutual_connections/', get_mutual_connections, name='get_mutual_connections'),
     # Add to urls.py (make sure this is added to the URL patterns)
     path('respond-to-invitation/', respond_to_invitation, name='respond_to_invitation'),
 

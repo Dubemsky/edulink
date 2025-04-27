@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 # Get the summarization service URL from settings, or use a default
 # You can add SUMMARIZATION_SERVICE_URL to your Django settings
 # In your Django settings.py
-SUMMARIZATION_SERVICE_URL = '  https://2723-34-133-54-212.ngrok-free.app/summarize'
+SUMMARIZATION_SERVICE_URL = ' https://6c36-34-106-5-91.ngrok-free.app/summarize'
 
 
 @csrf_exempt
@@ -149,3 +149,7 @@ def summarize_replies(request):
             'success': False,
             'error': f'An unexpected error occurred: {str(e)}'
         }, status=500)
+    
+
+# instant replies for a question ( HUb rooms)
+# Be able to view my connections ( Seperate section)

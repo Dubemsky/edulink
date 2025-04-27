@@ -88,6 +88,7 @@ def teachers_community_page(request):
     current_teacher_name = request.session.get("teachers_name")
     teacher_name = get_teacher_user_id(request)
     details = get_user_by_name(teacher_name)
+    print(details)
     user_id = details.get('uid')     
     if request.method == 'GET':
         # When loading the page, fetch all users for initial display
@@ -741,6 +742,215 @@ def search_users(request):
         
     except Exception as e:
         print(f"Error in search_users: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+@csrf_exempt
+def get_followers(request):
+    """
+    Get all users who follow the current user
+    
+    Returns:
+        JsonResponse with list of followers
+    """
+    try:
+        # Get current user ID based on role
+        user_role = request.session.get("role")
+        current_user_id = None
+        
+        if user_role == "teacher":
+            current_user_name = get_teacher_user_id(request)
+            details = get_user_by_name(current_user_name)
+            current_user_id = details.get('uid')
+        elif user_role == "student":
+            current_user_name = get_student_user_id(request)
+            details = get_user_by_name(current_user_name)
+            current_user_id = details.get('uid')
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Unable to determine current user'
+            }, status=401)
+        
+        # Query the user_follows collection to find users who follow the current user
+        follows_ref = db.collection('user_follows')
+        query = follows_ref.where('following_id', '==', current_user_id)
+        results = query.stream()
+        
+        # Extract the follower IDs
+        follower_ids = []
+        for doc in results:
+            data = doc.to_dict()
+            follower_ids.append(data.get('follower_id'))
+        
+        # Get details for each follower
+        users_ref = db.collection('users_profile')
+        followers_list = []
+        
+        for user_id in follower_ids:
+            user_doc = users_ref.document(user_id).get()
+            if user_doc.exists:
+                user_data = user_doc.to_dict()
+                followers_list.append({
+                    "id": user_id,
+                    "name": user_data.get('name'),
+                    "role": user_data.get('role'),
+                    "bio": user_data.get('bio'),
+                    "followers": user_data.get('followers', 0),
+                    "followings": user_data.get('followings', 0),
+                    "created_at": user_data.get('created_at'),
+                    "profile_picture": user_data.get('profile_picture'),
+                    "websites": user_data.get('websites'),
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'followers': followers_list
+        })
+        
+    except Exception as e:
+        print(f"Error getting followers: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@csrf_exempt
+def get_following_connections(request):
+    """
+    Get all users that the current user is following
+    with their detailed information
+    
+    Returns:
+        JsonResponse with list of users the current user follows
+    """
+    try:
+        # Get current user ID based on role
+        user_role = request.session.get("role")
+        current_user_id = None
+        
+        if user_role == "teacher":
+            current_user_name = get_teacher_user_id(request)
+            details = get_user_by_name(current_user_name)
+            current_user_id = details.get('uid')
+        elif user_role == "student":
+            current_user_name = get_student_user_id(request)
+            details = get_user_by_name(current_user_name)
+            current_user_id = details.get('uid')
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Unable to determine current user'
+            }, status=401)
+        
+        # Get the list of users the current user is following
+        following_ids = get_user_following(current_user_id)
+        
+        # Get details for each followed user
+        users_ref = db.collection('users_profile')
+        following_list = []
+        
+        for user_id in following_ids:
+            user_doc = users_ref.document(user_id).get()
+            if user_doc.exists:
+                user_data = user_doc.to_dict()
+                following_list.append({
+                    "id": user_id,
+                    "name": user_data.get('name'),
+                    "role": user_data.get('role'),
+                    "bio": user_data.get('bio'),
+                    "followers": user_data.get('followers', 0),
+                    "followings": user_data.get('followings', 0),
+                    "created_at": user_data.get('created_at'),
+                    "profile_picture": user_data.get('profile_picture'),
+                    "websites": user_data.get('websites'),
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'following': following_list
+        })
+        
+    except Exception as e:
+        print(f"Error getting following list: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@csrf_exempt
+def get_mutual_connections(request):
+    """
+    Get all users that both follow the current user and are followed by the current user
+    
+    Returns:
+        JsonResponse with list of mutually connected users
+    """
+    try:
+        # Get current user ID based on role
+        user_role = request.session.get("role")
+        current_user_id = None
+        
+        if user_role == "teacher":
+            current_user_name = get_teacher_user_id(request)
+            details = get_user_by_name(current_user_name)
+            current_user_id = details.get('uid')
+        elif user_role == "student":
+            current_user_name = get_student_user_id(request)
+            details = get_user_by_name(current_user_name)
+            current_user_id = details.get('uid')
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Unable to determine current user'
+            }, status=401)
+        
+        # Get the list of users the current user is following
+        following_ids = get_user_following(current_user_id)
+        
+        # Get the list of users who follow the current user
+        follows_ref = db.collection('user_follows')
+        followers_query = follows_ref.where('following_id', '==', current_user_id)
+        followers_docs = followers_query.stream()
+        
+        # Extract the follower IDs
+        follower_ids = []
+        for doc in followers_docs:
+            follower_data = doc.to_dict()
+            follower_ids.append(follower_data.get('follower_id'))
+        
+        # Find the intersection of followers and following (mutual connections)
+        mutual_connection_ids = list(set(following_ids) & set(follower_ids))
+        
+        # Get the details for each mutual connection
+        users_ref = db.collection('users_profile')
+        mutual_connections = []
+        
+        for user_id in mutual_connection_ids:
+            user_doc = users_ref.document(user_id).get()
+            if user_doc.exists:
+                user_data = user_doc.to_dict()
+                mutual_connections.append({
+                    "id": user_id,
+                    "name": user_data.get('name'),
+                    "role": user_data.get('role'),
+                    "bio": user_data.get('bio'),
+                    "followers": user_data.get('followers', 0),
+                    "followings": user_data.get('followings', 0),
+                    "created_at": user_data.get('created_at'),
+                    "profile_picture": user_data.get('profile_picture'),
+                    "websites": user_data.get('websites'),
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'connections': mutual_connections
+        })
+        
+    except Exception as e:
+        print(f"Error getting mutual connections: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
