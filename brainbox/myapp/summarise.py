@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 # Get the summarization service URL from settings, or use a default
 # You can add SUMMARIZATION_SERVICE_URL to your Django settings
 # In your Django settings.py
-SUMMARIZATION_SERVICE_URL = ' https://6c36-34-106-5-91.ngrok-free.app/summarize'
+SUMMARIZATION_SERVICE_URL = ' https://6ec4-34-46-96-107.ngrok-free.app/summarize'
 
 
 @csrf_exempt

@@ -23,6 +23,9 @@ from django.utils.timezone import now
 cred = credentials.Certificate(r"C:\Users\chidu\Downloads\edulink-8db1f-firebase-adminsdk-7zzrp-1c64f2a16f.json")
 # "C:\Users\chidu\Downloads\edulink-8db1f-firebase-adminsdk-7zzrp-e66fc0962d.json"
 
+
+# ireifr
+
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred, {
         'storageBucket': 'edulink-8db1f.firebasestorage.app' 

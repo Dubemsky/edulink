@@ -203,7 +203,7 @@ def get_group_chats(request):
     """
     if request.method != 'GET':
         return JsonResponse({'success': False, 'error': 'Only GET method is allowed'}, status=405)
-    
+    'ih4t'
     # Get the current user's ID
     current_user_id = get_current_user_id(request)
     if not current_user_id:

@@ -655,7 +655,7 @@
 
 
   <script>
-// Setup connections filter functionality
+  // Setup connections filter functionality
 function setupConnectionsFilter() {
   // Get elements
   const connectionsFilterBtn = document.querySelector('.filter-button[data-filter="connections"]');
@@ -772,7 +772,7 @@ function loadConnectionsData(connectionType) {
       endpoint = '/get_followers/';
       break;
     case 'following':
-      endpoint = '/get_following/';
+      endpoint = '/get_following/'; // Correct endpoint
       break;
     case 'mutual':
       endpoint = '/get_mutual_connections/';
@@ -799,30 +799,60 @@ function loadConnectionsData(connectionType) {
         // Get the appropriate data array based on the connection type
         let users;
         if (connectionType === 'followers') {
-          users = data.followers;
+          users = data.followers || []; // From '/get_followers/' endpoint
         } else if (connectionType === 'following') {
-          users = data.following;
+          users = data.following || []; // From '/get_following_connections/' endpoint
         } else if (connectionType === 'mutual') {
-          users = data.connections;
+          users = data.connections || []; // From '/get_mutual_connections/' endpoint
         }
         
         // If there are users to display
         if (users && users.length > 0) {
-          // Render users if the function exists
-          if (window.renderUsers) {
+          // Render users
+          if (typeof window.renderUsers === 'function') {
             window.renderUsers(users);
-            
-            // Add a connections indicator to show which filter is active
-            addConnectionsIndicator(connectionType);
           } else if (typeof renderUsers === 'function') {
             renderUsers(users);
-            
-            // Add a connections indicator
-            addConnectionsIndicator(connectionType);
           } else {
             console.error('renderUsers function not found');
-            showEmptyConnectionsMessage(connectionType);
+            // Attempt a basic render
+            userGrid.innerHTML = '';
+            users.forEach(user => {
+              const card = document.createElement('div');
+              card.className = 'user-card';
+              card.dataset.userId = user.id;
+              
+              const roleBadgeClass = user.role && (user.role.toLowerCase() === 'teacher' || 
+                                    user.role.toLowerCase() === 'lecturer') ? 
+                                    'teacher' : 'student';
+              
+              card.innerHTML = `
+                <div class="user-card-header">
+                  <img src="${user.profile_picture || '/static/images/default_profile.jpg'}" 
+                      alt="${user.name}" class="user-card-img">
+                  <h3>${user.name}</h3>
+                  <span class="role-badge ${roleBadgeClass}">${user.role || 'User'}</span>
+                </div>
+                <div class="user-card-body">
+                  <div class="user-bio">${user.bio || 'No bio available'}</div>
+                  <div class="user-stats">
+                    <div class="stat-item">
+                      <div class="stat-value">${user.followers || 0}</div>
+                      <div class="stat-label">Connections</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-value">${user.followings || 0}</div>
+                      <div class="stat-label">Connected</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+              userGrid.appendChild(card);
+            });
           }
+          
+          // Add a connections indicator to show which filter is active
+          addConnectionsIndicator(connectionType);
         } else {
           // Show empty state message
           showEmptyConnectionsMessage(connectionType);
