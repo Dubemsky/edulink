@@ -6,7 +6,7 @@ EduLink empowers students and teachers to connect, collaborate, and share knowle
 
 ---
 
-## 🌟 Alignment with Opportunity (Why this is relevant to IBM Ireland)
+## 🌟 Alignment with Opportunity 
 EduLink demonstrates hands-on experience in areas IBM values for developer roles:
 - **Backend & APIs:** Designed and implemented server-side logic and REST/WebSocket endpoints using Django.  
 - **Cloud & DevOps mindset:** Development with deployment/testing practices and tools; awareness of containerization and cloud-hosting patterns.  
